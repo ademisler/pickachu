@@ -1,17 +1,16 @@
 // Helper utilities for Pickachu
 let langMap = {};
 if (typeof chrome !== 'undefined') {
-  chrome.storage.sync.get('language', ({language}) => {
-    if (language) {
-      fetch(chrome.runtime.getURL(`_locales/${language}/messages.json`))
-        .then(r => r.json())
-        .then(m => { langMap = m; });
-    }
+  chrome.storage.local.get('language', ({language}) => {
+    const lang = language || 'en';
+    fetch(chrome.runtime.getURL(`_locales/${lang}/messages.json`))
+      .then(r => r.json())
+      .then(m => { langMap = m; });
   });
 }
 let userTheme = 'system';
 if (typeof chrome !== 'undefined') {
-  chrome.storage.sync.get('theme', ({theme}) => { if (theme) userTheme = theme; });
+  chrome.storage.local.get('theme', ({theme}) => { userTheme = theme || 'system'; });
   chrome.storage.onChanged.addListener(ch => {
     if (ch.theme) userTheme = ch.theme.newValue;
   });
@@ -158,6 +157,7 @@ export async function showModal(title, content, icon = '', type = '') {
   overlay.id = 'pickachu-modal-overlay';
   const modal = document.createElement('div');
   modal.id = 'pickachu-modal-content';
+  applyTheme(modal);
   const h3 = document.createElement('h3');
   h3.textContent = `${icon} ${title}`;
   const ta = document.createElement('textarea');

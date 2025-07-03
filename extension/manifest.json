@@ -7,7 +7,8 @@
     "activeTab",
     "scripting",
     "clipboardWrite",
-    "contextMenus"
+    "contextMenus",
+    "storage"
   ],
   "background": {
     "service_worker": "background.js"
@@ -25,6 +26,9 @@
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "content_scripts": [
     {
       "matches": [
@@ -51,29 +55,29 @@
   ],
   "default_locale": "en",
   "commands": {
-    "color-picker": {
+    "activate-color-picker": {
       "suggested_key": {
-        "default": "Alt+Shift+C"
+        "default": "Ctrl+Shift+C"
       },
-      "description": "Activate color picker"
+      "description": "Activate Color Picker"
     },
-    "element-picker": {
+    "activate-element-picker": {
       "suggested_key": {
-        "default": "Alt+Shift+E"
+        "default": "Ctrl+Shift+E"
       },
-      "description": "Activate element picker"
+      "description": "Activate Element Picker"
     },
-    "link-picker": {
+    "activate-link-picker": {
       "suggested_key": {
-        "default": "Alt+Shift+L"
+        "default": "Ctrl+Shift+L"
       },
-      "description": "Activate link picker"
+      "description": "Activate Link Picker"
     },
-    "selector-generator": {
+    "activate-selector-generator": {
       "suggested_key": {
-        "default": "Alt+Shift+S"
+        "default": "Ctrl+Shift+S"
       },
-      "description": "Activate selector generator"
+      "description": "Activate Selector Generator"
     }
   }
 }
