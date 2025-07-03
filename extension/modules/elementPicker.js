@@ -27,7 +27,8 @@ function onClick(e) {
   };
   const text = JSON.stringify(info, null, 2);
   copyText(text);
-  showModal('Element Info', text);
+  const title = chrome.i18n ? chrome.i18n.getMessage('elementInfo') : 'Element Info';
+  showModal(title, text);
   deactivateCb();
 }
 
