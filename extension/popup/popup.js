@@ -19,9 +19,9 @@ function applyTheme(theme){
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const stored = await chrome.storage.sync.get(['language','theme']);
-  const lang = stored.language || 'en';
-  const theme = stored.theme || 'system';
+  const stored = await chrome.storage.local.get(['language','theme']);
+  const lang = stored?.language || 'en';
+  const theme = stored?.theme || 'system';
   const map = await loadLang(lang);
   applyLang(map);
   document.getElementById('lang-select').value = lang;
@@ -29,13 +29,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   applyTheme(theme);
   document.getElementById('lang-select').addEventListener('change', async e => {
     const newLang = e.target.value;
-    chrome.storage.sync.set({language:newLang});
+    chrome.storage.local.set({language:newLang});
     const m = await loadLang(newLang);
     applyLang(m);
   });
   document.getElementById('theme-select').addEventListener('change', e => {
     const t = e.target.value;
-    chrome.storage.sync.set({theme:t});
+    chrome.storage.local.set({theme:t});
     applyTheme(t);
   });
   document.querySelectorAll('.grid button').forEach(btn => {
@@ -43,5 +43,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       chrome.runtime.sendMessage({type: 'ACTIVATE_TOOL', tool: btn.id});
       window.close();
     });
+  });
+  document.querySelectorAll('.grid button').forEach(btn => {
+    const hint = btn.dataset.shortcut;
+    if (hint) {
+      const titleId = btn.dataset.i18nTitle;
+      const base = map[titleId]?.message || btn.title;
+      btn.title = `${base} (${hint})`;
+    }
   });
 });
