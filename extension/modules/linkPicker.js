@@ -14,7 +14,7 @@ function onMove(e){
   const w=Math.abs(startX-e.pageX), h=Math.abs(startY-e.pageY);
   box.style.left=x+'px';box.style.top=y+'px';box.style.width=w+'px';box.style.height=h+'px';
 }
-function onUp(e){
+function onUp(){
   document.removeEventListener('mousemove',onMove,true);
   document.removeEventListener('mouseup',onUp,true);
   const rect=box.getBoundingClientRect();

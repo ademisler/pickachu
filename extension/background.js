@@ -1,5 +1,5 @@
 // background.js
-chrome.runtime.onMessage.addListener((request, sender) => {
+chrome.runtime.onMessage.addListener(request => {
   if (request.type === 'ACTIVATE_TOOL') {
     chrome.tabs.query({active: true, currentWindow: true}, tabs => {
       if (tabs[0]) {
