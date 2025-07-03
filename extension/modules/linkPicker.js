@@ -26,7 +26,7 @@ function onUp(){
   const text=links.join('\n');
   copyText(text);
   const title = chrome.i18n ? chrome.i18n.getMessage('links') : 'Links';
-  showModal(title, text);
+  showModal(title, text, '🔗', 'links');
   deactivateCb();
 }
 export function activate(deactivate){

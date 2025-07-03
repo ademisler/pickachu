@@ -16,6 +16,17 @@
     --pickachu-hover: #555;
   }
 }
+.light-theme {
+  --pickachu-bg: #ffffff;
+  --pickachu-text: #333;
+}
+.dark-theme {
+  --pickachu-bg: #2b2b2b;
+  --pickachu-text: #f5f5f5;
+  --pickachu-button-bg: #3c3c3c;
+  --pickachu-button-border: #555;
+  --pickachu-hover: #555;
+}
 
 #pickachu-highlight-overlay {
   position: absolute;
@@ -76,8 +87,9 @@
   resize: both;
   color: var(--pickachu-text, #333);
 }
-#pickachu-modal-content pre {
-  white-space: pre-wrap;
+#pickachu-modal-content textarea {
+  width: 100%;
+  height: 100px;
 }
 #pickachu-modal-buttons {
   margin-top: 15px;
@@ -113,7 +125,7 @@
   align-items: flex-start;
 }
 
-#pickachu-history .history-item pre {
+#pickachu-history .history-item textarea {
   margin: 0;
   flex: 1;
   overflow: auto;

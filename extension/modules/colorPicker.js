@@ -11,7 +11,7 @@ export function activate(deactivate) {
     const color = res.sRGBHex;
     copyText(color);
     const title = chrome.i18n ? chrome.i18n.getMessage('colorCopied') : 'Color copied';
-    showModal(title, color);
+    showModal(title, color, '🎨', 'color');
     deactivate();
   }).catch(() => deactivate());
 }

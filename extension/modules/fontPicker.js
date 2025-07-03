@@ -15,7 +15,7 @@ function onClick(e){
   const info=`font-family: ${cs.fontFamily}\nfont-size: ${cs.fontSize}\nline-height: ${cs.lineHeight}\nfont-weight: ${cs.fontWeight}`;
   copyText(info);
   const title = chrome.i18n ? chrome.i18n.getMessage('fontInfo') : 'Font Info';
-  showModal(title, info);
+  showModal(title, info, '🔤', 'font');
   deactivateCb();
 }
 export function activate(deactivate){

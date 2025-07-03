@@ -4,9 +4,12 @@ Pickachu is a lightweight toolbox for grabbing colors, elements, links, fonts, i
 text and generating selectors from any webpage.
 
 ## Features
+- Editable modal with favorites and export
 - Color picker using the EyeDropper API
 - Element, link, font, image and text pickers
 - Selector and XPath generator
+- History panel grouped by type
+- Language and theme selectors
 
 ## Installation
 1. Clone this repository.
@@ -27,6 +30,9 @@ are included by default and can be customised from the extension settings page:
 | Activate element picker | `Alt+Shift+E` |
 | Activate link picker | `Alt+Shift+L` |
 | Activate selector generator | `Alt+Shift+S` |
+| Activate font picker | `Alt+Shift+F` |
+| Activate image picker | `Alt+Shift+I` |
+| Activate text picker | `Alt+Shift+T` |
 
 Other tools remain accessible from the popup menu.
 
