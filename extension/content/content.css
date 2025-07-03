@@ -1,3 +1,22 @@
+:root {
+  --pickachu-bg: #fff;
+  --pickachu-text: #333;
+  --pickachu-overlay: rgba(0,0,0,0.5);
+  --pickachu-button-bg: #f0f0f0;
+  --pickachu-button-border: #ccc;
+  --pickachu-hover: #e0e0e0;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --pickachu-bg: #2b2b2b;
+    --pickachu-text: #f5f5f5;
+    --pickachu-overlay: rgba(0,0,0,0.7);
+    --pickachu-button-bg: #3c3c3c;
+    --pickachu-button-border: #555;
+    --pickachu-hover: #555;
+  }
+}
+
 #pickachu-highlight-overlay {
   position: absolute;
   background-color: rgba(68,138,255,0.3);
@@ -23,8 +42,8 @@
 }
 #pickachu-tooltip {
   position: absolute;
-  background: #333;
-  color: #fff;
+  background: var(--pickachu-button-bg, #333);
+  color: var(--pickachu-text, #fff);
   font-family: monospace;
   font-size: 12px;
   padding: 4px 6px;
@@ -36,20 +55,29 @@
 #pickachu-modal-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.5);
+  background: var(--pickachu-overlay, rgba(0,0,0,0.5));
   z-index: 2147483647;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 #pickachu-modal-content {
-  background: #fff;
+  background: var(--pickachu-bg, #fff);
   padding: 20px;
   border-radius: 8px;
   max-width: 80%;
   max-height: 80vh;
   overflow-y: auto;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  resize: both;
+  color: var(--pickachu-text, #333);
+}
+#pickachu-modal-content pre {
+  white-space: pre-wrap;
 }
 #pickachu-modal-buttons {
   margin-top: 15px;
@@ -58,10 +86,15 @@
 #pickachu-modal-buttons button {
   margin-left: 10px;
   padding: 6px 12px;
-  border: 1px solid #ccc;
-  background: #f0f0f0;
+  border: 1px solid var(--pickachu-button-border, #ccc);
+  background: var(--pickachu-button-bg, #f0f0f0);
   border-radius: 4px;
   cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+#pickachu-modal-buttons button:hover {
+  background: var(--pickachu-hover, #e0e0e0);
+  transform: translateY(-2px);
 }
 #pickachu-modal-buttons button.copy {
   background: #448aff;
@@ -89,4 +122,17 @@
 
 #pickachu-history .history-item button {
   margin-right: 5px;
+}
+
+#pickachu-toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.8);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 4px;
+  z-index: 2147483647;
+  font-size: 12px;
 }

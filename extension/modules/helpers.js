@@ -24,6 +24,14 @@ export function copyText(text) {
   navigator.clipboard.writeText(text).catch(err => console.error('Copy failed', err));
 }
 
+export function showToast(message, duration = 1500) {
+  const toast = document.createElement('div');
+  toast.id = 'pickachu-toast';
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), duration);
+}
+
 function t(id) {
   if (chrome && chrome.i18n) {
     const msg = chrome.i18n.getMessage(id);
@@ -69,13 +77,19 @@ export function showHistory() {
     div.className = 'history-item';
     const fav = document.createElement('button');
     fav.textContent = item.favorite ? '★' : '☆';
-    fav.addEventListener('click', () => {
-      const val = toggleFavorite(item.id);
-      fav.textContent = val ? '★' : '☆';
-    });
+    fav.title = t('favorite');
+  fav.addEventListener('click', () => {
+    const val = toggleFavorite(item.id);
+    fav.textContent = val ? '★' : '☆';
+    showToast(val ? t('favorite') : t('unfavorite'));
+  });
     const copy = document.createElement('button');
     copy.textContent = t('copy');
-    copy.addEventListener('click', () => copyText(item.content));
+    copy.title = t('copy');
+    copy.addEventListener('click', () => {
+      copyText(item.content);
+      showToast(t('copy'));
+    });
     const pre = document.createElement('pre');
     pre.textContent = item.content;
     div.appendChild(fav);
@@ -85,6 +99,7 @@ export function showHistory() {
   });
   const closeBtn = document.createElement('button');
   closeBtn.textContent = t('close');
+  closeBtn.title = t('close');
   closeBtn.addEventListener('click', () => overlay.remove());
   modal.appendChild(h3);
   modal.appendChild(list);
@@ -107,15 +122,20 @@ export function showModal(title, content) {
   buttons.id = 'pickachu-modal-buttons';
   const closeBtn = document.createElement('button');
   closeBtn.textContent = t('close');
+  closeBtn.title = t('close');
   const copyBtn = document.createElement('button');
   copyBtn.textContent = t('copy');
   copyBtn.className = 'copy';
+  copyBtn.title = t('copy');
   const exportBtn = document.createElement('button');
   exportBtn.textContent = t('export');
+  exportBtn.title = t('export');
   const favBtn = document.createElement('button');
   favBtn.textContent = '☆';
+  favBtn.title = t('favorite');
   const historyBtn = document.createElement('button');
   historyBtn.textContent = t('history');
+  historyBtn.title = t('history');
   buttons.appendChild(copyBtn);
   buttons.appendChild(exportBtn);
   buttons.appendChild(favBtn);
@@ -126,8 +146,28 @@ export function showModal(title, content) {
   modal.appendChild(buttons);
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
+  let startX, startY;
+  function onDrag(e){
+    modal.style.left = e.clientX - startX + 'px';
+    modal.style.top = e.clientY - startY + 'px';
+  }
+  function endDrag(){
+    document.removeEventListener('mousemove', onDrag);
+    document.removeEventListener('mouseup', endDrag);
+  }
+  h3.style.cursor = 'move';
+  h3.addEventListener('mousedown', e => {
+    startX = e.clientX - modal.offsetLeft;
+    startY = e.clientY - modal.offsetTop;
+    modal.style.transform = 'none';
+    document.addEventListener('mousemove', onDrag);
+    document.addEventListener('mouseup', endDrag);
+  });
   closeBtn.addEventListener('click', () => overlay.remove());
-  copyBtn.addEventListener('click', () => copyText(content));
+  copyBtn.addEventListener('click', () => {
+    copyText(content);
+    showToast(t('copy'));
+  });
   exportBtn.addEventListener('click', () => {
     const blob = new Blob([content], {type: 'text/plain'});
     const url = URL.createObjectURL(blob);
@@ -136,12 +176,14 @@ export function showModal(title, content) {
     a.download = 'pickachu.txt';
     a.click();
     URL.revokeObjectURL(url);
+    showToast(t('export'));
   });
   const item = {id: Date.now(), title, content, favorite: false};
   saveHistory(item);
   favBtn.addEventListener('click', () => {
     const val = toggleFavorite(item.id);
     favBtn.textContent = val ? '★' : '☆';
+    showToast(val ? t('favorite') : t('unfavorite'));
   });
   historyBtn.addEventListener('click', () => {
     overlay.remove();
