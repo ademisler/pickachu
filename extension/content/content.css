@@ -1,11 +1,25 @@
 #pickachu-highlight-overlay {
   position: absolute;
-  background-color: rgba(68,138,255,0.4);
+  background-color: rgba(68,138,255,0.3);
   border: 2px solid #448aff;
-  border-radius: 3px;
+  border-radius: 4px;
   z-index: 2147483646;
   pointer-events: none;
   box-sizing: border-box;
+  box-shadow: 0 0 6px rgba(68,138,255,0.6);
+  transition: all 0.15s ease-out;
+  animation: pickachu-fade-in 0.2s ease-out;
+}
+
+@keyframes pickachu-fade-in {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 #pickachu-tooltip {
   position: absolute;

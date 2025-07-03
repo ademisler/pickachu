@@ -1,24 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Pickachu</title>
-<link rel="stylesheet" href="popup.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pickachu</title>
+  <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <div class="header">
+  <header class="header">
     <h1>Pickachu ⚡️</h1>
     <p>Quick web picker tools</p>
-  </div>
+  </header>
   <div class="grid">
-    <button id="color-picker" title="Color Picker">🎨</button>
-    <button id="element-picker" title="Element Picker">🧱</button>
-    <button id="link-picker" title="Link Picker">🔗</button>
-    <button id="font-picker" title="Font Picker">🔤</button>
-    <button id="image-picker" title="Image Picker">🖼️</button>
-    <button id="text-picker" title="Text Picker">🧾</button>
-    <button id="selector-generator" title="Selector & XPath Generator">🧬</button>
+    <button id="color-picker" title="Color Picker">
+      <span class="icon">🎨</span>
+      <span class="label">Color</span>
+    </button>
+    <button id="element-picker" title="Element Picker">
+      <span class="icon">🧱</span>
+      <span class="label">Element</span>
+    </button>
+    <button id="link-picker" title="Link Picker">
+      <span class="icon">🔗</span>
+      <span class="label">Link</span>
+    </button>
+    <button id="font-picker" title="Font Picker">
+      <span class="icon">🔤</span>
+      <span class="label">Font</span>
+    </button>
+    <button id="image-picker" title="Image Picker">
+      <span class="icon">🖼️</span>
+      <span class="label">Image</span>
+    </button>
+    <button id="text-picker" title="Text Picker">
+      <span class="icon">🧾</span>
+      <span class="label">Text</span>
+    </button>
+    <button id="selector-generator" title="Selector & XPath Generator">
+      <span class="icon">🧬</span>
+      <span class="label">Selectors</span>
+    </button>
   </div>
-<script src="popup.js"></script>
+  <script src="popup.js"></script>
 </body>
 </html>
