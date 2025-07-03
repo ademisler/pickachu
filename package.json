@@ -1,7 +1,7 @@
 {
   "name": "pickachu",
   "version": "1.0.0",
-  "description": "Pickachu is a lightweight toolbox for grabbing colors, elements, links, fonts, images, text and generating selectors from any webpage.",
+  "description": "Pickachu is a lightweight toolbox for grabbing colors, elements, links, fonts, images, and text from any webpage.",
   "main": "index.js",
   "scripts": {
     "test": "NODE_OPTIONS=--experimental-vm-modules jest"

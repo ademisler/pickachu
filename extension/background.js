@@ -19,6 +19,10 @@ chrome.runtime.onMessage.addListener(request => {
 });
 
 chrome.commands.onCommand.addListener(command => {
+  if (command === 'open-popup') {
+    chrome.action.openPopup();
+    return;
+  }
   const tool = command.replace(/^activate-/, '');
   chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
     const tab = tabs[0];
