@@ -101,6 +101,21 @@ button {
 button img.icon {
   width: 26px;
   height: 26px;
+  filter: brightness(0);
+}
+
+@media (prefers-color-scheme: dark) {
+  button img.icon {
+    filter: brightness(0) invert(1);
+  }
+}
+
+.light button img.icon {
+  filter: brightness(0);
+}
+
+.dark button img.icon {
+  filter: brightness(0) invert(1);
 }
 
 button .label {
@@ -120,4 +135,28 @@ button:hover {
   font-size: 12px;
   color: var(--text);
   font-weight: bold;
+}
+
+.footer {
+  margin-top: 8px;
+  text-align: center;
+}
+
+.footer .icon-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 4px;
+  font-size: 12px;
+  color: var(--text);
+  text-decoration: none;
+  background: var(--button-bg);
+  border: 1px solid var(--button-border);
+  border-radius: 6px;
+  padding: 2px 6px;
+  transition: background 0.2s;
+}
+
+.footer .icon-btn:hover {
+  background: var(--button-hover);
 }

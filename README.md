@@ -9,6 +9,7 @@ and text from any webpage.
 - Element, link, font, image and text pickers
 - History panel grouped by type
 - Language and theme options
+- Icons adapt to light and dark mode
 
 ## Installation
 1. Clone this repository.
@@ -19,7 +20,7 @@ The popup provides buttons to activate each tool. Data from the page is copied t
 clipboard and displayed in a short notification.
 
 ## Keyboard Shortcuts
-Pickachu defines a single shortcut using the Chrome `commands` API.
+Pickachu defines a single shortcut using the Chrome `commands` API. Press `Ctrl+Shift+P` to open the popup from any page.
 
 | Action | Shortcut |
 | ------ | -------- |
@@ -48,4 +49,8 @@ After installing dependencies with `npm install`, run the unit tests with:
 ```bash
 npm test
 ```
+
+## Credits
+Created by [Adem İsler](https://ademisler.com/). If you find this project useful,
+consider [buying me a coffee](https://buymeacoffee.com/ademisler).
 
