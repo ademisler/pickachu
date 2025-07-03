@@ -34,3 +34,9 @@ cd extension
 zip -r ../pickachu.zip .
 ```
 
+## Development
+After installing dependencies with `npm install`, run the unit tests with:
+```bash
+npm test
+```
+
