@@ -1,31 +1,80 @@
 {
-  "extensionName": {"message": "Pickachu"},
-  "popupSubtitle": {"message": "Hızlı web seçme araçları"},
-  "color": {"message": "Renk"},
-  "element": {"message": "Öğe"},
-  "link": {"message": "Bağlantı"},
-  "font": {"message": "Yazı"},
-  "image": {"message": "Resim"},
-  "text": {"message": "Metin"},
-  "selectors": {"message": "Seçiciler"},
-  "close": {"message": "Kapat"},
-  "copy": {"message": "Kopyala"},
-  "export": {"message": "Dışa Aktar"},
-  "history": {"message": "Geçmiş"},
-  "favorite": {"message": "Favori"},
-  "unfavorite": {"message": "Kaldır"},
-  "colorPicker": {"message": "Renk Seçici"},
-  "elementPicker": {"message": "Öğe Seçici"},
-  "linkPicker": {"message": "Bağlantı Seçici"},
-  "fontPicker": {"message": "Yazı Seçici"},
-  "imagePicker": {"message": "Resim Seçici"},
-  "textPicker": {"message": "Metin Seçici"},
-  "selectorGenerator": {"message": "Seçici & XPath Oluşturucu"},
-  "colorCopied": {"message": "Renk kopyalandı"},
-  "elementInfo": {"message": "Öğe Bilgisi"},
-  "links": {"message": "Bağlantılar"},
-  "fontInfo": {"message": "Yazı Bilgisi"},
-  "images": {"message": "Resimler"},
-  "textTitle": {"message": "Metin"},
-  "selectorsTitle": {"message": "Seçici & XPath"}
+  "extensionName": {
+    "message": "Pickachu"
+  },
+  "popupSubtitle": {
+    "message": "Hızlı web seçme araçları"
+  },
+  "color": {
+    "message": "Renk"
+  },
+  "element": {
+    "message": "Öğe"
+  },
+  "link": {
+    "message": "Bağlantı"
+  },
+  "font": {
+    "message": "Yazı"
+  },
+  "image": {
+    "message": "Resim"
+  },
+  "text": {
+    "message": "Metin"
+  },
+  "close": {
+    "message": "Kapat"
+  },
+  "copy": {
+    "message": "Kopyala"
+  },
+  "export": {
+    "message": "Dışa Aktar"
+  },
+  "history": {
+    "message": "Geçmiş"
+  },
+  "favorite": {
+    "message": "Favori"
+  },
+  "unfavorite": {
+    "message": "Kaldır"
+  },
+  "colorPicker": {
+    "message": "Renk Seçici"
+  },
+  "elementPicker": {
+    "message": "Öğe Seçici"
+  },
+  "linkPicker": {
+    "message": "Bağlantı Seçici"
+  },
+  "fontPicker": {
+    "message": "Yazı Seçici"
+  },
+  "imagePicker": {
+    "message": "Resim Seçici"
+  },
+  "textPicker": {
+    "message": "Metin Seçici"
+  },
+  "colorCopied": {
+    "message": "Renk kopyalandı"
+  },
+  "elementInfo": {
+    "message": "Öğe Bilgisi"
+  },
+  "links": {
+    "message": "Bağlantılar"
+  },
+  "fontInfo": {
+    "message": "Yazı Bilgisi"
+  },
+  "images": {
+    "message": "Resimler"
+  },
+  "textTitle": {
+    "message": "Metin"
+  }
 }

@@ -1,31 +1,80 @@
 {
-  "extensionName": {"message": "Pickachu"},
-  "popupSubtitle": {"message": "Outils de capture rapides"},
-  "color": {"message": "Couleur"},
-  "element": {"message": "Élément"},
-  "link": {"message": "Lien"},
-  "font": {"message": "Police"},
-  "image": {"message": "Image"},
-  "text": {"message": "Texte"},
-  "selectors": {"message": "Sélecteurs"},
-  "close": {"message": "Fermer"},
-  "copy": {"message": "Copier"},
-  "export": {"message": "Exporter"},
-  "history": {"message": "Historique"},
-  "favorite": {"message": "Favori"},
-  "unfavorite": {"message": "Retirer"},
-  "colorPicker": {"message": "Pipette"},
-  "elementPicker": {"message": "Sélecteur d'élément"},
-  "linkPicker": {"message": "Sélecteur de lien"},
-  "fontPicker": {"message": "Sélecteur de police"},
-  "imagePicker": {"message": "Sélecteur d'image"},
-  "textPicker": {"message": "Sélecteur de texte"},
-  "selectorGenerator": {"message": "Générateur de sélecteurs"},
-  "colorCopied": {"message": "Couleur copiée"},
-  "elementInfo": {"message": "Infos élément"},
-  "links": {"message": "Liens"},
-  "fontInfo": {"message": "Infos police"},
-  "images": {"message": "Images"},
-  "textTitle": {"message": "Texte"},
-  "selectorsTitle": {"message": "Sélecteur & XPath"}
+  "extensionName": {
+    "message": "Pickachu"
+  },
+  "popupSubtitle": {
+    "message": "Outils de capture rapides"
+  },
+  "color": {
+    "message": "Couleur"
+  },
+  "element": {
+    "message": "Élément"
+  },
+  "link": {
+    "message": "Lien"
+  },
+  "font": {
+    "message": "Police"
+  },
+  "image": {
+    "message": "Image"
+  },
+  "text": {
+    "message": "Texte"
+  },
+  "close": {
+    "message": "Fermer"
+  },
+  "copy": {
+    "message": "Copier"
+  },
+  "export": {
+    "message": "Exporter"
+  },
+  "history": {
+    "message": "Historique"
+  },
+  "favorite": {
+    "message": "Favori"
+  },
+  "unfavorite": {
+    "message": "Retirer"
+  },
+  "colorPicker": {
+    "message": "Pipette"
+  },
+  "elementPicker": {
+    "message": "Sélecteur d'élément"
+  },
+  "linkPicker": {
+    "message": "Sélecteur de lien"
+  },
+  "fontPicker": {
+    "message": "Sélecteur de police"
+  },
+  "imagePicker": {
+    "message": "Sélecteur d'image"
+  },
+  "textPicker": {
+    "message": "Sélecteur de texte"
+  },
+  "colorCopied": {
+    "message": "Couleur copiée"
+  },
+  "elementInfo": {
+    "message": "Infos élément"
+  },
+  "links": {
+    "message": "Liens"
+  },
+  "fontInfo": {
+    "message": "Infos police"
+  },
+  "images": {
+    "message": "Images"
+  },
+  "textTitle": {
+    "message": "Texte"
+  }
 }

@@ -1,31 +1,80 @@
 {
-  "extensionName": {"message": "Pickachu"},
-  "popupSubtitle": {"message": "Quick web picker tools"},
-  "color": {"message": "Color"},
-  "element": {"message": "Element"},
-  "link": {"message": "Link"},
-  "font": {"message": "Font"},
-  "image": {"message": "Image"},
-  "text": {"message": "Text"},
-  "selectors": {"message": "Selectors"},
-  "close": {"message": "Close"},
-  "copy": {"message": "Copy"},
-  "export": {"message": "Export"},
-  "history": {"message": "History"},
-  "favorite": {"message": "Favorite"},
-  "unfavorite": {"message": "Unfavorite"},
-  "colorPicker": {"message": "Color Picker"},
-  "elementPicker": {"message": "Element Picker"},
-  "linkPicker": {"message": "Link Picker"},
-  "fontPicker": {"message": "Font Picker"},
-  "imagePicker": {"message": "Image Picker"},
-  "textPicker": {"message": "Text Picker"},
-  "selectorGenerator": {"message": "Selector & XPath Generator"},
-  "colorCopied": {"message": "Color copied"},
-  "elementInfo": {"message": "Element Info"},
-  "links": {"message": "Links"},
-  "fontInfo": {"message": "Font Info"},
-  "images": {"message": "Images"},
-  "textTitle": {"message": "Text"},
-  "selectorsTitle": {"message": "Selector & XPath"}
+  "extensionName": {
+    "message": "Pickachu"
+  },
+  "popupSubtitle": {
+    "message": "Quick web picker tools"
+  },
+  "color": {
+    "message": "Color"
+  },
+  "element": {
+    "message": "Element"
+  },
+  "link": {
+    "message": "Link"
+  },
+  "font": {
+    "message": "Font"
+  },
+  "image": {
+    "message": "Image"
+  },
+  "text": {
+    "message": "Text"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "copy": {
+    "message": "Copy"
+  },
+  "export": {
+    "message": "Export"
+  },
+  "history": {
+    "message": "History"
+  },
+  "favorite": {
+    "message": "Favorite"
+  },
+  "unfavorite": {
+    "message": "Unfavorite"
+  },
+  "colorPicker": {
+    "message": "Color Picker"
+  },
+  "elementPicker": {
+    "message": "Element Picker"
+  },
+  "linkPicker": {
+    "message": "Link Picker"
+  },
+  "fontPicker": {
+    "message": "Font Picker"
+  },
+  "imagePicker": {
+    "message": "Image Picker"
+  },
+  "textPicker": {
+    "message": "Text Picker"
+  },
+  "colorCopied": {
+    "message": "Color copied"
+  },
+  "elementInfo": {
+    "message": "Element Info"
+  },
+  "links": {
+    "message": "Links"
+  },
+  "fontInfo": {
+    "message": "Font Info"
+  },
+  "images": {
+    "message": "Images"
+  },
+  "textTitle": {
+    "message": "Text"
+  }
 }

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Pickachu",
   "version": "1.0",
-  "description": "A lightweight picker toolbox to collect colors, elements, links, fonts, images, text and selectors from any webpage.",
+  "description": "A lightweight picker toolbox to collect colors, elements, links, fonts, images, and text from any webpage.",
   "permissions": [
     "activeTab",
     "scripting",
@@ -55,29 +55,11 @@
   ],
   "default_locale": "en",
   "commands": {
-    "activate-color-picker": {
+    "open-popup": {
       "suggested_key": {
-        "default": "Ctrl+Shift+C"
+        "default": "Ctrl+Shift+P"
       },
-      "description": "Activate Color Picker"
-    },
-    "activate-element-picker": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+E"
-      },
-      "description": "Activate Element Picker"
-    },
-    "activate-link-picker": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+L"
-      },
-      "description": "Activate Link Picker"
-    },
-    "activate-selector-generator": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+S"
-      },
-      "description": "Activate Selector Generator"
+      "description": "Open Pickachu"
     }
   }
 }

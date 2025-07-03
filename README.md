@@ -1,15 +1,14 @@
 # Pickachu Chrome Extension
 
-Pickachu is a lightweight toolbox for grabbing colors, elements, links, fonts, images,
-text and generating selectors from any webpage.
+Pickachu is a lightweight toolbox for grabbing colors, elements, links, fonts, images
+and text from any webpage.
 
 ## Features
 - Editable modal with favorites and export
 - Color picker using the EyeDropper API
 - Element, link, font, image and text pickers
-- Selector and XPath generator
 - History panel grouped by type
-- Language and theme selectors
+- Language and theme options
 
 ## Installation
 1. Clone this repository.
@@ -20,21 +19,11 @@ The popup provides buttons to activate each tool. Data from the page is copied t
 clipboard and displayed in a short notification.
 
 ## Keyboard Shortcuts
-Pickachu defines a few default shortcuts using the Chrome `commands` API. Due to a
-Chrome limitation only **four** commands can be registered. The extension uses the
-following defaults, which can be customised from the extension settings page:
+Pickachu defines a single shortcut using the Chrome `commands` API.
 
 | Action | Shortcut |
 | ------ | -------- |
-| Activate color picker | `Alt+Shift+C` |
-| Activate element picker | `Alt+Shift+E` |
-| Activate link picker | `Alt+Shift+L` |
-| Activate selector generator | `Alt+Shift+S` |
-
-Other tools can be launched from the popup or by assigning additional shortcuts in
-Chrome's keyboard shortcut settings.
-
-Other tools remain accessible from the popup menu.
+| Open popup | `Ctrl+Shift+P` |
 
 ## Repository Structure
 ```
