@@ -1,0 +1,16 @@
+{
+  "name": "pickachu",
+  "version": "1.0.0",
+  "description": "Pickachu is a lightweight toolbox for grabbing colors, elements, links, fonts, images, text and generating selectors from any webpage.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "eslint": "^9.30.1"
+  }
+}
