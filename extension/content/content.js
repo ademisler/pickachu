@@ -9,7 +9,7 @@ async function loadModule(name) {
   return mod;
 }
 
-function deactivate() {
+function resetActiveModule() {
   if (activeModule && activeModule.deactivate) {
     activeModule.deactivate();
   }
@@ -19,13 +19,13 @@ function deactivate() {
 
 chrome.runtime.onMessage.addListener(async msg => {
   if (msg.type === 'ACTIVATE_TOOL_ON_PAGE') {
-    deactivate();
+    resetActiveModule();
     const moduleName = msg.tool.replace(/-([a-z])/g, (_,c)=>c.toUpperCase());
     try {
       const mod = await loadModule(moduleName);
       if (mod && mod.activate) {
         activeModule = mod;
-        mod.activate(deactivate);
+        mod.activate(resetActiveModule);
       }
     } catch(e){
       console.error('Pickachu: failed to load', moduleName, e);
@@ -35,6 +35,6 @@ chrome.runtime.onMessage.addListener(async msg => {
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
-    deactivate();
+    resetActiveModule();
   }
 });

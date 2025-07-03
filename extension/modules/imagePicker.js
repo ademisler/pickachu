@@ -4,7 +4,7 @@ export function activate(deactivate){
   const text=JSON.stringify(imgs,null,2);
   copyText(text);
   const title = chrome.i18n ? chrome.i18n.getMessage('images') : 'Images';
-  showModal(title, text);
+  showModal(title, text, '🖼️', 'image');
   deactivate();
 }
 export function deactivate(){}

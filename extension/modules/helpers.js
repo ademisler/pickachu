@@ -1,3 +1,36 @@
+// Helper utilities for Pickachu
+let langMap = {};
+if (typeof chrome !== 'undefined') {
+  chrome.storage.sync.get('language', ({language}) => {
+    if (language) {
+      fetch(chrome.runtime.getURL(`_locales/${language}/messages.json`))
+        .then(r => r.json())
+        .then(m => { langMap = m; });
+    }
+  });
+}
+let userTheme = 'system';
+if (typeof chrome !== 'undefined') {
+  chrome.storage.sync.get('theme', ({theme}) => { if (theme) userTheme = theme; });
+  chrome.storage.onChanged.addListener(ch => {
+    if (ch.theme) userTheme = ch.theme.newValue;
+  });
+}
+
+function applyTheme(el){
+  if(userTheme==='light') el.classList.add('light-theme');
+  if(userTheme==='dark') el.classList.add('dark-theme');
+}
+
+function t(id) {
+  if (langMap[id]) return langMap[id].message;
+  if (chrome && chrome.i18n) {
+    const msg = chrome.i18n.getMessage(id);
+    if (msg) return msg;
+  }
+  return id;
+}
+
 export function createOverlay() {
   const box = document.createElement('div');
   box.id = 'pickachu-highlight-overlay';
@@ -32,76 +65,87 @@ export function showToast(message, duration = 1500) {
   setTimeout(() => toast.remove(), duration);
 }
 
-function t(id) {
-  if (chrome && chrome.i18n) {
-    const msg = chrome.i18n.getMessage(id);
-    if (msg) return msg;
-  }
-  return id;
+async function getHistory() {
+  return new Promise(resolve => {
+    chrome.storage.local.get('pickachuHistory', data => {
+      resolve(data.pickachuHistory || []);
+    });
+  });
 }
 
-function getHistory() {
-  return JSON.parse(localStorage.getItem('pickachuHistory') || '[]');
-}
-
-function saveHistory(item) {
-  const hist = getHistory();
+async function saveHistory(item) {
+  const hist = await getHistory();
   hist.unshift(item);
   if (hist.length > 20) hist.pop();
-  localStorage.setItem('pickachuHistory', JSON.stringify(hist));
+  chrome.storage.local.set({ pickachuHistory: hist });
 }
 
-function toggleFavorite(id) {
-  const hist = getHistory();
+async function toggleFavorite(id) {
+  const hist = await getHistory();
   const item = hist.find(i => i.id === id);
   if (item) {
     item.favorite = !item.favorite;
-    localStorage.setItem('pickachuHistory', JSON.stringify(hist));
+    chrome.storage.local.set({ pickachuHistory: hist });
     return item.favorite;
   }
   return false;
 }
 
-export function showHistory() {
-  const data = getHistory();
+export async function showHistory() {
+  const data = await getHistory();
   const overlay = document.createElement('div');
   overlay.id = 'pickachu-modal-overlay';
   const modal = document.createElement('div');
   modal.id = 'pickachu-modal-content';
+  applyTheme(modal);
   const h3 = document.createElement('h3');
   h3.textContent = t('history');
+  const filter = document.createElement('select');
+  const types = ['all', ...new Set(data.map(d => d.type))];
+  types.forEach(type => {
+    const opt = document.createElement('option');
+    opt.value = type;
+    opt.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+    filter.appendChild(opt);
+  });
   const list = document.createElement('div');
   list.id = 'pickachu-history';
-  data.forEach(item => {
-    const div = document.createElement('div');
-    div.className = 'history-item';
-    const fav = document.createElement('button');
-    fav.textContent = item.favorite ? '★' : '☆';
-    fav.title = t('favorite');
-  fav.addEventListener('click', () => {
-    const val = toggleFavorite(item.id);
-    fav.textContent = val ? '★' : '☆';
-    showToast(val ? t('favorite') : t('unfavorite'));
-  });
-    const copy = document.createElement('button');
-    copy.textContent = t('copy');
-    copy.title = t('copy');
-    copy.addEventListener('click', () => {
-      copyText(item.content);
-      showToast(t('copy'));
+  function render(filterType) {
+    list.innerHTML = '';
+    data.filter(it => filterType === 'all' || it.type === filterType).forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'history-item';
+      const fav = document.createElement('button');
+      fav.textContent = item.favorite ? '★' : '☆';
+      fav.title = t('favorite');
+      fav.addEventListener('click', async () => {
+        const val = await toggleFavorite(item.id);
+        fav.textContent = val ? '★' : '☆';
+        showToast(val ? t('favorite') : t('unfavorite'));
+      });
+      const copy = document.createElement('button');
+      copy.textContent = t('copy');
+      copy.title = t('copy');
+      copy.addEventListener('click', () => {
+        copyText(item.content);
+        showToast(t('copy'));
+      });
+      const ta = document.createElement('textarea');
+      ta.value = item.content;
+      div.appendChild(fav);
+      div.appendChild(copy);
+      div.appendChild(ta);
+      list.appendChild(div);
     });
-    const pre = document.createElement('pre');
-    pre.textContent = item.content;
-    div.appendChild(fav);
-    div.appendChild(copy);
-    div.appendChild(pre);
-    list.appendChild(div);
-  });
+  }
+  render('all');
+  filter.addEventListener('change', () => render(filter.value));
   const closeBtn = document.createElement('button');
   closeBtn.textContent = t('close');
   closeBtn.title = t('close');
   closeBtn.addEventListener('click', () => overlay.remove());
   modal.appendChild(h3);
+  modal.appendChild(filter);
   modal.appendChild(list);
   modal.appendChild(closeBtn);
   overlay.appendChild(modal);
@@ -109,15 +153,15 @@ export function showHistory() {
   return overlay;
 }
 
-export function showModal(title, content) {
+export async function showModal(title, content, icon = '', type = '') {
   const overlay = document.createElement('div');
   overlay.id = 'pickachu-modal-overlay';
   const modal = document.createElement('div');
   modal.id = 'pickachu-modal-content';
   const h3 = document.createElement('h3');
-  h3.textContent = title;
-  const pre = document.createElement('pre');
-  pre.textContent = content;
+  h3.textContent = `${icon} ${title}`;
+  const ta = document.createElement('textarea');
+  ta.value = content;
   const buttons = document.createElement('div');
   buttons.id = 'pickachu-modal-buttons';
   const closeBtn = document.createElement('button');
@@ -142,16 +186,16 @@ export function showModal(title, content) {
   buttons.appendChild(historyBtn);
   buttons.appendChild(closeBtn);
   modal.appendChild(h3);
-  modal.appendChild(pre);
+  modal.appendChild(ta);
   modal.appendChild(buttons);
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
   let startX, startY;
-  function onDrag(e){
+  function onDrag(e) {
     modal.style.left = e.clientX - startX + 'px';
     modal.style.top = e.clientY - startY + 'px';
   }
-  function endDrag(){
+  function endDrag() {
     document.removeEventListener('mousemove', onDrag);
     document.removeEventListener('mouseup', endDrag);
   }
@@ -165,23 +209,29 @@ export function showModal(title, content) {
   });
   closeBtn.addEventListener('click', () => overlay.remove());
   copyBtn.addEventListener('click', () => {
-    copyText(content);
+    copyText(ta.value);
     showToast(t('copy'));
   });
   exportBtn.addEventListener('click', () => {
-    const blob = new Blob([content], {type: 'text/plain'});
+    const format = prompt('txt/json/csv', 'txt');
+    let dataStr = ta.value;
+    let typeStr = 'text/plain';
+    let fileName = 'pickachu.' + (format || 'txt');
+    if (format === 'json') { typeStr = 'application/json'; }
+    if (format === 'csv') { typeStr = 'text/csv'; }
+    const blob = new Blob([dataStr], { type: typeStr });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'pickachu.txt';
+    a.download = fileName;
     a.click();
     URL.revokeObjectURL(url);
     showToast(t('export'));
   });
-  const item = {id: Date.now(), title, content, favorite: false};
+  const item = { id: Date.now(), title, content, type, favorite: false };
   saveHistory(item);
-  favBtn.addEventListener('click', () => {
-    const val = toggleFavorite(item.id);
+  favBtn.addEventListener('click', async () => {
+    const val = await toggleFavorite(item.id);
     favBtn.textContent = val ? '★' : '☆';
     showToast(val ? t('favorite') : t('unfavorite'));
   });
@@ -191,6 +241,7 @@ export function showModal(title, content) {
   });
   return overlay;
 }
+
 export function getCssSelector(el) {
   if (!(el instanceof Element)) return '';
   const path = [];

@@ -13,7 +13,7 @@ function onClick(e){
   const text=e.target.textContent.trim();
   copyText(text);
   const title = chrome.i18n ? chrome.i18n.getMessage('textTitle') : 'Text';
-  showModal(title, text);
+  showModal(title, text, '🧾', 'text');
   deactivateCb();
 }
 export function activate(deactivate){

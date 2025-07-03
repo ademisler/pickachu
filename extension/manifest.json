@@ -74,6 +74,24 @@
         "default": "Alt+Shift+S"
       },
       "description": "Activate selector generator"
+    },
+    "font-picker": {
+      "suggested_key": {
+        "default": "Alt+Shift+F"
+      },
+      "description": "Activate font picker"
+    },
+    "image-picker": {
+      "suggested_key": {
+        "default": "Alt+Shift+I"
+      },
+      "description": "Activate image picker"
+    },
+    "text-picker": {
+      "suggested_key": {
+        "default": "Alt+Shift+T"
+      },
+      "description": "Activate text picker"
     }
   }
 }
