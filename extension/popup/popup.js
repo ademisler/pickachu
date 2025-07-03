@@ -44,4 +44,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       window.close();
     });
   });
+  document.querySelectorAll('.grid button').forEach(btn => {
+    const hint = btn.dataset.shortcut;
+    if (hint) {
+      const titleId = btn.dataset.i18nTitle;
+      const base = map[titleId]?.message || btn.title;
+      btn.title = `${base} (${hint})`;
+    }
+  });
 });
