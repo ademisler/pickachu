@@ -21,8 +21,8 @@ clipboard and displayed in a short notification.
 
 ## Keyboard Shortcuts
 Pickachu defines a few default shortcuts using the Chrome `commands` API. Due to a
-Chrome limitation only **four** commands can be registered. The following shortcuts
-are included by default and can be customised from the extension settings page:
+Chrome limitation only **four** commands can be registered. The extension uses the
+following defaults, which can be customised from the extension settings page:
 
 | Action | Shortcut |
 | ------ | -------- |
@@ -30,9 +30,9 @@ are included by default and can be customised from the extension settings page:
 | Activate element picker | `Alt+Shift+E` |
 | Activate link picker | `Alt+Shift+L` |
 | Activate selector generator | `Alt+Shift+S` |
-| Activate font picker | `Alt+Shift+F` |
-| Activate image picker | `Alt+Shift+I` |
-| Activate text picker | `Alt+Shift+T` |
+
+Other tools can be launched from the popup or by assigning additional shortcuts in
+Chrome's keyboard shortcut settings.
 
 Other tools remain accessible from the popup menu.
 
