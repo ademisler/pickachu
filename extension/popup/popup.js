@@ -18,38 +18,48 @@ function applyTheme(theme){
   if(theme==='dark') document.body.classList.add('dark');
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-  const stored = await chrome.storage.local.get(['language','theme']);
-  const lang = stored?.language || 'en';
-  const theme = stored?.theme || 'system';
-  const map = await loadLang(lang);
-  applyLang(map);
-  document.getElementById('lang-select').value = lang;
-  document.getElementById('theme-select').value = theme;
-  applyTheme(theme);
-  document.getElementById('lang-select').addEventListener('change', async e => {
-    const newLang = e.target.value;
-    chrome.storage.local.set({language:newLang});
-    const m = await loadLang(newLang);
-    applyLang(m);
-  });
-  document.getElementById('theme-select').addEventListener('change', e => {
-    const t = e.target.value;
-    chrome.storage.local.set({theme:t});
-    applyTheme(t);
-  });
+document.addEventListener('DOMContentLoaded', () => {
+  const langSelect = document.getElementById('lang-select');
+  const themeSelect = document.getElementById('theme-select');
+
   document.querySelectorAll('.grid button').forEach(btn => {
     btn.addEventListener('click', () => {
-      chrome.runtime.sendMessage({type: 'ACTIVATE_TOOL', tool: btn.id});
+      chrome.runtime.sendMessage({ type: 'ACTIVATE_TOOL', tool: btn.id });
       window.close();
     });
   });
-  document.querySelectorAll('.grid button').forEach(btn => {
-    const hint = btn.dataset.shortcut;
-    if (hint) {
-      const titleId = btn.dataset.i18nTitle;
-      const base = map[titleId]?.message || btn.title;
-      btn.title = `${base} (${hint})`;
-    }
-  });
+
+  (async () => {
+    const stored = await chrome.storage.local.get(['language', 'theme']);
+    const lang = stored?.language || 'en';
+    const theme = stored?.theme || 'system';
+    const map = await loadLang(lang);
+
+    applyLang(map);
+    langSelect.value = lang;
+    themeSelect.value = theme;
+    applyTheme(theme);
+
+    langSelect.addEventListener('change', async e => {
+      const newLang = e.target.value;
+      chrome.storage.local.set({ language: newLang });
+      const m = await loadLang(newLang);
+      applyLang(m);
+    });
+
+    themeSelect.addEventListener('change', e => {
+      const t = e.target.value;
+      chrome.storage.local.set({ theme: t });
+      applyTheme(t);
+    });
+
+    document.querySelectorAll('.grid button').forEach(btn => {
+      const hint = btn.dataset.shortcut;
+      if (hint) {
+        const titleId = btn.dataset.i18nTitle;
+        const base = map[titleId]?.message || btn.title;
+        btn.title = `${base} (${hint})`;
+      }
+    });
+  })();
 });

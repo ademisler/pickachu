@@ -159,6 +159,8 @@ export async function showModal(title, content, icon = '', type = '') {
   overlay.id = 'pickachu-modal-overlay';
   const modal = document.createElement('div');
   modal.id = 'pickachu-modal-content';
+  applyTheme(overlay);
+  applyTheme(modal);
   const h3 = document.createElement('h3');
   h3.textContent = `${icon} ${title}`;
   const ta = document.createElement('textarea');
