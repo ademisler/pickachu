@@ -57,7 +57,8 @@
   "commands": {
     "open-popup": {
       "suggested_key": {
-        "default": "Ctrl+Shift+P"
+        "default": "Ctrl+Shift+P",
+        "mac": "Command+Shift+P"
       },
       "description": "Open Pickachu"
     }
