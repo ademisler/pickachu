@@ -54,3 +54,7 @@ npm test
 Created by [Adem İsler](https://ademisler.com/). If you find this project useful,
 consider [buying me a coffee](https://buymeacoffee.com/ademisler).
 
+
+## License
+
+This project is licensed under the [MIT License](LICENSE). You are free to use and modify the code as long as you retain the original copyright notice.
