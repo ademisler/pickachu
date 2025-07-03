@@ -14,7 +14,8 @@ function onClick(e){
   const xpath=getXPath(e.target);
   const text=`Selector: ${selector}\nXPath: ${xpath}`;
   copyText(text);
-  showModal('Selector & XPath', text);
+  const title = chrome.i18n ? chrome.i18n.getMessage('selectorsTitle') : 'Selector & XPath';
+  showModal(title, text);
   deactivateCb();
 }
 export function activate(deactivate){

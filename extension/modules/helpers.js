@@ -24,6 +24,76 @@ export function copyText(text) {
   navigator.clipboard.writeText(text).catch(err => console.error('Copy failed', err));
 }
 
+function t(id) {
+  if (chrome && chrome.i18n) {
+    const msg = chrome.i18n.getMessage(id);
+    if (msg) return msg;
+  }
+  return id;
+}
+
+function getHistory() {
+  return JSON.parse(localStorage.getItem('pickachuHistory') || '[]');
+}
+
+function saveHistory(item) {
+  const hist = getHistory();
+  hist.unshift(item);
+  if (hist.length > 20) hist.pop();
+  localStorage.setItem('pickachuHistory', JSON.stringify(hist));
+}
+
+function toggleFavorite(id) {
+  const hist = getHistory();
+  const item = hist.find(i => i.id === id);
+  if (item) {
+    item.favorite = !item.favorite;
+    localStorage.setItem('pickachuHistory', JSON.stringify(hist));
+    return item.favorite;
+  }
+  return false;
+}
+
+export function showHistory() {
+  const data = getHistory();
+  const overlay = document.createElement('div');
+  overlay.id = 'pickachu-modal-overlay';
+  const modal = document.createElement('div');
+  modal.id = 'pickachu-modal-content';
+  const h3 = document.createElement('h3');
+  h3.textContent = t('history');
+  const list = document.createElement('div');
+  list.id = 'pickachu-history';
+  data.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'history-item';
+    const fav = document.createElement('button');
+    fav.textContent = item.favorite ? '★' : '☆';
+    fav.addEventListener('click', () => {
+      const val = toggleFavorite(item.id);
+      fav.textContent = val ? '★' : '☆';
+    });
+    const copy = document.createElement('button');
+    copy.textContent = t('copy');
+    copy.addEventListener('click', () => copyText(item.content));
+    const pre = document.createElement('pre');
+    pre.textContent = item.content;
+    div.appendChild(fav);
+    div.appendChild(copy);
+    div.appendChild(pre);
+    list.appendChild(div);
+  });
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = t('close');
+  closeBtn.addEventListener('click', () => overlay.remove());
+  modal.appendChild(h3);
+  modal.appendChild(list);
+  modal.appendChild(closeBtn);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  return overlay;
+}
+
 export function showModal(title, content) {
   const overlay = document.createElement('div');
   overlay.id = 'pickachu-modal-overlay';
@@ -36,11 +106,20 @@ export function showModal(title, content) {
   const buttons = document.createElement('div');
   buttons.id = 'pickachu-modal-buttons';
   const closeBtn = document.createElement('button');
-  closeBtn.textContent = 'Close';
+  closeBtn.textContent = t('close');
   const copyBtn = document.createElement('button');
-  copyBtn.textContent = 'Copy';
+  copyBtn.textContent = t('copy');
   copyBtn.className = 'copy';
+  const exportBtn = document.createElement('button');
+  exportBtn.textContent = t('export');
+  const favBtn = document.createElement('button');
+  favBtn.textContent = '☆';
+  const historyBtn = document.createElement('button');
+  historyBtn.textContent = t('history');
   buttons.appendChild(copyBtn);
+  buttons.appendChild(exportBtn);
+  buttons.appendChild(favBtn);
+  buttons.appendChild(historyBtn);
   buttons.appendChild(closeBtn);
   modal.appendChild(h3);
   modal.appendChild(pre);
@@ -49,6 +128,25 @@ export function showModal(title, content) {
   document.body.appendChild(overlay);
   closeBtn.addEventListener('click', () => overlay.remove());
   copyBtn.addEventListener('click', () => copyText(content));
+  exportBtn.addEventListener('click', () => {
+    const blob = new Blob([content], {type: 'text/plain'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'pickachu.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+  const item = {id: Date.now(), title, content, favorite: false};
+  saveHistory(item);
+  favBtn.addEventListener('click', () => {
+    const val = toggleFavorite(item.id);
+    favBtn.textContent = val ? '★' : '☆';
+  });
+  historyBtn.addEventListener('click', () => {
+    overlay.remove();
+    showHistory();
+  });
   return overlay;
 }
 export function getCssSelector(el) {

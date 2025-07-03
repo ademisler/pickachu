@@ -1,4 +1,4 @@
-import { copyText } from './helpers.js';
+import { copyText, showModal } from './helpers.js';
 
 export function activate(deactivate) {
   if (!window.EyeDropper) {
@@ -10,7 +10,8 @@ export function activate(deactivate) {
   ed.open().then(res => {
     const color = res.sRGBHex;
     copyText(color);
-    alert(`Color copied: ${color}`);
+    const title = chrome.i18n ? chrome.i18n.getMessage('colorCopied') : 'Color copied';
+    showModal(title, color);
     deactivate();
   }).catch(() => deactivate());
 }

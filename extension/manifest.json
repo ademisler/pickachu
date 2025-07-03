@@ -3,13 +3,23 @@
   "name": "Pickachu",
   "version": "1.0",
   "description": "A lightweight picker toolbox to collect colors, elements, links, fonts, images, text and selectors from any webpage.",
-  "permissions": ["activeTab", "scripting", "clipboardWrite", "contextMenus"],
-  "background": { "service_worker": "background.js" },
-  "action": { "default_popup": "popup/popup.html", "default_icon": {
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "clipboardWrite",
+    "contextMenus"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
-  }},
+    }
+  },
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
@@ -17,13 +27,71 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content/content.js"],
-      "css": ["content/content.css"]
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content/content.js"
+      ],
+      "css": [
+        "content/content.css"
+      ]
     }
   ],
-  "web_accessible_resources": [{
-    "resources": ["modules/*.js", "content/*.css"],
-    "matches": ["<all_urls>"]
-  }]
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "modules/*.js",
+        "content/*.css"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
+  "default_locale": "en",
+  "commands": {
+    "color-picker": {
+      "suggested_key": {
+        "default": "Alt+Shift+C"
+      },
+      "description": "Activate color picker"
+    },
+    "element-picker": {
+      "suggested_key": {
+        "default": "Alt+Shift+E"
+      },
+      "description": "Activate element picker"
+    },
+    "link-picker": {
+      "suggested_key": {
+        "default": "Alt+Shift+L"
+      },
+      "description": "Activate link picker"
+    },
+    "font-picker": {
+      "suggested_key": {
+        "default": "Alt+Shift+F"
+      },
+      "description": "Activate font picker"
+    },
+    "image-picker": {
+      "suggested_key": {
+        "default": "Alt+Shift+I"
+      },
+      "description": "Activate image picker"
+    },
+    "text-picker": {
+      "suggested_key": {
+        "default": "Alt+Shift+T"
+      },
+      "description": "Activate text picker"
+    },
+    "selector-generator": {
+      "suggested_key": {
+        "default": "Alt+Shift+S"
+      },
+      "description": "Activate selector generator"
+    }
+  }
 }

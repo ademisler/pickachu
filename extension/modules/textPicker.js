@@ -12,7 +12,8 @@ function onClick(e){
   e.stopPropagation();
   const text=e.target.textContent.trim();
   copyText(text);
-  showModal('Text', text);
+  const title = chrome.i18n ? chrome.i18n.getMessage('textTitle') : 'Text';
+  showModal(title, text);
   deactivateCb();
 }
 export function activate(deactivate){
