@@ -4,12 +4,14 @@
   --bg: #f4f4f9;
   --button-bg: #fff;
   --button-border: #ccc;
+  --text: #333;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #2b2b2b;
     --button-bg: #3c3c3c;
     --button-border: #555;
+    --text: #f5f5f5;
   }
 }
 
@@ -18,14 +20,17 @@ body {
   width: 300px;
   padding: 12px;
   background-color: var(--bg);
+  color: var(--text);
 }
 .light {
   --bg: #ffffff;
+  --text: #333;
 }
 .dark {
   --bg: #2b2b2b;
   --button-bg: #3c3c3c;
   --button-border: #555;
+  --text: #f5f5f5;
 }
 
 .options {
@@ -71,7 +76,7 @@ button .icon {
 
 button .label {
   font-size: 12px;
-  color: #333;
+  color: var(--text);
 }
 
 button:hover {
@@ -84,5 +89,5 @@ button:hover {
   margin-top: 10px;
   text-align: center;
   font-size: 12px;
-  color: #555;
+  color: var(--text);
 }
