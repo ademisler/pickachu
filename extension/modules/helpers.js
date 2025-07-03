@@ -1,6 +1,7 @@
 // Helper utilities for Pickachu
 let langMap = {};
 if (typeof chrome !== 'undefined') {
+  chrome.storage.local.get('language', ({ language }) => {
     const lang = language || 'en';
     fetch(chrome.runtime.getURL(`_locales/${lang}/messages.json`))
       .then(r => r.json())
@@ -9,6 +10,9 @@ if (typeof chrome !== 'undefined') {
 }
 let userTheme = 'system';
 if (typeof chrome !== 'undefined') {
+  chrome.storage.local.get('theme', ({ theme }) => {
+    if (theme) userTheme = theme;
+  });
   chrome.storage.onChanged.addListener(ch => {
     if (ch.theme) userTheme = ch.theme.newValue;
   });
