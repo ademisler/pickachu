@@ -16,6 +16,20 @@ text and generating selectors from any webpage.
 The popup provides buttons to activate each tool. Data from the page is copied to your
 clipboard and displayed in a short notification.
 
+## Keyboard Shortcuts
+Pickachu defines a few default shortcuts using the Chrome `commands` API. Due to a
+Chrome limitation only **four** commands can be registered. The following shortcuts
+are included by default and can be customised from the extension settings page:
+
+| Action | Shortcut |
+| ------ | -------- |
+| Activate color picker | `Alt+Shift+C` |
+| Activate element picker | `Alt+Shift+E` |
+| Activate link picker | `Alt+Shift+L` |
+| Activate selector generator | `Alt+Shift+S` |
+
+Other tools remain accessible from the popup menu.
+
 ## Repository Structure
 ```
 extension/
