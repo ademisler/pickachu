@@ -10,9 +10,6 @@
     "contextMenus",
     "storage"
   ],
-  "host_permissions": [
-    "<all_urls>"
-  ],
   "background": {
     "service_worker": "background.js"
   },
@@ -29,6 +26,9 @@
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "content_scripts": [
     {
       "matches": [
@@ -56,19 +56,6 @@
   "default_locale": "en",
   "commands": {
     "activate-color-picker": {
-      "suggested_key": { "default": "Ctrl+Shift+C" },
-      "description": "Activate Color Picker"
-    },
-    "activate-element-picker": {
-      "suggested_key": { "default": "Ctrl+Shift+E" },
-      "description": "Activate Element Picker"
-    },
-    "activate-link-picker": {
-      "suggested_key": { "default": "Ctrl+Shift+L" },
-      "description": "Activate Link Picker"
-    },
-    "activate-selector-generator": {
-      "suggested_key": { "default": "Ctrl+Shift+S" },
       "description": "Activate Selector Generator"
     }
   }
