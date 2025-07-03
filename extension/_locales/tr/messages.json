@@ -76,5 +76,14 @@
   },
   "textTitle": {
     "message": "Metin"
+  },
+  "openShortcut": {
+    "message": "Pickachu'yu açmak için Ctrl+Shift+P tuşlayın"
+  },
+  "createdBy": {
+    "message": "Geliştirici: Adem İsler"
+  },
+  "buyCoffee": {
+    "message": "Bana bir kahve ısmarla"
   }
 }

@@ -76,5 +76,14 @@
   },
   "textTitle": {
     "message": "Texte"
+  },
+  "openShortcut": {
+    "message": "Appuyez sur Ctrl+Maj+P pour ouvrir Pickachu"
+  },
+  "createdBy": {
+    "message": "Créé par Adem İsler"
+  },
+  "buyCoffee": {
+    "message": "Offrez-moi un café"
   }
 }
