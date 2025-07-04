@@ -1,6 +1,6 @@
-# Pickachu Chrome Extension
+# Pickachu – Web Picker Tool
 
-Pickachu is a lightweight toolbox for grabbing colors, elements, links, fonts, images
+Pickachu – Web Picker Tool is a lightweight toolbox for grabbing colors, elements, links, fonts, images
 and text from any webpage.
 
 ## Features
