@@ -61,7 +61,7 @@
         "default": "Ctrl+Shift+9",
         "mac": "Command+Shift+9"
       },
-      "description": "Open Pickachu"
+      "description": "__MSG_openPickachu__"
     }
   }
 }

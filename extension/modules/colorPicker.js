@@ -2,7 +2,8 @@ import { copyText, showModal } from './helpers.js';
 
 export function activate(deactivate) {
   if (!window.EyeDropper) {
-    alert('EyeDropper API not supported');
+    const msg = chrome.i18n ? chrome.i18n.getMessage('eyeDropperNotSupported') : 'EyeDropper API not supported';
+    alert(msg);
     deactivate();
     return;
   }

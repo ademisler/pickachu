@@ -1,11 +1,17 @@
 // Helper utilities for Pickachu
 let langMap = {};
+async function loadLanguage(lang = 'en') {
+  const res = await fetch(chrome.runtime.getURL(`_locales/${lang}/messages.json`));
+  langMap = await res.json();
+}
 if (typeof chrome !== 'undefined') {
   chrome.storage.local.get('language', ({ language }) => {
-    const lang = language || 'en';
-    fetch(chrome.runtime.getURL(`_locales/${lang}/messages.json`))
-      .then(r => r.json())
-      .then(m => { langMap = m; });
+    loadLanguage(language || 'en');
+  });
+  chrome.storage.onChanged.addListener(ch => {
+    if (ch.language) {
+      loadLanguage(ch.language.newValue || 'en');
+    }
   });
 }
 let userTheme = 'system';
@@ -216,7 +222,8 @@ export async function showModal(title, content, icon = '', type = '') {
     showToast(t('copy'));
   });
   exportBtn.addEventListener('click', () => {
-    const format = prompt('txt/json/csv', 'txt');
+    const promptMsg = t('exportPrompt');
+    const format = prompt(promptMsg, 'txt');
     let dataStr = ta.value;
     let typeStr = 'text/plain';
     let fileName = 'pickachu.' + (format || 'txt');
