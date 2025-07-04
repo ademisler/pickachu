@@ -58,3 +58,7 @@ consider [buying me a coffee](https://buymeacoffee.com/ademisler).
 ## License
 
 This project is licensed under the [MIT License](LICENSE). You are free to use and modify the code as long as you retain the original copyright notice.
+
+## Privacy Policy
+
+This extension stores your language and theme preferences and a short history of copied items in Chrome's local storage. None of this information is transmitted or shared. For details see the [privacy policy](PRIVACY_POLICY.md).
