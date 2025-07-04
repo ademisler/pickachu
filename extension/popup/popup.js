@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
     applyTheme(theme);
 
     if (shortcutsEl) {
-      const base = map.openShortcut?.message || 'Ctrl+Shift+P';
+      const base = map.openShortcut?.message || 'Ctrl+Shift+9';
       const combos = [base, base.replace('Ctrl', 'Cmd')];
       shortcutsEl.innerHTML = '';
 

@@ -20,11 +20,11 @@ The popup provides buttons to activate each tool. Data from the page is copied t
 clipboard and displayed in a short notification.
 
 ## Keyboard Shortcuts
-Pickachu defines a single shortcut using the Chrome `commands` API. Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on macOS) to open the popup from any page.
+Pickachu defines a single shortcut using the Chrome `commands` API. Press `Ctrl+Shift+9` (or `Cmd+Shift+9` on macOS) to open the popup from any page.
 
 | Action | Shortcut |
 | ------ | -------- |
-| Open popup | `Ctrl+Shift+P` / `Cmd+Shift+P` (macOS) |
+| Open popup | `Ctrl+Shift+9` / `Cmd+Shift+9` (macOS) |
 
 ## Repository Structure
 ```
