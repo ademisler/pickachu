@@ -46,7 +46,9 @@
     {
       "resources": [
         "modules/*.js",
-        "content/*.css"
+        "content/*.css",
+        "shortcuts.html",
+        "shortcuts.md"
       ],
       "matches": [
         "<all_urls>"
