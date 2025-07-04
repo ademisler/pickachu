@@ -88,5 +88,23 @@
   },
   "buyCoffee": {
     "message": "Bana bir kahve ısmarla"
+  },
+  "openPickachu": {
+    "message": "Pickachu'yu Aç"
+  },
+  "themeAuto": {
+    "message": "Otomatik"
+  },
+  "themeLight": {
+    "message": "Aydınlık"
+  },
+  "themeDark": {
+    "message": "Karanlık"
+  },
+  "eyeDropperNotSupported": {
+    "message": "EyeDropper API desteklenmiyor"
+  },
+  "exportPrompt": {
+    "message": "txt/json/csv"
   }
 }

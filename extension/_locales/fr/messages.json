@@ -88,5 +88,23 @@
   },
   "buyCoffee": {
     "message": "Offrez-moi un café"
+  },
+  "openPickachu": {
+    "message": "Ouvrir Pickachu"
+  },
+  "themeAuto": {
+    "message": "Auto"
+  },
+  "themeLight": {
+    "message": "Clair"
+  },
+  "themeDark": {
+    "message": "Sombre"
+  },
+  "eyeDropperNotSupported": {
+    "message": "API EyeDropper non prise en charge"
+  },
+  "exportPrompt": {
+    "message": "txt/json/csv"
   }
 }
