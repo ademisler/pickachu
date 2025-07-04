@@ -29,13 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  const shortcutLink = document.getElementById('shortcut-link');
-  if (shortcutLink) {
-    shortcutLink.addEventListener('click', e => {
-      e.preventDefault();
-      chrome.tabs.create({ url: chrome.runtime.getURL('shortcuts.html') });
-    });
-  }
+  const shortcutsEl = document.getElementById('shortcuts');
 
   (async () => {
     const stored = await chrome.storage.local.get(['language', 'theme']);
@@ -47,6 +41,23 @@ document.addEventListener('DOMContentLoaded', () => {
     langSelect.value = lang;
     themeSelect.value = theme;
     applyTheme(theme);
+
+    if (shortcutsEl) {
+      const base = map.openShortcut?.message || 'Ctrl+Shift+P';
+      const combo = navigator.platform.includes('Mac') ?
+        base.replace('Ctrl', 'Cmd') : base;
+      shortcutsEl.innerHTML = '';
+      combo.split('+').forEach((k, i, arr) => {
+        const span = document.createElement('span');
+        span.className = 'key';
+        span.textContent = k;
+        shortcutsEl.appendChild(span);
+        if (i < arr.length - 1) {
+          const sep = document.createTextNode('+');
+          shortcutsEl.appendChild(sep);
+        }
+      });
+    }
 
     langSelect.addEventListener('change', async e => {
       const newLang = e.target.value;
