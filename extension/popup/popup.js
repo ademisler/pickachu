@@ -29,6 +29,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  const shortcutLink = document.getElementById('shortcut-link');
+  if (shortcutLink) {
+    shortcutLink.addEventListener('click', e => {
+      e.preventDefault();
+      chrome.tabs.create({ url: chrome.runtime.getURL('shortcuts.html') });
+    });
+  }
+
   (async () => {
     const stored = await chrome.storage.local.get(['language', 'theme']);
     const lang = stored?.language || 'en';

@@ -78,7 +78,7 @@
     "message": "Texte"
   },
   "openShortcut": {
-    "message": "Appuyez sur Ctrl+Maj+P (Cmd+Maj+P sur Mac) pour ouvrir Pickachu"
+    "message": "Ctrl+Shift+P"
   },
   "createdBy": {
     "message": "Créé par Adem İsler"
