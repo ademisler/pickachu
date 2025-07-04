@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Pickachu – Web Picker Tool",
+  "name": "__MSG_extensionName__",
   "version": "1.0",
-  "description": "A lightweight picker toolbox to collect colors, elements, links, fonts, images, and text from any webpage.",
+  "description": "__MSG_extensionDescription__",
   "permissions": [
     "activeTab",
     "scripting",

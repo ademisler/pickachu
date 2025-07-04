@@ -1,6 +1,9 @@
 {
   "extensionName": {
-    "message": "Pickachu"
+    "message": "Pickachu – Web Picker Tool"
+  },
+  "extensionDescription": {
+    "message": "A lightweight picker toolbox to collect colors, elements, links, fonts, images, and text from any webpage."
   },
   "popupSubtitle": {
     "message": "Quick web picker tools"

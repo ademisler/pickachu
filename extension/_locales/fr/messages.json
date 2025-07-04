@@ -1,6 +1,9 @@
 {
   "extensionName": {
-    "message": "Pickachu"
+    "message": "Pickachu – Outil de Sélection Web"
+  },
+  "extensionDescription": {
+    "message": "Une boîte à outils légère pour collecter les couleurs, éléments, liens, polices, images et textes de n'importe quelle page web."
   },
   "popupSubtitle": {
     "message": "Outils de capture rapides"
