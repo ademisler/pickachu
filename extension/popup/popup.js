@@ -44,16 +44,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (shortcutsEl) {
       const base = map.openShortcut?.message || 'Ctrl+Shift+P';
-      const combo = navigator.platform.includes('Mac') ?
-        base.replace('Ctrl', 'Cmd') : base;
+      const combos = [base, base.replace('Ctrl', 'Cmd')];
       shortcutsEl.innerHTML = '';
-      combo.split('+').forEach((k, i, arr) => {
-        const span = document.createElement('span');
-        span.className = 'key';
-        span.textContent = k;
-        shortcutsEl.appendChild(span);
-        if (i < arr.length - 1) {
-          const sep = document.createTextNode('+');
+
+      combos.forEach((combo, idx) => {
+        combo.split('+').forEach((k, i, arr) => {
+          const span = document.createElement('span');
+          span.className = 'key';
+          span.textContent = k;
+          shortcutsEl.appendChild(span);
+          if (i < arr.length - 1) {
+            const sep = document.createTextNode('+');
+            shortcutsEl.appendChild(sep);
+          }
+        });
+
+        if (idx === 0) {
+          const sep = document.createTextNode(' / ');
           shortcutsEl.appendChild(sep);
         }
       });
