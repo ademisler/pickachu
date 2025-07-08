@@ -16,7 +16,6 @@ This information never leaves your device. The extension does not transmit any c
 - `activeTab` – required to activate the extension on the current tab when you click a tool button.
 - `scripting` – used to execute the content script that extracts data from the page.
 - `clipboardWrite` – allows the extension to copy the selected content to your clipboard.
-- `contextMenus` – adds optional context‑menu entries for launching the tools.
 - `storage` – saves your language, theme and history data locally.
 - `host_permissions` (`<all_urls>`) – lets the extension run on any webpage so that you can capture content anywhere.
 
