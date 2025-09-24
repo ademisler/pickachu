@@ -398,150 +398,20 @@ async function captureScreenshot(options = {}) {
   }
 }
 
-// Show screenshot options modal
-function showScreenshotOptions() {
-  try {
-    const modal = document.createElement('div');
-    modal.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.8);
-      z-index: 10000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      box-sizing: border-box;
-    `;
-    
-    const options = document.createElement('div');
-    options.style.cssText = `
-      background: white;
-      border-radius: 8px;
-      padding: 30px;
-      max-width: 400px;
-      width: 100%;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-    `;
-    
-    options.innerHTML = `
-      <h3 style="margin: 0 0 20px 0; text-align: center; color: #333;">📸 Screenshot Options</h3>
-      
-      <div style="margin-bottom: 20px;">
-        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Capture Type:</label>
-        <div style="display: flex; gap: 10px;">
-          <label style="display: flex; align-items: center; cursor: pointer;">
-            <input type="radio" name="captureType" value="visible" checked style="margin-right: 8px;">
-            <span>Visible Area</span>
-          </label>
-          <label style="display: flex; align-items: center; cursor: pointer;">
-            <input type="radio" name="captureType" value="fullpage" style="margin-right: 8px;">
-            <span>Full Page</span>
-          </label>
-        </div>
-      </div>
-      
-      <div style="margin-bottom: 20px;">
-        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Format:</label>
-        <select id="screenshotFormat" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-          <option value="png">PNG (High Quality)</option>
-          <option value="jpeg">JPEG (Smaller File)</option>
-        </select>
-      </div>
-      
-      <div style="display: flex; gap: 10px; justify-content: center;">
-        <button id="captureBtn" style="
-          padding: 10px 20px;
-          background: #007bff;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 14px;
-          font-weight: 600;
-        ">📸 Capture</button>
-        <button id="cancelBtn" style="
-          padding: 10px 20px;
-          background: #6c757d;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 14px;
-        ">❌ Cancel</button>
-      </div>
-    `;
-    
-    modal.appendChild(options);
-    document.body.appendChild(modal);
-    
-    // Event listeners
-    const captureBtn = document.getElementById('captureBtn');
-    const cancelBtn = document.getElementById('cancelBtn');
-    
-    if (captureBtn) {
-      captureBtn.onclick = () => {
-        const captureTypeRadio = document.querySelector('input[name="captureType"]:checked');
-        const formatSelect = document.getElementById('screenshotFormat');
-        
-        const captureType = captureTypeRadio ? captureTypeRadio.value : 'visible';
-        const format = formatSelect ? formatSelect.value : 'png';
-        
-        modal.remove();
-        
-        captureScreenshot({
-          type: captureType,
-          format: format
-        });
-      };
-    }
-    
-    if (cancelBtn) {
-      cancelBtn.onclick = () => {
-        modal.remove();
-      };
-    }
-    
-    // Close on escape key
-    const handleEscape = (e) => {
-      if (e.key === 'Escape') {
-        modal.remove();
-        document.removeEventListener('keydown', handleEscape);
-      }
-    };
-    document.addEventListener('keydown', handleEscape);
-    
-    // Close on background click
-    modal.onclick = (e) => {
-      if (e.target === modal) {
-        modal.remove();
-        document.removeEventListener('keydown', handleEscape);
-      }
-    };
-    
-  } catch (error) {
-    handleError(error, 'showScreenshotOptions');
-    showError('Failed to show screenshot options');
-  }
-}
 
 // Main activation function
 export function activate(deactivate) {
   try {
     console.log('Screenshot tool activated');
     
-    // Show options modal
-    showScreenshotOptions();
+    // Directly start full page capture
+    captureScreenshot({
+      type: 'fullpage',
+      format: 'png',
+      quality: 100
+    });
     
-    // Don't deactivate immediately, let user interact with options
-    setTimeout(() => {
-      if (!screenshotState.isCapturing) {
-        deactivate();
-      }
-    }, 100);
+    deactivate();
     
   } catch (error) {
     handleError(error, 'screenshotPicker activation');
