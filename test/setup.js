@@ -28,6 +28,13 @@ document.body.removeChild = jest.fn();
 // Mock document.execCommand
 document.execCommand = jest.fn(() => true);
 
+// Mock document querySelector methods
+document.querySelector = jest.fn(() => null);
+document.querySelectorAll = jest.fn((selector) => {
+  if (selector === '#test-id') return [mockElement];
+  return [];
+});
+
 // Mock window.getComputedStyle
 window.getComputedStyle = jest.fn(() => ({
   fontSize: '16px',

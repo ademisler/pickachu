@@ -16,13 +16,13 @@ async function captureFullPageScreenshot() {
     showInfo('Capturing full page screenshot...', 2000);
     
     // Check if html2canvas is available
-    if (typeof html2canvas === 'undefined') {
+    if (typeof window.html2canvas === 'undefined') {
       showError('Screenshot functionality requires html2canvas library. Please install it or use browser screenshot tools.');
       return;
     }
     
     // Capture full page with html2canvas
-    const canvas = await html2canvas(document.body, {
+    const canvas = await window.html2canvas(document.body, {
       scrollX: -window.scrollY,
       scrollY: -window.scrollY,
       windowWidth: document.documentElement.scrollWidth,

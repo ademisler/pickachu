@@ -106,6 +106,9 @@ describe('Helpers Module', () => {
         nodeType: 1
       };
       
+      // Mock Element constructor
+      Object.setPrototypeOf(mockElement, Element.prototype);
+      
       global.document.querySelectorAll = jest.fn((selector) => 
         selector === '#test-id' ? [mockElement] : []
       );

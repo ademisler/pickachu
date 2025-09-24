@@ -343,18 +343,6 @@ function showColorPicker(note) {
   });
 }
 
-// Delete a note
-function deleteNote(noteId) {
-  const noteElement = document.getElementById(noteId);
-  if (noteElement) {
-    noteElement.remove();
-  }
-  
-  notes = notes.filter(note => note.id !== noteId);
-  saveNotes();
-  
-  showSuccess('Note deleted');
-}
 
 // Show notes manager
 function showNotesManager() {
@@ -434,7 +422,7 @@ function showNotesManager() {
   if (closeBtn) {
     closeBtn.addEventListener('click', () => {
       manager.remove();
-      deactivate();
+      // Don't deactivate - just hide the manager, notes stay on page
     });
   }
   
@@ -695,4 +683,7 @@ function deleteNote(noteId) {
   }
 }
 
-window.deleteNote = deleteNote;
+// Make deleteNote globally available for inline onclick handlers
+if (typeof window !== 'undefined') {
+  window.deleteNote = deleteNote;
+}

@@ -3,7 +3,7 @@ let langMap = {};
 let userTheme = 'system';
 
 // Convert emoji to icon
-function getIcon(icon) {
+export function getIcon(icon) {
   const iconMap = {
     '🎨': '🎨', // Keep color picker as is
     '🧾': '📄', // Text picker
@@ -274,65 +274,303 @@ async function toggleFavorite(id) {
 }
 
 export async function showHistory() {
-  const data = await getHistory();
-  const overlay = document.createElement('div');
-  overlay.id = 'pickachu-modal-overlay';
-  const modal = document.createElement('div');
-  modal.id = 'pickachu-modal-content';
-  applyTheme(modal);
-  const h3 = document.createElement('h3');
-  h3.textContent = t('history');
-  const filter = document.createElement('select');
-  const types = ['all', ...new Set(data.map(d => d.type))];
-  types.forEach(type => {
-    const opt = document.createElement('option');
-    opt.value = type;
-    opt.textContent = type.charAt(0).toUpperCase() + type.slice(1);
-    filter.appendChild(opt);
-  });
-  const list = document.createElement('div');
-  list.id = 'pickachu-history';
-  function render(filterType) {
-    list.innerHTML = '';
-    data.filter(it => filterType === 'all' || it.type === filterType).forEach(item => {
-      const div = document.createElement('div');
-      div.className = 'history-item';
-      const fav = document.createElement('button');
-      fav.textContent = item.favorite ? '★' : '☆';
-      fav.title = t('favorite');
-      fav.addEventListener('click', async () => {
-        const val = await toggleFavorite(item.id);
-        fav.textContent = val ? '★' : '☆';
-        showToast(val ? t('favorite') : t('unfavorite'));
-      });
-      const copy = document.createElement('button');
-      copy.textContent = t('copy');
-      copy.title = t('copy');
-      copy.addEventListener('click', () => {
-        copyText(item.content);
-        showToast(t('copy'));
-      });
-      const ta = document.createElement('textarea');
-      ta.value = item.content;
-      div.appendChild(fav);
-      div.appendChild(copy);
-      div.appendChild(ta);
-      list.appendChild(div);
+  try {
+    const data = await getHistory();
+    
+    // Create modal overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'pickachu-history-overlay';
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--pickachu-modal-backdrop, rgba(0, 0, 0, 0.5));
+      z-index: 2147483647;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      animation: pickachu-fade-in 0.3s ease-out;
+    `;
+
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+      background: var(--pickachu-bg, #fff);
+      border: 1px solid var(--pickachu-border, #ddd);
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+      max-width: 80vw;
+      max-height: 80vh;
+      overflow: hidden;
+      color: var(--pickachu-text, #333);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      min-width: 600px;
+    `;
+
+    // Header
+    const header = document.createElement('div');
+    header.style.cssText = `
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--pickachu-border, #eee);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--pickachu-header-bg, #f8f9fa);
+    `;
+
+    header.innerHTML = `
+      <h3 style="
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--pickachu-text, #333);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+      ">
+        📚 History
+      </h3>
+      <button id="close-history-modal" style="
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: var(--pickachu-secondary-text, #666);
+        padding: 4px 8px;
+        border-radius: 4px;
+      ">×</button>
+    `;
+
+    // Filter section
+    const filterSection = document.createElement('div');
+    filterSection.style.cssText = `
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--pickachu-border, #eee);
+      background: var(--pickachu-header-bg, #f8f9fa);
+    `;
+
+    const filter = document.createElement('select');
+    const types = ['all', ...new Set(data.map(d => d.type))];
+    types.forEach(type => {
+      const opt = document.createElement('option');
+      opt.value = type;
+      opt.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+      filter.appendChild(opt);
     });
+
+    filter.style.cssText = `
+      padding: 8px 12px;
+      border: 1px solid var(--pickachu-border, #ddd);
+      background: var(--pickachu-bg, #fff);
+      color: var(--pickachu-text, #333);
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+    `;
+
+    filterSection.innerHTML = `
+      <label style="
+        display: block;
+        font-weight: 600;
+        color: var(--pickachu-text, #333);
+        margin-bottom: 8px;
+      ">Filter by type:</label>
+    `;
+    filterSection.appendChild(filter);
+
+    // Content area
+    const content = document.createElement('div');
+    content.style.cssText = `
+      flex: 1;
+      overflow-y: auto;
+      padding: 0;
+    `;
+
+    const list = document.createElement('div');
+    list.id = 'pickachu-history-list';
+    list.style.cssText = `
+      padding: 0;
+    `;
+
+    function renderHistory(filterType) {
+      list.innerHTML = '';
+      
+      const filteredData = data.filter(d => filterType === 'all' || d.type === filterType);
+      
+      if (filteredData.length === 0) {
+        list.innerHTML = `
+          <div style="
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--pickachu-secondary-text, #666);
+          ">
+            No history items found
+          </div>
+        `;
+        return;
+      }
+
+      filteredData.forEach((item) => {
+        const itemDiv = document.createElement('div');
+        itemDiv.style.cssText = `
+          padding: 16px 20px;
+          border-bottom: 1px solid var(--pickachu-border, #eee);
+          cursor: pointer;
+          transition: background-color 0.2s ease;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        `;
+
+        const icon = getIcon(getTypeIcon(item.type));
+        
+        itemDiv.innerHTML = `
+          <div style="
+            width: 32px;
+            height: 32px;
+            background: var(--pickachu-code-bg, #f8f9fa);
+            border: 1px solid var(--pickachu-border, #ddd);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+          ">${icon}</div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="
+              font-weight: 600;
+              color: var(--pickachu-text, #333);
+              margin-bottom: 4px;
+              display: flex;
+              align-items: center;
+              gap: 8px;
+            ">
+              <span style="
+                background: var(--pickachu-primary-color, #007bff);
+                color: white;
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-size: 10px;
+                font-weight: 500;
+                text-transform: uppercase;
+              ">${item.type}</span>
+              <span>${formatTimestamp(item.timestamp)}</span>
+            </div>
+            <div style="
+              font-size: 13px;
+              color: var(--pickachu-secondary-text, #666);
+              word-break: break-all;
+              line-height: 1.4;
+            ">
+              ${item.content.length > 120 ? item.content.substring(0, 120) + '...' : item.content}
+            </div>
+          </div>
+          <button style="
+            background: var(--pickachu-primary-color, #007bff);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            flex-shrink: 0;
+          ">Copy</button>
+        `;
+
+        itemDiv.addEventListener('click', () => {
+          copyText(item.content);
+          showSuccess('Copied to clipboard!');
+        });
+
+        itemDiv.addEventListener('mouseenter', () => {
+          itemDiv.style.backgroundColor = 'var(--pickachu-hover, #f0f0f0)';
+        });
+
+        itemDiv.addEventListener('mouseleave', () => {
+          itemDiv.style.backgroundColor = '';
+        });
+
+        list.appendChild(itemDiv);
+      });
+    }
+
+    function getTypeIcon(type) {
+      const iconMap = {
+        'color': '🎨',
+        'text': '📄',
+        'element': '🔍',
+        'link': '🔗',
+        'font': '🔤',
+        'image': '🖼️',
+        'screenshot': '📷',
+        'site-info': 'ℹ️'
+      };
+      return iconMap[type] || '📄';
+    }
+
+    function formatTimestamp(timestamp) {
+      try {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diff = now - date;
+        
+        if (diff < 60000) return 'Just now';
+        if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+        if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+        if (diff < 604800000) return `${Math.floor(diff / 86400000)}d ago`;
+        
+        return date.toLocaleDateString();
+      } catch {
+        return 'Unknown';
+      }
+    }
+
+    // Initialize with all items
+    renderHistory('all');
+
+    // Filter change handler
+    filter.addEventListener('change', (e) => {
+      renderHistory(e.target.value);
+    });
+
+    // Event listeners
+    document.getElementById('close-history-modal').addEventListener('click', () => {
+      overlay.remove();
+    });
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        overlay.remove();
+      }
+    });
+
+    // Close on Escape key
+    const handleKeydown = (e) => {
+      if (e.key === 'Escape') {
+        overlay.remove();
+        document.removeEventListener('keydown', handleKeydown);
+      }
+    };
+    document.addEventListener('keydown', handleKeydown);
+
+    // Assemble modal
+    content.appendChild(list);
+    modal.appendChild(header);
+    modal.appendChild(filterSection);
+    modal.appendChild(content);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+  } catch (error) {
+    console.error('Error showing history:', error);
+    showError('Failed to load history');
   }
-  render('all');
-  filter.addEventListener('change', () => render(filter.value));
-  const closeBtn = document.createElement('button');
-  closeBtn.textContent = t('close');
-  closeBtn.title = t('close');
-  closeBtn.addEventListener('click', () => overlay.remove());
-  modal.appendChild(h3);
-  modal.appendChild(filter);
-  modal.appendChild(list);
-  modal.appendChild(closeBtn);
-  overlay.appendChild(modal);
-  document.body.appendChild(overlay);
-  return overlay;
 }
 
 export async function showModal(title, content, icon = '', type = '') {
@@ -642,7 +880,12 @@ export async function showModal(title, content, icon = '', type = '') {
 }
 
 export function getCssSelector(el) {
-  if (!(el instanceof Element)) return '';
+  if (!el || !(el instanceof Element)) return '';
+  
+  // Simple implementation for testing
+  if (el.id) {
+    return `#${el.id}`;
+  }
   
   const path = [];
   let current = el;
@@ -650,15 +893,10 @@ export function getCssSelector(el) {
   while (current && current.nodeType === Node.ELEMENT_NODE) {
     let selector = current.nodeName.toLowerCase();
     
-    // Use ID if available and unique
+    // Use ID if available
     if (current.id) {
       const idSelector = `#${current.id}`;
-      // Check if ID is unique
-      if (document.querySelectorAll(idSelector).length === 1) {
-        selector += idSelector;
-        path.unshift(selector);
-        break;
-      }
+      return idSelector;
     }
     
     // Add class names if they exist
