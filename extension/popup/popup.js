@@ -190,6 +190,24 @@ document.addEventListener('DOMContentLoaded', () => {
         chrome.storage.local.set({ theme: t });
         applyTheme(t);
       });
+
+      // Add history button event listener
+      const historyBtn = document.getElementById('history-btn');
+      if (historyBtn) {
+        historyBtn.addEventListener('click', async () => {
+          try {
+            // Send message to content script to show history
+            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+            const tab = tabs[0];
+            if (tab) {
+              chrome.tabs.sendMessage(tab.id, { type: 'SHOW_HISTORY' });
+              window.close();
+            }
+          } catch (error) {
+            console.error('Error opening history:', error);
+          }
+        });
+      }
       
     } catch (error) {
       console.error('Error initializing popup:', error);

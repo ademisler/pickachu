@@ -192,6 +192,13 @@ chrome.runtime.onMessage.addListener(async (msg, sender, sendResponse) => {
   } else if (msg.type === 'SHOW_PICKACHU_POPUP') {
     // Show popup overlay when keyboard shortcut is used
     showPickachuOverlay();
+  } else if (msg.type === 'SHOW_HISTORY') {
+    // Show history modal
+    import('./modules/helpers.js').then(helpers => {
+      helpers.showHistory();
+    }).catch(error => {
+      console.error('Failed to load helpers for history:', error);
+    });
   }
 });
 

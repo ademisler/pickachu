@@ -495,23 +495,6 @@ async function getDomainAge(domain) {
       return 'Check manually';
     }
     
-    // Try multiple methods to estimate domain age
-    
-    // Method 1: Check if domain is in archive.org
-    await safeExecuteAsync(() => fetch(`https://web.archive.org/cdx/search/cdx?url=${domain}&output=json&limit=1`, {
-      mode: 'no-cors'
-    }), 'check archive.org').catch(() => null);
-
-    // Method 2: Check domain registration info
-    await safeExecuteAsync(() => fetch(`https://whoisjson.com/api/v1/whois/${domain}`, {
-      mode: 'no-cors'
-    }), 'check whois').catch(() => null);
-
-    // Method 3: Use DNS records to estimate
-    await safeExecuteAsync(() => fetch(`https://dns.google/resolve?name=${domain}&type=SOA`, {
-      mode: 'no-cors'
-    }), 'check DNS').catch(() => null);
-
     // For now, return estimated based on domain characteristics
     const commonTLDs = ['.com', '.org', '.net', '.edu', '.gov'];
     const isCommonTLD = safeExecute(() => commonTLDs.some(tld => domain.endsWith(tld)), 'check common TLD') || false;
