@@ -331,7 +331,7 @@ export async function showModal(title, content, icon = '', type = '') {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--pickachu-modal-backdrop, rgba(0, 0, 0, 0.5));
     z-index: 2147483647;
     display: flex;
     align-items: center;
@@ -491,7 +491,7 @@ export async function showModal(title, content, icon = '', type = '') {
   copyBtn.style.cssText = `
     padding: 8px 16px;
     border: 1px solid var(--pickachu-border, #ddd);
-    background: var(--pickachu-button-bg, #007bff);
+    background: var(--pickachu-primary-color, #007bff);
     color: white;
     border-radius: 6px;
     cursor: pointer;
@@ -504,7 +504,7 @@ export async function showModal(title, content, icon = '', type = '') {
   exportBtn.style.cssText = `
     padding: 8px 16px;
     border: 1px solid var(--pickachu-border, #ddd);
-    background: var(--pickachu-button-bg, #28a745);
+    background: var(--pickachu-success-color, #28a745);
     color: white;
     border-radius: 6px;
     cursor: pointer;
@@ -517,7 +517,7 @@ export async function showModal(title, content, icon = '', type = '') {
   favBtn.style.cssText = `
     padding: 8px 12px;
     border: 1px solid var(--pickachu-border, #ddd);
-    background: var(--pickachu-button-bg, #ffc107);
+    background: var(--pickachu-warning-color, #ffc107);
     color: var(--pickachu-text, #333);
     border-radius: 6px;
     cursor: pointer;
@@ -530,7 +530,7 @@ export async function showModal(title, content, icon = '', type = '') {
   historyBtn.style.cssText = `
     padding: 8px 16px;
     border: 1px solid var(--pickachu-border, #ddd);
-    background: var(--pickachu-button-bg, #6c757d);
+    background: var(--pickachu-secondary-color, #6c757d);
     color: white;
     border-radius: 6px;
     cursor: pointer;

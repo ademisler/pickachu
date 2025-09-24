@@ -189,13 +189,13 @@ export function activate(deactivate) {
     // Enhanced overlay styling for text picker
     overlay.style.cssText = `
       position: absolute;
-      background-color: rgba(156, 39, 176, 0.2);
-      border: 2px solid #9c27b0;
+      background-color: var(--pickachu-highlight-bg, rgba(156, 39, 176, 0.2));
+      border: 2px solid var(--pickachu-primary-color, #9c27b0);
       border-radius: 4px;
       z-index: 2147483646;
       pointer-events: none;
       box-sizing: border-box;
-      box-shadow: 0 0 6px rgba(156, 39, 176, 0.6);
+      box-shadow: 0 0 6px var(--pickachu-highlight-shadow, rgba(156, 39, 176, 0.6));
       transition: all 0.15s ease-out;
       animation: pickachu-fade-in 0.2s ease-out;
     `;

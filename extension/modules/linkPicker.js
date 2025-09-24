@@ -15,13 +15,13 @@ function onMouseDown(e) {
   box.id = 'pickachu-highlight-overlay';
   box.style.cssText = `
     position: absolute;
-    background-color: rgba(33, 150, 243, 0.2);
-    border: 2px solid #2196f3;
+    background-color: var(--pickachu-highlight-bg, rgba(33, 150, 243, 0.2));
+    border: 2px solid var(--pickachu-primary-color, #2196f3);
     border-radius: 4px;
     z-index: 2147483646;
     pointer-events: none;
     box-sizing: border-box;
-    box-shadow: 0 0 6px rgba(33, 150, 243, 0.6);
+    box-shadow: 0 0 6px var(--pickachu-highlight-shadow, rgba(33, 150, 243, 0.6));
     transition: all 0.15s ease-out;
   `;
   

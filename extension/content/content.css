@@ -13,6 +13,10 @@
   --pickachu-preview-text: #333;
   --pickachu-secondary-text: #666;
   --pickachu-error-color: #dc3545;
+  --pickachu-primary-color: #448aff;
+  --pickachu-highlight-bg: rgba(68,138,255,0.3);
+  --pickachu-highlight-border: #448aff;
+  --pickachu-highlight-shadow: rgba(68,138,255,0.6);
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -45,6 +49,14 @@
   --pickachu-preview-text: #333;
   --pickachu-secondary-text: #666;
   --pickachu-error-color: #dc3545;
+  --pickachu-primary-color: #448aff;
+  --pickachu-highlight-bg: rgba(68,138,255,0.3);
+  --pickachu-highlight-border: #448aff;
+  --pickachu-highlight-shadow: rgba(68,138,255,0.6);
+  --pickachu-success-color: #28a745;
+  --pickachu-warning-color: #ffc107;
+  --pickachu-secondary-color: #6c757d;
+  --pickachu-modal-backdrop: rgba(0, 0, 0, 0.5);
 }
 .dark-theme {
   --pickachu-bg: #2b2b2b;
@@ -58,19 +70,27 @@
   --pickachu-code-text: #f5f5f5;
   --pickachu-preview-bg: #404040;
   --pickachu-preview-text: #f5f5f5;
-  --pickachu-secondary-text: #cccccc;
-  --pickachu-error-color: #ff6b6b;
+    --pickachu-secondary-text: #cccccc;
+    --pickachu-error-color: #ff6b6b;
+    --pickachu-primary-color: #64b5f6;
+    --pickachu-highlight-bg: rgba(100,181,246,0.3);
+    --pickachu-highlight-border: #64b5f6;
+    --pickachu-highlight-shadow: rgba(100,181,246,0.6);
+    --pickachu-success-color: #4caf50;
+    --pickachu-warning-color: #ffb74d;
+    --pickachu-secondary-color: #90a4ae;
+    --pickachu-modal-backdrop: rgba(0, 0, 0, 0.8);
 }
 
 #pickachu-highlight-overlay {
   position: absolute;
-  background-color: rgba(68,138,255,0.3);
-  border: 2px solid #448aff;
+  background-color: var(--pickachu-highlight-bg, rgba(68,138,255,0.3));
+  border: 2px solid var(--pickachu-highlight-border, #448aff);
   border-radius: 4px;
   z-index: 2147483646;
   pointer-events: none;
   box-sizing: border-box;
-  box-shadow: 0 0 6px rgba(68,138,255,0.6);
+  box-shadow: 0 0 6px var(--pickachu-highlight-shadow, rgba(68,138,255,0.6));
   transition: all 0.15s ease-out;
   animation: pickachu-fade-in 0.2s ease-out;
 }
@@ -294,9 +314,9 @@
   transform: translateY(-2px);
 }
 #pickachu-modal-buttons button.copy {
-  background: #448aff;
+  background: var(--pickachu-primary-color, #448aff);
   color: var(--pickachu-bg, #fff);
-  border-color: #448aff;
+  border-color: var(--pickachu-primary-color, #448aff);
 }
 
 #pickachu-history {

@@ -49,7 +49,7 @@ async function captureFullPageScreenshot() {
       ctx.drawImage(img, 0, 0, dimensions.viewportWidth, dimensions.viewportHeight);
       
       // Fill remaining area with white background
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = 'var(--pickachu-bg, #ffffff)';
       ctx.fillRect(0, dimensions.viewportHeight, dimensions.width, dimensions.height - dimensions.viewportHeight);
       
       // Convert to blob and download
@@ -118,7 +118,7 @@ function showScreenshotOptions(pageInfo) {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.8);
+    background: var(--pickachu-modal-backdrop, rgba(0, 0, 0, 0.8));
     z-index: 2147483647;
     display: flex;
     align-items: center;
@@ -198,7 +198,7 @@ function showScreenshotOptions(pageInfo) {
     <div style="display: flex; gap: 12px; justify-content: flex-end;">
       <button id="cancel-screenshot" style="
         padding: 8px 16px;
-        border: 1px solid #ddd;
+        border: 1px solid var(--pickachu-border, #ddd);
         background: var(--pickachu-button-bg, #f8f9fa);
         color: var(--pickachu-text, #333);
         border-radius: 6px;
@@ -208,8 +208,8 @@ function showScreenshotOptions(pageInfo) {
       
       <button id="capture-screenshot" style="
         padding: 8px 16px;
-        border: 1px solid #007bff;
-        background: var(--pickachu-button-bg, #007bff);
+        border: 1px solid var(--pickachu-primary-color, #007bff);
+        background: var(--pickachu-primary-color, #007bff);
         color: white;
         border-radius: 6px;
         cursor: pointer;

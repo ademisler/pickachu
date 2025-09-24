@@ -156,13 +156,13 @@ export function activate(deactivate) {
     // Enhanced overlay styling for image picker
     overlay.style.cssText = `
       position: absolute;
-      background-color: rgba(76, 175, 80, 0.2);
-      border: 2px solid #4caf50;
+      background-color: var(--pickachu-highlight-bg, rgba(76, 175, 80, 0.2));
+      border: 2px solid var(--pickachu-primary-color, #4caf50);
       border-radius: 4px;
       z-index: 2147483646;
       pointer-events: none;
       box-sizing: border-box;
-      box-shadow: 0 0 6px rgba(76, 175, 80, 0.6);
+      box-shadow: 0 0 6px var(--pickachu-highlight-shadow, rgba(76, 175, 80, 0.6));
       transition: all 0.15s ease-out;
       animation: pickachu-fade-in 0.2s ease-out;
     `;
