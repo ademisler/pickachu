@@ -38,8 +38,8 @@ function downloadScreenshot(dataUrl, filename) {
   }
 }
 
-// Capture full page screenshot using proven approach
-async function captureFullPage() {
+// Capture full page screenshot - EXACT copy of working extension logic
+function captureFullPage() {
   try {
     console.log('Starting full page capture...');
     showInfo('Capturing full page screenshot...', 0);
@@ -49,37 +49,34 @@ async function captureFullPage() {
 
     let capturedHeight = 0;
     let capturedImages = [];
-    const originalScrollY = window.scrollY;
-
-    // Scroll to top first
-    window.scrollTo(0, 0);
 
     const captureAndScroll = () => {
       const scrollAmount = clientHeight * devicePixelRatio;
 
       chrome.runtime.sendMessage({ 
-        type: 'CAPTURE_VISIBLE_TAB',
-        format: 'png',
-        quality: 100
-      }, (response) => {
+        action: "captureVisibleTab", 
+        pixelRatio: devicePixelRatio 
+      }, (dataUrl) => {
         if (chrome.runtime.lastError) {
           console.error('Message error:', chrome.runtime.lastError);
-          throw new Error(chrome.runtime.lastError.message);
+          showError('Failed to capture screenshot: ' + chrome.runtime.lastError.message);
+          return;
         }
-        
-        if (!response || !response.success || !response.dataUrl) {
-          console.error('Invalid response:', response);
-          throw new Error('Failed to capture screenshot - invalid response');
+
+        if (!dataUrl) {
+          console.error('No data URL received');
+          showError('Failed to capture screenshot - no data received');
+          return;
         }
 
         capturedHeight += scrollAmount;
-        capturedImages.push(response.dataUrl);
+        capturedImages.push(dataUrl);
         console.log(`Captured chunk ${capturedImages.length}, height: ${capturedHeight}/${scrollHeight * devicePixelRatio}`);
 
         if (capturedHeight < scrollHeight * devicePixelRatio) {
           // Scroll to next part
           window.scrollTo(0, capturedHeight);
-          setTimeout(captureAndScroll, 1000); // Wait for scroll to settle
+          setTimeout(captureAndScroll, 2000); // Use same delay as working extension
         } else {
           // All parts captured, stitch images
           console.log('All chunks captured, stitching...');
@@ -91,18 +88,13 @@ async function captureFullPage() {
     // Start capturing
     captureAndScroll();
 
-    // Restore original scroll position after a delay
-    setTimeout(() => {
-      window.scrollTo(0, originalScrollY);
-    }, 5000);
-
   } catch (error) {
     handleError(error, 'captureFullPage');
-    throw error;
+    showError('Failed to capture full page screenshot');
   }
 }
 
-// Stitch multiple images together
+// Stitch multiple images together - EXACT copy of working extension logic
 function stitchImages(images) {
   try {
     console.log('Stitching images...');
@@ -112,31 +104,24 @@ function stitchImages(images) {
       throw new Error('No images to stitch');
     }
 
-    if (images.length === 1) {
-      // Single image, download directly
-      const filename = getFilename(window.location.href);
-      downloadScreenshot(images[0], filename);
-      showSuccess('Full page screenshot captured and downloaded!');
-      return;
-    }
-
-    // Multiple images, stitch them
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
 
+    // Use the width of the first image to set the canvas width
     const firstImage = new Image();
-    firstImage.src = images[0];
-
     firstImage.onload = () => {
       canvas.width = firstImage.width;
       canvas.height = images.length * firstImage.height;
 
+      // Counter to keep track of loaded images
       let imagesLoaded = 0;
 
+      // Callback function to draw an image onto the canvas
       const drawImageOnCanvas = (image, index) => {
         context.drawImage(image, 0, index * firstImage.height);
         imagesLoaded++;
 
+        // Check if all images are loaded
         if (imagesLoaded === images.length) {
           const fullPageDataUrl = canvas.toDataURL('image/png');
           const filename = getFilename(window.location.href);
@@ -145,6 +130,7 @@ function stitchImages(images) {
         }
       };
 
+      // Load and draw each image onto the canvas
       images.forEach((dataUrl, index) => {
         const image = new Image();
         image.onload = () => drawImageOnCanvas(image, index);
@@ -161,30 +147,11 @@ function stitchImages(images) {
       showError('Failed to load first image for stitching');
     };
 
+    firstImage.src = images[0];
+
   } catch (error) {
     handleError(error, 'stitchImages');
     showError('Failed to stitch images');
-  }
-}
-
-// Main screenshot capture function
-async function captureScreenshot() {
-  if (isCapturing) {
-    showError('Screenshot capture already in progress. Please wait...');
-    return;
-  }
-  
-  isCapturing = true;
-  
-  try {
-    showInfo('Starting full page capture...', 0);
-    await captureFullPage();
-  } catch (error) {
-    console.error('Screenshot capture failed:', error);
-    handleError(error, 'captureScreenshot');
-    showError(`Failed to capture screenshot: ${error.message}`);
-  } finally {
-    isCapturing = false;
   }
 }
 
@@ -193,8 +160,16 @@ export function activate(deactivate) {
   try {
     console.log('Screenshot tool activated');
     
-    // Directly start full page capture
-    captureScreenshot();
+    if (isCapturing) {
+      showError('Screenshot capture already in progress. Please wait...');
+      deactivate();
+      return;
+    }
+    
+    isCapturing = true;
+    
+    // Start full page capture
+    captureFullPage();
     
     deactivate();
     
@@ -202,6 +177,8 @@ export function activate(deactivate) {
     handleError(error, 'screenshotPicker activation');
     showError('Failed to activate screenshot tool. Please try again.');
     deactivate();
+  } finally {
+    isCapturing = false;
   }
 }
 

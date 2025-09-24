@@ -58,39 +58,18 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     return true; // Keep message channel open for async response
   }
   
-  if (request.type === 'CAPTURE_VISIBLE_TAB') {
-    try {
-      console.log('Capturing visible tab...');
-      
-      // Capture visible tab with specified format and quality
-      const format = request.format || 'png';
-      const quality = request.quality || 100;
-      
-      chrome.tabs.captureVisibleTab(null, {
-        format: format,
-        quality: quality
-      }, (dataUrl) => {
-        if (chrome.runtime.lastError) {
-          console.error('Error capturing visible tab:', chrome.runtime.lastError);
-          sendResponse({ success: false, error: chrome.runtime.lastError.message });
-          return;
-        }
-        
-        if (!dataUrl) {
-          console.error('No data URL returned');
-          sendResponse({ success: false, error: 'Failed to capture visible tab - no data URL returned' });
-          return;
-        }
-        
-        console.log('Screenshot captured successfully, data URL length:', dataUrl.length);
-        sendResponse({ success: true, dataUrl: dataUrl });
-      });
-      
-    } catch (error) {
-      console.error('Error capturing visible tab:', error);
-      sendResponse({ success: false, error: error.message || 'Unknown error occurred' });
-    }
-    return true; // Keep message channel open for async response
+  if (request.action === "captureVisibleTab") {
+    const { pixelRatio } = request;
+    chrome.tabs.captureVisibleTab({ format: "png", quality: 100 }, (dataUrl) => {
+      if (chrome.runtime.lastError) {
+        console.error('Error capturing visible tab:', chrome.runtime.lastError);
+        sendResponse(null);
+        return;
+      }
+      console.log('Screenshot captured successfully, data URL length:', dataUrl ? dataUrl.length : 0);
+      sendResponse(dataUrl);
+    });
+    return true;
   }
   
   if (request.type === 'GET_PAGE_DIMENSIONS') {
