@@ -62,6 +62,24 @@
   "textPicker": {
     "message": "Text Picker"
   },
+  "screenshot": {
+    "message": "Screenshot"
+  },
+  "notes": {
+    "message": "Notes"
+  },
+  "info": {
+    "message": "Info"
+  },
+  "screenshotPicker": {
+    "message": "Screenshot Picker"
+  },
+  "stickyNotesPicker": {
+    "message": "Sticky Notes Picker"
+  },
+  "siteInfoPicker": {
+    "message": "Site Info Picker"
+  },
   "colorCopied": {
     "message": "Color copied"
   },

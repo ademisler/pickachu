@@ -62,6 +62,24 @@
   "textPicker": {
     "message": "Metin Seçici"
   },
+  "screenshot": {
+    "message": "Ekran Görüntüsü"
+  },
+  "notes": {
+    "message": "Notlar"
+  },
+  "info": {
+    "message": "Bilgi"
+  },
+  "screenshotPicker": {
+    "message": "Ekran Görüntüsü Alıcı"
+  },
+  "stickyNotesPicker": {
+    "message": "Yapışkan Notlar"
+  },
+  "siteInfoPicker": {
+    "message": "Site Bilgi Analizi"
+  },
   "colorCopied": {
     "message": "Renk kopyalandı"
   },

@@ -62,6 +62,24 @@
   "textPicker": {
     "message": "Sélecteur de texte"
   },
+  "screenshot": {
+    "message": "Capture d'écran"
+  },
+  "notes": {
+    "message": "Notes"
+  },
+  "info": {
+    "message": "Info"
+  },
+  "screenshotPicker": {
+    "message": "Capture d'écran"
+  },
+  "stickyNotesPicker": {
+    "message": "Notes adhésives"
+  },
+  "siteInfoPicker": {
+    "message": "Analyse du site"
+  },
   "colorCopied": {
     "message": "Couleur copiée"
   },
