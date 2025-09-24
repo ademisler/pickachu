@@ -1,13 +1,14 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extensionName__",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "__MSG_extensionDescription__",
   "permissions": [
     "activeTab",
     "scripting",
     "clipboardWrite",
-    "storage"
+    "storage",
+    "tabs"
   ],
   "background": {
     "service_worker": "background.js"
@@ -110,6 +111,27 @@
         "mac": "Command+Shift+B"
       },
       "description": "Activate Batch Picker"
+    },
+    "activate-screenshotPicker": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Activate Screenshot Picker"
+    },
+    "activate-stickyNotesPicker": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+N",
+        "mac": "Command+Shift+N"
+      },
+      "description": "Activate Sticky Notes Picker"
+    },
+    "activate-siteInfoPicker": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+I",
+        "mac": "Command+Shift+I"
+      },
+      "description": "Activate Site Info Picker"
     }
   }
 }

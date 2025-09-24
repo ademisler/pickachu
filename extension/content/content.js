@@ -61,6 +61,50 @@ chrome.runtime.onMessage.addListener(async (msg, sender, sendResponse) => {
     } catch(e){
       console.error('Pickachu: Failed to activate tool', msg.tool, e);
     }
+  } else if (msg.type === 'GET_PAGE_DIMENSIONS') {
+    // For screenshot tool
+    const dimensions = {
+      width: Math.max(
+        document.body.scrollWidth,
+        document.body.offsetWidth,
+        document.documentElement.clientWidth,
+        document.documentElement.scrollWidth,
+        document.documentElement.offsetWidth
+      ),
+      height: Math.max(
+        document.body.scrollHeight,
+        document.body.offsetHeight,
+        document.documentElement.clientHeight,
+        document.documentElement.scrollHeight,
+        document.documentElement.offsetHeight
+      ),
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight
+    };
+    sendResponse(dimensions);
+  } else if (msg.type === 'GET_PAGE_INFO') {
+    // For screenshot tool
+    const pageInfo = {
+      width: Math.max(
+        document.body.scrollWidth,
+        document.body.offsetWidth,
+        document.documentElement.clientWidth,
+        document.documentElement.scrollWidth,
+        document.documentElement.offsetWidth
+      ),
+      height: Math.max(
+        document.body.scrollHeight,
+        document.body.offsetHeight,
+        document.documentElement.clientHeight,
+        document.documentElement.scrollHeight,
+        document.documentElement.offsetHeight
+      ),
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+      title: document.title,
+      url: window.location.href
+    };
+    sendResponse(pageInfo);
   }
 });
 
