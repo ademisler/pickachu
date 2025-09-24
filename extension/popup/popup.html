@@ -8,74 +8,94 @@
 </head>
 <body>
   <header class="header">
-    <h1>⚡<span>Pickachu</span></h1>
-    <p data-i18n="popupSubtitle">Quick web picker tools</p>
+    <div class="header-content">
+      <h1 class="logo">
+        <span class="logo-icon">⚡</span>
+        <span class="logo-text">Pickachu</span>
+      </h1>
+      <p class="subtitle" data-i18n="popupSubtitle">Quick web picker tools</p>
+    </div>
     <div class="options">
-      <select id="lang-select">
+      <label for="lang-select" class="sr-only">Language</label>
+      <select id="lang-select" aria-label="Select language">
         <option value="en">EN</option>
         <option value="tr">TR</option>
         <option value="fr">FR</option>
       </select>
-      <select id="theme-select">
+      <label for="theme-select" class="sr-only">Theme</label>
+      <select id="theme-select" aria-label="Select theme">
         <option value="system" data-i18n="themeAuto">Auto</option>
         <option value="light" data-i18n="themeLight">Light</option>
         <option value="dark" data-i18n="themeDark">Dark</option>
       </select>
     </div>
   </header>
-  <div class="grid">
-<button id="color-picker" title="Color Picker" data-i18n-title="colorPicker">
-  <img class="icon" src="../icons/tools/color.svg" alt="Color" />
-  <span class="label" data-i18n="color">Color</span>
-  <span class="shortcut-key">1</span>
-</button>
-<button id="element-picker" title="Element Picker" data-i18n-title="elementPicker">
-  <img class="icon" src="../icons/tools/element.svg" alt="Element" />
-  <span class="label" data-i18n="element">Element</span>
-  <span class="shortcut-key">2</span>
-</button>
-<button id="link-picker" title="Link Picker" data-i18n-title="linkPicker">
-  <img class="icon" src="../icons/tools/link.svg" alt="Link" />
-  <span class="label" data-i18n="link">Link</span>
-  <span class="shortcut-key">3</span>
-</button>
-<button id="font-picker" title="Font Picker" data-i18n-title="fontPicker">
-  <img class="icon" src="../icons/tools/font.svg" alt="Font" />
-  <span class="label" data-i18n="font">Font</span>
-  <span class="shortcut-key">4</span>
-</button>
-<button id="image-picker" title="Image Picker" data-i18n-title="imagePicker">
-  <img class="icon" src="../icons/tools/image.svg" alt="Image" />
-  <span class="label" data-i18n="image">Image</span>
-  <span class="shortcut-key">5</span>
-</button>
-<button id="text-picker" title="Text Picker" data-i18n-title="textPicker">
-  <img class="icon" src="../icons/tools/text.svg" alt="Text" />
-  <span class="label" data-i18n="text">Text</span>
-  <span class="shortcut-key">6</span>
-</button>
-<button id="screenshot-picker" title="Screenshot Picker" data-i18n-title="screenshotPicker">
-  <img class="icon" src="../icons/tools/screenshot.svg" alt="Screenshot" />
-  <span class="label" data-i18n="screenshot">Screenshot</span>
-  <span class="shortcut-key">7</span>
-</button>
-<button id="sticky-notes-picker" title="Sticky Notes Picker" data-i18n-title="stickyNotesPicker">
-  <img class="icon" src="../icons/tools/notes.svg" alt="Notes" />
-  <span class="label" data-i18n="notes">Notes</span>
-  <span class="shortcut-key">8</span>
-</button>
-<button id="site-info-picker" title="Site Info Picker" data-i18n-title="siteInfoPicker">
-  <img class="icon" src="../icons/tools/info.svg" alt="Info" />
-  <span class="label" data-i18n="info">Info</span>
-  <span class="shortcut-key">9</span>
-</button>
-  </div>
-  <div id="shortcuts" class="shortcuts"></div>
-  <div class="footer">
-    <a href="https://ademisler.com/" target="_blank" class="icon-btn" data-i18n="createdBy">Created by Adem İsler</a>
-    <a href="https://buymeacoffee.com/ademisler" target="_blank" class="icon-btn" data-i18n="buyCoffee">Buy me a coffee</a>
+
+  <main class="main">
+    <nav class="tools-grid" role="navigation" aria-label="Web picker tools">
+      <button id="color-picker" class="tool-btn" title="Color Picker" data-i18n-title="colorPicker" aria-label="Color picker tool">
+        <img class="tool-icon" src="../icons/tools/color.svg" alt="" aria-hidden="true" />
+        <span class="tool-label" data-i18n="color">Color</span>
+      </button>
+      <button id="element-picker" class="tool-btn" title="Element Picker" data-i18n-title="elementPicker" aria-label="Element picker tool">
+        <img class="tool-icon" src="../icons/tools/element.svg" alt="" aria-hidden="true" />
+        <span class="tool-label" data-i18n="element">Element</span>
+      </button>
+      <button id="link-picker" class="tool-btn" title="Link Picker" data-i18n-title="linkPicker" aria-label="Link picker tool">
+        <img class="tool-icon" src="../icons/tools/link.svg" alt="" aria-hidden="true" />
+        <span class="tool-label" data-i18n="link">Link</span>
+      </button>
+      <button id="font-picker" class="tool-btn" title="Font Picker" data-i18n-title="fontPicker" aria-label="Font picker tool">
+        <img class="tool-icon" src="../icons/tools/font.svg" alt="" aria-hidden="true" />
+        <span class="tool-label" data-i18n="font">Font</span>
+      </button>
+      <button id="image-picker" class="tool-btn" title="Image Picker" data-i18n-title="imagePicker" aria-label="Image picker tool">
+        <img class="tool-icon" src="../icons/tools/image.svg" alt="" aria-hidden="true" />
+        <span class="tool-label" data-i18n="image">Image</span>
+      </button>
+      <button id="text-picker" class="tool-btn" title="Text Picker" data-i18n-title="textPicker" aria-label="Text picker tool">
+        <img class="tool-icon" src="../icons/tools/text.svg" alt="" aria-hidden="true" />
+        <span class="tool-label" data-i18n="text">Text</span>
+      </button>
+      <button id="screenshot-picker" class="tool-btn" title="Screenshot Picker" data-i18n-title="screenshotPicker" aria-label="Screenshot picker tool">
+        <img class="tool-icon" src="../icons/tools/screenshot.svg" alt="" aria-hidden="true" />
+        <span class="tool-label" data-i18n="screenshot">Screenshot</span>
+      </button>
+      <button id="sticky-notes-picker" class="tool-btn" title="Sticky Notes Picker" data-i18n-title="stickyNotesPicker" aria-label="Sticky notes picker tool">
+        <img class="tool-icon" src="../icons/tools/notes.svg" alt="" aria-hidden="true" />
+        <span class="tool-label" data-i18n="notes">Notes</span>
+      </button>
+      <button id="site-info-picker" class="tool-btn" title="Site Info Picker" data-i18n-title="siteInfoPicker" aria-label="Site info picker tool">
+        <img class="tool-icon" src="../icons/tools/info.svg" alt="" aria-hidden="true" />
+        <span class="tool-label" data-i18n="info">Info</span>
+      </button>
+    </nav>
+    
+    <div id="shortcuts" class="shortcuts" aria-label="Keyboard shortcuts"></div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-actions">
+      <button id="history-btn" class="footer-btn" data-i18n="history" aria-label="View history">
+        <span class="footer-btn-icon">📚</span>
+        <span class="footer-btn-text">History</span>
+      </button>
+    </div>
+    
+    <div class="footer-links">
+      <a href="https://ademisler.com/" target="_blank" rel="noopener noreferrer" class="footer-link" data-i18n="createdBy">
+        <span class="footer-link-icon">👨‍💻</span>
+        <span class="footer-link-text">Created by Adem İsler</span>
+      </a>
+      <a href="https://buymeacoffee.com/ademisler" target="_blank" rel="noopener noreferrer" class="footer-link" data-i18n="buyCoffee">
+        <span class="footer-link-icon">☕</span>
+        <span class="footer-link-text">Buy me a coffee</span>
+      </a>
+    </div>
+    
     <div class="version-info" data-i18n="version">Version 1.1</div>
-  </div>
+  </footer>
+
   <script src="popup.js"></script>
 </body>
 </html>

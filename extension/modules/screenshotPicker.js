@@ -277,11 +277,7 @@ async function captureVisibleArea(retries = 3) {
       return new Promise((resolve, reject) => {
         try {
           chrome.runtime.sendMessage({
-            type: 'CAPTURE_VISIBLE_TAB',
-            options: {
-              format: 'png',
-              quality: 100
-            }
+            type: 'CAPTURE_VISIBLE_TAB'
           }, (response) => {
             try {
               if (chrome.runtime.lastError) {
