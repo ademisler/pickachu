@@ -59,36 +59,38 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   }
   
   if (request.type === 'CAPTURE_VISIBLE_TAB') {
-    try {
-      console.log('Capturing visible tab...');
-      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-      const tab = tabs[0];
-      
-      if (!tab) {
-        console.error('No active tab found');
-        sendResponse({ success: false, error: 'No active tab found' });
-        return;
+    (async () => {
+      try {
+        console.log('Capturing visible tab...');
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        const tab = tabs[0];
+        
+        if (!tab) {
+          console.error('No active tab found');
+          sendResponse({ success: false, error: 'No active tab found' });
+          return;
+        }
+        
+        console.log('Active tab found:', tab.id, tab.url);
+        
+        // Capture visible tab with high quality
+        const dataUrl = await chrome.tabs.captureVisibleTab(null, {
+          format: 'png',
+          quality: 100
+        });
+        
+        if (!dataUrl) {
+          throw new Error('Failed to capture visible tab - no data URL returned');
+        }
+        
+        console.log('Screenshot captured successfully, data URL length:', dataUrl.length);
+        sendResponse({ success: true, dataUrl: dataUrl });
+        
+      } catch (error) {
+        console.error('Error capturing visible tab:', error);
+        sendResponse({ success: false, error: error.message || 'Unknown error occurred' });
       }
-      
-      console.log('Active tab found:', tab.id, tab.url);
-      
-      // Capture visible tab with high quality
-      const dataUrl = await chrome.tabs.captureVisibleTab(null, {
-        format: 'png',
-        quality: 100
-      });
-      
-      if (!dataUrl) {
-        throw new Error('Failed to capture visible tab - no data URL returned');
-      }
-      
-      console.log('Screenshot captured successfully, data URL length:', dataUrl.length);
-      sendResponse({ success: true, dataUrl: dataUrl });
-      
-    } catch (error) {
-      console.error('Error capturing visible tab:', error);
-      sendResponse({ success: false, error: error.message || 'Unknown error occurred' });
-    }
+    })();
     return true; // Keep message channel open for async response
   }
 });

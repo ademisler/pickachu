@@ -61,29 +61,60 @@ async function captureScreenshot() {
   try {
     showInfo('Capturing screenshot...', 0);
     
-    // Send message to background script to capture visible tab
-    const response = await new Promise((resolve, reject) => {
-      chrome.runtime.sendMessage({
-        type: 'CAPTURE_VISIBLE_TAB'
-      }, (response) => {
-        if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message));
-        } else if (response && response.success && response.dataUrl) {
-          resolve(response.dataUrl);
-        } else if (response && response.error) {
-          reject(new Error(response.error));
-        } else {
-          reject(new Error('Failed to capture screenshot'));
-        }
-      });
-    });
+    // Try direct capture first (if available in content script)
+    let dataUrl = null;
     
-    if (!response) {
+    try {
+      // Check if we can access chrome.tabs directly
+      if (chrome.tabs && chrome.tabs.captureVisibleTab) {
+        console.log('Using direct chrome.tabs.captureVisibleTab');
+        dataUrl = await chrome.tabs.captureVisibleTab(null, {
+          format: 'png',
+          quality: 100
+        });
+      }
+    } catch (directError) {
+      console.log('Direct capture failed, trying background script:', directError);
+    }
+    
+    // If direct capture failed, try background script
+    if (!dataUrl) {
+      console.log('Using background script for capture');
+      const response = await new Promise((resolve, reject) => {
+        // Set timeout to prevent hanging
+        const timeout = setTimeout(() => {
+          reject(new Error('Screenshot capture timeout - please try again'));
+        }, 10000); // 10 second timeout
+        
+        chrome.runtime.sendMessage({
+          type: 'CAPTURE_VISIBLE_TAB'
+        }, (response) => {
+          clearTimeout(timeout);
+          
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+            return;
+          }
+          
+          if (response && response.success && response.dataUrl) {
+            resolve(response.dataUrl);
+          } else if (response && response.error) {
+            reject(new Error(response.error));
+          } else {
+            reject(new Error('Failed to capture screenshot - no response'));
+          }
+        });
+      });
+      
+      dataUrl = response;
+    }
+    
+    if (!dataUrl) {
       throw new Error('No screenshot data received');
     }
     
     // Download the screenshot
-    downloadScreenshot(response, 'screenshot');
+    downloadScreenshot(dataUrl, 'screenshot');
     showSuccess('Screenshot captured and downloaded!');
     
   } catch (error) {
