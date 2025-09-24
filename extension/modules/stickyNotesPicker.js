@@ -1,4 +1,4 @@
-import { showSuccess } from './helpers.js';
+import { showSuccess, showError } from './helpers.js';
 
 let deactivateCb;
 let notes = [];
@@ -99,7 +99,7 @@ function renderStickyNote(note) {
   title.textContent = 'Sticky Note';
   title.style.cssText = `
     font-weight: 600;
-    color: var(--pickachu-text, #333);
+    color: #000000;
     font-size: 12px;
   `;
   
@@ -120,7 +120,7 @@ function renderStickyNote(note) {
     font-size: 12px;
     padding: 2px;
     border-radius: 3px;
-    color: var(--pickachu-text, #333);
+    color: #000000;
   `;
   
   colorBtn.addEventListener('click', (e) => {
@@ -165,7 +165,7 @@ function renderStickyNote(note) {
     padding: 12px;
     font-family: inherit;
     font-size: inherit;
-    color: var(--pickachu-text, #333);
+    color: #000000;
     resize: vertical;
     outline: none;
     box-sizing: border-box;
@@ -347,13 +347,27 @@ function showNotesManager() {
       <h3 class="modal-title">
         📝 Sticky Notes Manager
       </h3>
-      <button id="close-notes-manager" class="modal-close">×</button>
+      <button id="close-notes-manager" style="
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: var(--pickachu-secondary-text, #666);
+        padding: 4px 8px;
+        border-radius: 4px;
+      ">×</button>
     </div>
     
     <div style="padding: 20px;">
       <div style="margin-bottom: 16px;">
         <button id="create-new-note" class="btn btn-primary">+ Add New Note</button>
-        <button id="clear-all-notes" class="btn btn-danger" style="margin-left: 12px;">🗑️ Clear All</button>
+        <button id="save-notes" class="btn btn-success" style="margin-left: 8px;">💾 Save Notes</button>
+        <button id="export-notes" class="btn btn-info" style="margin-left: 8px;">📤 Export</button>
+        <button id="import-notes" class="btn btn-warning" style="margin-left: 8px;">📥 Import</button>
+        <button id="clear-all-notes" class="btn btn-danger" style="margin-left: 8px;">🗑️ Clear All</button>
       </div>
       
       <div style="margin-bottom: 16px;">
@@ -394,6 +408,27 @@ function showNotesManager() {
     });
   }
   
+  const saveBtn = document.getElementById('save-notes');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', () => {
+      saveNotes();
+    });
+  }
+
+  const exportBtn = document.getElementById('export-notes');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', () => {
+      exportNotes();
+    });
+  }
+
+  const importBtn = document.getElementById('import-notes');
+  if (importBtn) {
+    importBtn.addEventListener('click', () => {
+      importNotes();
+    });
+  }
+
   const clearBtn = document.getElementById('clear-all-notes');
   if (clearBtn) {
     clearBtn.addEventListener('click', () => {
@@ -440,8 +475,72 @@ function loadExistingNotes() {
 async function saveNotes() {
   try {
     await chrome.storage.local.set({ stickyNotes: notes });
+    showSuccess('Notes saved successfully!');
   } catch (error) {
     console.error('Failed to save notes:', error);
+    showError('Failed to save notes');
+  }
+}
+
+// Export notes as JSON
+function exportNotes() {
+  try {
+    const dataStr = JSON.stringify(notes, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sticky-notes-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    showSuccess('Notes exported successfully!');
+  } catch (error) {
+    console.error('Failed to export notes:', error);
+    showError('Failed to export notes');
+  }
+}
+
+// Import notes from JSON
+function importNotes() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const importedNotes = JSON.parse(e.target.result);
+          if (Array.isArray(importedNotes)) {
+            notes = importedNotes;
+            saveNotes();
+            loadExistingNotes();
+            updateNotesList();
+            showSuccess('Notes imported successfully!');
+          } else {
+            showError('Invalid notes file format');
+          }
+        } catch (error) {
+          console.error('Failed to parse notes file:', error);
+          showError('Failed to parse notes file');
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+  input.click();
+}
+
+// Update notes list in manager
+function updateNotesList() {
+  const notesList = document.getElementById('notes-list');
+  if (notesList) {
+    notesList.innerHTML = renderNotesList();
   }
 }
 
@@ -481,7 +580,7 @@ function renderNotesList() {
           border-radius: 4px;
           cursor: pointer;
           font-size: 12px;
-          color: var(--pickachu-text, #333);
+          color: #000000;
         ">Focus</button>
         <button onclick="deleteNote('${note.id}')" style="
           padding: 4px 8px;

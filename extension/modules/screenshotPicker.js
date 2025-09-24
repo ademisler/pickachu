@@ -1,6 +1,6 @@
 import { showError, showSuccess, showInfo } from './helpers.js';
 
-let deactivateCb;
+// let deactivateCb; // Unused since we simplified the screenshot picker
 
 // Full page screenshot functionality
 async function captureFullPageScreenshot() {
@@ -83,32 +83,33 @@ function downloadScreenshot(dataUrl, filename) {
   document.body.removeChild(a);
 }
 
-// Enhanced screenshot with options
-async function captureWithOptions() {
-  try {
-    showInfo('Preparing screenshot options...', 1500);
-    
-    // Get page information directly from current page
-    const pageInfo = {
-      url: window.location.href,
-      title: document.title,
-      width: document.documentElement.scrollWidth,
-      height: document.documentElement.scrollHeight,
-      viewportWidth: window.innerWidth,
-      viewportHeight: window.innerHeight
-    };
-    
-    // Create options modal
-    showScreenshotOptions(pageInfo);
-    
-  } catch (error) {
-    console.error('Screenshot options error:', error);
-    showError('Failed to get page information. Using basic screenshot.');
-    await captureFullPageScreenshot();
-  }
-}
+// Enhanced screenshot with options (unused - kept for reference)
+// async function captureWithOptions() {
+//   try {
+//     showInfo('Preparing screenshot options...', 1500);
 
-// Show screenshot options modal
+//     // Get page information directly from current page
+//     const pageInfo = {
+//       url: window.location.href,
+//       title: document.title,
+//       width: document.documentElement.scrollWidth,
+//       height: document.documentElement.scrollHeight,
+//       viewportWidth: window.innerWidth,
+//       viewportHeight: window.innerHeight
+//     };
+
+//     // Create options modal
+//     showScreenshotOptions(pageInfo);
+
+//   } catch (error) {
+//     console.error('Screenshot options error:', error);
+//     showError('Failed to get page information. Using basic screenshot.');
+//     await captureFullPageScreenshot();
+//   }
+// }
+
+// Show screenshot options modal (unused - kept for reference)
+/*
 function showScreenshotOptions(pageInfo) {
   const modal = document.createElement('div');
   modal.id = 'pickachu-screenshot-modal';
@@ -252,8 +253,10 @@ function showScreenshotOptions(pageInfo) {
   };
   document.addEventListener('keydown', escapeHandler);
 }
+*/
 
-// Capture visible area only
+// Capture visible area only (unused - kept for reference)
+/*
 async function captureVisibleArea(quality = 100) {
   try {
     const screenshot = await chrome.tabs.captureVisibleTab({
@@ -269,28 +272,29 @@ async function captureVisibleArea(quality = 100) {
     showError('Failed to capture visible screenshot');
   }
 }
+*/
 
 // Capture selected area
-async function captureSelectedArea(quality = 100) {
-  try {
-    showInfo('Click and drag to select area for screenshot...', 3000);
-    
-    // This would require more complex implementation
-    // For now, fallback to visible area
-    await captureVisibleArea(quality);
-    
-  } catch (error) {
-    console.error('Selected area screenshot error:', error);
-    showError('Failed to capture selected area');
-  }
-}
+// async function captureSelectedArea(quality = 100) {
+//   try {
+//     showInfo('Click and drag to select area for screenshot...', 3000);
+//     
+//     // This would require more complex implementation
+//     // For now, fallback to visible area
+//     await captureVisibleArea(quality);
+//     
+//   } catch (error) {
+//     console.error('Selected area screenshot error:', error);
+//     showError('Failed to capture selected area');
+//   }
+// }
 
 export function activate(deactivate) {
-  deactivateCb = deactivate;
-  
   try {
-    // Show options modal
-    captureWithOptions();
+    // Simple one-click full page screenshot
+    showInfo('Capturing full page screenshot...', 2000);
+    captureFullPageScreenshot();
+    deactivate();
     
   } catch (error) {
     console.error('Screenshot picker activation error:', error);

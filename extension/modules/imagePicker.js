@@ -1,4 +1,167 @@
-import { createOverlay, removeOverlay, copyText, showModal, showError, showSuccess, showInfo, throttle } from './helpers.js';
+import { createOverlay, removeOverlay, copyText, showError, showSuccess, showInfo, throttle } from './helpers.js';
+
+// Helper to download image
+function downloadImage(imageUrl, filename) {
+  const a = document.createElement('a');
+  a.href = imageUrl;
+  a.download = filename || `image-${Date.now()}.jpg`;
+  a.target = '_blank';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+// Custom modal for image with download button
+function showImageModal(title, content, imageUrl, icon = '🖼️') {
+  const modal = document.createElement('div');
+  modal.id = 'pickachu-image-modal';
+  modal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--pickachu-modal-backdrop, rgba(0, 0, 0, 0.5));
+    z-index: 2147483647;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    animation: pickachu-fade-in 0.3s ease-out;
+  `;
+
+  const contentDiv = document.createElement('div');
+  contentDiv.style.cssText = `
+    background: var(--pickachu-bg, #fff);
+    border: 1px solid var(--pickachu-border, #ddd);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    color: var(--pickachu-text, #333);
+    position: relative;
+  `;
+
+  contentDiv.innerHTML = `
+    <div class="modal-header" style="
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--pickachu-border, #eee);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--pickachu-header-bg, #f8f9fa);
+    ">
+      <h3 style="
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--pickachu-text, #333);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      ">
+        ${icon} ${title}
+      </h3>
+      <button id="close-image-modal" style="
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: var(--pickachu-secondary-text, #666);
+        padding: 4px 8px;
+        border-radius: 4px;
+      ">×</button>
+    </div>
+    
+    <div style="padding: 20px;">
+      <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+        <div style="flex: 1;">
+          <div style="font-weight: 600; margin-bottom: 8px; color: var(--pickachu-text, #333);">Preview:</div>
+          <img src="${imageUrl}" style="
+            max-width: 200px;
+            max-height: 150px;
+            border-radius: 6px;
+            border: 1px solid var(--pickachu-border, #ddd);
+            object-fit: cover;
+          " onerror="this.style.display='none'">
+        </div>
+        <div style="flex: 2;">
+          <pre style="
+            background: var(--pickachu-code-bg, #f8f9fa);
+            border: 1px solid var(--pickachu-border, #ddd);
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 12px;
+            color: var(--pickachu-code-text, #333);
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 200px;
+            overflow-y: auto;
+          ">${content}</pre>
+        </div>
+      </div>
+      
+      <div style="display: flex; gap: 12px; justify-content: flex-end;">
+        <button id="download-image-btn" style="
+          padding: 8px 16px;
+          border: 1px solid var(--pickachu-primary-color, #007bff);
+          background: var(--pickachu-primary-color, #007bff);
+          color: white;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 14px;
+        ">📥 Download Image</button>
+        
+        <button id="copy-image-url-btn" style="
+          padding: 8px 16px;
+          border: 1px solid var(--pickachu-border, #ddd);
+          background: var(--pickachu-button-bg, #f0f0f0);
+          color: var(--pickachu-text, #333);
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 14px;
+        ">📋 Copy URL</button>
+      </div>
+    </div>
+  `;
+
+  modal.appendChild(contentDiv);
+  document.body.appendChild(modal);
+
+  // Event listeners
+  document.getElementById('close-image-modal').addEventListener('click', () => {
+    modal.remove();
+  });
+
+  document.getElementById('download-image-btn').addEventListener('click', () => {
+    downloadImage(imageUrl);
+    showSuccess('Image download started!');
+  });
+
+  document.getElementById('copy-image-url-btn').addEventListener('click', () => {
+    copyText(imageUrl);
+    showSuccess('Image URL copied to clipboard!');
+  });
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
+
+  // Close on Escape key
+  const handleKeydown = (e) => {
+    if (e.key === 'Escape') {
+      modal.remove();
+      document.removeEventListener('keydown', handleKeydown);
+    }
+  };
+  document.addEventListener('keydown', handleKeydown);
+}
 
 let overlay, deactivateCb;
 let currentImage = null;
@@ -121,7 +284,8 @@ function onClick(e) {
     const title = chrome.i18n ? chrome.i18n.getMessage('image') : 'Image Information';
     const content = `URL: ${imageInfo.src}\n\nAlt: ${imageInfo.alt || 'No alt text'}\nDimensions: ${imageInfo.displayWidth}x${imageInfo.displayHeight}\nNatural: ${imageInfo.width}x${imageInfo.height}\nFormat: ${imageInfo.fileExtension.toUpperCase()}\n\nFull Info:\n${formats.json}`;
     
-    showModal(title, content, '🖼️', 'image');
+    // Create modal with download button
+    showImageModal(title, content, imageInfo.src, '🖼️');
     deactivateCb();
     
   } catch (error) {

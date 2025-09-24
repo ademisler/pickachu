@@ -733,21 +733,8 @@ Has Navigation: ${report.structure.hasNavigation ? '✅' : '❌'}
 Has Search: ${report.structure.hasSearch ? '✅' : '❌'}
 Page Depth: ${report.structure.pageDepth}
 
-🌐 DOMAIN METRICS
-Domain: ${report.domainMetrics.domain}
-Age: ${report.domainMetrics.age}
-DA (Domain Authority): ${report.domainMetrics.da}
-PA (Page Authority): ${report.domainMetrics.pa}
-Backlinks: ${report.domainMetrics.backlinks}
-Referring Domains: ${report.domainMetrics.referringDomains}
-Last Checked: ${report.domainMetrics.lastChecked}
 
-📈 OVERALL SCORE: ${report.overallScore}/10
-
-${report.overallScore >= 8 ? '🌟 Excellent website!' : 
-  report.overallScore >= 6 ? '👍 Good website with room for improvement' : 
-  report.overallScore >= 4 ? '⚠️ Average website, needs optimization' : 
-  '❌ Website needs significant improvements'}`;
+`;
 }
 
 export function activate(deactivate) {

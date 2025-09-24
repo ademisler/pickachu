@@ -387,7 +387,6 @@ export async function showModal(title, content, icon = '', type = '') {
     align-items: center;
     gap: 12px;
     background: var(--pickachu-header-bg, #f8f9fa);
-    cursor: move;
   `;
   
   const h3 = document.createElement('h3');
