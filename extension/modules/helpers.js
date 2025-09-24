@@ -635,23 +635,23 @@ export async function showModal(title, content, icon = '', type = '') {
   
   const header = document.createElement('div');
   header.style.cssText = `
-    padding: 12px 16px;
+    padding: 8px 12px;
     border-bottom: 1px solid var(--pickachu-border, #eee);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     background: var(--pickachu-header-bg, #f8f9fa);
   `;
   
   const h3 = document.createElement('h3');
   h3.style.cssText = `
     margin: 0;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--pickachu-text, #333);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     flex: 1;
   `;
   h3.textContent = `${icon} ${title}`;
