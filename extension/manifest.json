@@ -8,7 +8,9 @@
     "scripting",
     "clipboardWrite",
     "storage",
-    "tabs"
+    "tabs",
+    "unlimitedStorage",
+    "downloads"
   ],
   "background": {
     "service_worker": "background.js"

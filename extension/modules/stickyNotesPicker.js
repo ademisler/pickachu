@@ -1,8 +1,9 @@
-import { showSuccess, showError } from './helpers.js';
+import { showSuccess, showError, handleError, safeExecute, sanitizeInput, addEventListenerWithCleanup } from './helpers.js';
 
 let deactivateCb;
 let notes = [];
 let noteCounter = 0;
+let cleanupFunctions = []; // Array to store cleanup functions for event listeners
 
 // Default note colors
 const NOTE_COLORS = [
@@ -16,49 +17,79 @@ const NOTE_COLORS = [
 ];
 
 export function activate(deactivate) {
-  deactivateCb = deactivate;
-  
-  // Load existing notes
-  loadNotes().then(() => {
-    showNotesManager();
-  });
+  try {
+    deactivateCb = deactivate;
+    
+    // Load existing notes
+    loadNotes().then(() => {
+      showNotesManager();
+    }).catch(error => {
+      handleError(error, 'stickyNotesPicker activation loadNotes');
+      showError('Failed to load existing notes. Please try again.');
+      deactivate();
+    });
+  } catch (error) {
+    handleError(error, 'stickyNotesPicker activation');
+    showError('Failed to activate sticky notes. Please try again.');
+    deactivate();
+  }
 }
 
 export function deactivate() {
-  // Remove any existing note managers
-  const existingManager = document.getElementById('pickachu-notes-manager');
-  if (existingManager) {
-    existingManager.remove();
-  }
-  
-  // Don't remove sticky notes from page - they should persist
-  // Only call deactivateCb if it exists and we haven't called it yet
-  if (deactivateCb && !deactivateCb.called) {
-    deactivateCb.called = true;
-    deactivateCb();
+  try {
+    // Cleanup all event listeners
+    cleanupFunctions.forEach(cleanup => {
+      try {
+        cleanup();
+      } catch (error) {
+        handleError(error, 'event listener cleanup');
+      }
+    });
+    cleanupFunctions.length = 0;
+    
+    // Remove any existing note managers
+    const existingManager = safeExecute(() => document.getElementById('pickachu-notes-manager'), 'get notes manager');
+    if (existingManager) {
+      existingManager.remove();
+    }
+    
+    // Don't remove sticky notes from page - they should persist
+    // Only call deactivateCb if it exists and we haven't called it yet
+    if (deactivateCb && !deactivateCb.called) {
+      deactivateCb.called = true;
+      deactivateCb();
+    }
+  } catch (error) {
+    handleError(error, 'stickyNotesPicker deactivation');
   }
 }
 
-// Create a new sticky note
+// Create a new sticky note with enhanced error handling
 function createStickyNote(x, y, color = NOTE_COLORS[0].value) {
-  const noteId = `note-${++noteCounter}`;
-  const note = {
-    id: noteId,
-    x: x,
-    y: y,
-    color: color,
-    content: '',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    siteUrl: window.location.href,
-    siteTitle: document.title
-  };
-  
-  notes.push(note);
-  renderStickyNote(note);
-  saveNotes();
-  
-  return note;
+  try {
+    const noteId = `note-${++noteCounter}`;
+    const note = {
+      id: sanitizeInput(noteId),
+      x: safeExecute(() => Math.max(0, Math.min(window.innerWidth - 250, x)), 'constrain x') || 0,
+      y: safeExecute(() => Math.max(0, Math.min(window.innerHeight - 150, y)), 'constrain y') || 0,
+      color: sanitizeInput(color),
+      content: '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      siteUrl: sanitizeInput(safeExecute(() => window.location.href, 'get location href') || ''),
+      siteTitle: sanitizeInput(safeExecute(() => document.title, 'get title') || '')
+    };
+    
+    notes.push(note);
+    renderStickyNote(note);
+    saveNotes();
+    
+    return note;
+  } catch (error) {
+    handleError(error, 'createStickyNote');
+    showError('Failed to create sticky note. Please try again.');
+    return null;
+  }
 }
 
 // Render a sticky note on the page
@@ -467,7 +498,7 @@ function showNotesManager() {
   const clearBtn = document.getElementById('clear-all-notes');
   if (clearBtn) {
     clearBtn.addEventListener('click', () => {
-      if (confirm('Are you sure you want to delete all notes? This cannot be undone.')) {
+      if (window.confirm('Are you sure you want to delete all notes? This action cannot be undone.')) {
         notes.forEach(note => {
           const noteElement = document.getElementById(note.id);
           if (noteElement) noteElement.remove();
@@ -503,258 +534,377 @@ function loadExistingNotes() {
   });
 }
 
-// Save notes to storage (site-specific)
+// Save notes to storage (site-specific) with enhanced error handling
 async function saveNotes() {
   try {
-    const currentUrl = window.location.href;
-    const siteKey = `stickyNotes_${currentUrl}`;
-    await chrome.storage.local.set({ [siteKey]: notes });
+    const currentUrl = safeExecute(() => window.location.href, 'get current url') || '';
+    if (!currentUrl) {
+      throw new Error('Unable to get current URL');
+    }
+    
+    const siteKey = `stickyNotes_${sanitizeInput(currentUrl)}`;
+    await safeExecute(async () => 
+      await chrome.storage.local.set({ [siteKey]: notes }), 'save notes to storage');
     showSuccess('Notes saved successfully!');
   } catch (error) {
-    console.error('Failed to save notes:', error);
+    handleError(error, 'saveNotes');
     showError('Failed to save notes');
   }
 }
 
-// Load notes from storage (site-specific)
+// Load notes from storage (site-specific) with enhanced error handling
 async function loadNotes() {
   try {
-    const currentUrl = window.location.href;
-    const siteKey = `stickyNotes_${currentUrl}`;
-    const result = await chrome.storage.local.get([siteKey]);
+    const currentUrl = safeExecute(() => window.location.href, 'get current url') || '';
+    if (!currentUrl) {
+      throw new Error('Unable to get current URL');
+    }
+    
+    const siteKey = `stickyNotes_${sanitizeInput(currentUrl)}`;
+    const result = await safeExecute(async () => 
+      await chrome.storage.local.get([siteKey]), 'load notes from storage') || {};
     notes = result[siteKey] || [];
   } catch (error) {
-    console.error('Failed to load notes:', error);
+    handleError(error, 'loadNotes');
     notes = [];
   }
 }
 
-// Load all notes from all sites
+// Load all notes from all sites with enhanced error handling
 async function loadAllNotes() {
   try {
-    const result = await chrome.storage.local.get();
+    const result = await safeExecute(async () => 
+      await chrome.storage.local.get(), 'get all storage') || {};
     const allNotes = [];
     
     for (const [key, value] of Object.entries(result)) {
-      if (key.startsWith('stickyNotes_') && Array.isArray(value)) {
-        allNotes.push(...value);
+      try {
+        if (key.startsWith('stickyNotes_') && Array.isArray(value)) {
+          allNotes.push(...value);
+        }
+      } catch (error) {
+        handleError(error, `process storage key ${key}`);
       }
     }
     
     return allNotes;
   } catch (error) {
-    console.error('Failed to load all notes:', error);
+    handleError(error, 'loadAllNotes');
     return [];
   }
 }
 
-// Render all notes from all sites
-async function renderAllNotesList() {
-  const allNotes = await loadAllNotes();
-  
-  if (allNotes.length === 0) {
-    return '<div style="text-align: center; color: var(--pickachu-secondary-text, #666); padding: 20px;">No notes found</div>';
-  }
-  
-  return allNotes.map(note => {
-    const siteName = note.siteTitle || new URL(note.siteUrl).hostname || 'Unknown Site';
-    const shortContent = note.content.length > 50 ? note.content.substring(0, 50) + '...' : note.content;
-    const createdAt = new Date(note.createdAt).toLocaleDateString();
-    
-    return `
-      <div style="
-        padding: 12px;
-        border: 1px solid var(--pickachu-border, #ddd);
-        border-radius: 6px;
-        margin-bottom: 8px;
-        background: var(--pickachu-bg, #fff);
-        cursor: pointer;
-        transition: background-color 0.2s ease;
-      " onclick="window.open('${note.siteUrl}', '_blank')">
-        <div style="font-weight: 600; color: var(--pickachu-text, #333); margin-bottom: 4px;">
-          ${siteName}
-        </div>
-        <div style="font-size: 12px; color: var(--pickachu-secondary-text, #666); margin-bottom: 4px;">
-          Created: ${createdAt}
-        </div>
-        <div style="font-size: 13px; color: var(--pickachu-text, #333);">
-          ${shortContent || 'Empty note'}
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-// Export notes as JSON
+// Export notes as JSON with enhanced error handling
 function exportNotes() {
   try {
-    const dataStr = JSON.stringify(notes, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
+    const dataStr = safeExecute(() => JSON.stringify(notes, null, 2), 'stringify notes');
+    if (!dataStr) {
+      throw new Error('Failed to serialize notes');
+    }
+    
+    const dataBlob = safeExecute(() => new Blob([dataStr], { type: 'application/json' }), 'create blob');
+    if (!dataBlob) {
+      throw new Error('Failed to create data blob');
+    }
+    
+    const url = safeExecute(() => URL.createObjectURL(dataBlob), 'create object URL');
+    if (!url) {
+      throw new Error('Failed to create download URL');
+    }
     
     const a = document.createElement('a');
     a.href = url;
     a.download = `sticky-notes-${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    a.remove(); // Modern API: use remove() instead of deprecated removeChild()
+    
+    safeExecute(() => URL.revokeObjectURL(url), 'revoke object URL');
     
     showSuccess('Notes exported successfully!');
   } catch (error) {
-    console.error('Failed to export notes:', error);
+    handleError(error, 'exportNotes');
     showError('Failed to export notes');
   }
 }
 
-// Import notes from JSON
+// Import notes from JSON with enhanced error handling
 function importNotes() {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.json';
-  input.onchange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const importedNotes = JSON.parse(e.target.result);
-          if (Array.isArray(importedNotes)) {
-            notes = importedNotes;
-            saveNotes();
-            loadExistingNotes();
-            updateNotesList();
-            showSuccess('Notes imported successfully!');
-          } else {
-            showError('Invalid notes file format');
-          }
-        } catch (error) {
-          console.error('Failed to parse notes file:', error);
-          showError('Failed to parse notes file');
+  try {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    
+    const cleanup = addEventListenerWithCleanup(input, 'change', (e) => {
+      try {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          
+          const readerCleanup = addEventListenerWithCleanup(reader, 'load', (e) => {
+            try {
+              const importedNotes = safeExecute(() => JSON.parse(e.target.result), 'parse imported notes');
+              if (!importedNotes) {
+                throw new Error('Failed to parse notes file');
+              }
+              
+              if (Array.isArray(importedNotes)) {
+                notes = importedNotes;
+                saveNotes();
+                loadExistingNotes();
+                updateNotesList();
+                showSuccess('Notes imported successfully!');
+              } else {
+                showError('Invalid notes file format');
+              }
+            } catch (error) {
+              handleError(error, 'import notes file reader load');
+              showError('Failed to parse notes file');
+            }
+          });
+          cleanupFunctions.push(readerCleanup);
+          
+          safeExecute(() => reader.readAsText(file), 'read file as text');
         }
-      };
-      reader.readAsText(file);
-    }
-  };
-  input.click();
-}
-
-// Update notes list in manager
-function updateNotesList() {
-  const notesList = document.getElementById('notes-list');
-  if (notesList) {
-    notesList.innerHTML = renderNotesList();
+      } catch (error) {
+        handleError(error, 'import notes input change');
+        showError('Failed to process selected file');
+      }
+    });
+    cleanupFunctions.push(cleanup);
+    
+    input.click();
+  } catch (error) {
+    handleError(error, 'importNotes');
+    showError('Failed to import notes');
   }
 }
 
-// Render notes list in manager
-function renderNotesList() {
-  if (notes.length === 0) {
-    return '<div style="text-align: center; padding: 20px; color: var(--pickachu-secondary-text, #666);">No notes found</div>';
-  }
-  
-  return notes.map(note => `
-    <div style="
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px;
-      border: 1px solid var(--pickachu-border, #ddd);
-      border-radius: 6px;
-      margin-bottom: 8px;
-      background: var(--pickachu-code-bg, #f8f9fa);
-    ">
-      <div style="flex: 1;">
-        <div style="font-weight: 600; margin-bottom: 4px; color: var(--pickachu-text, #333);">
-          Note ${note.id.split('-')[1]}
-        </div>
-        <div style="font-size: 12px; color: var(--pickachu-secondary-text, #666);">
-          ${note.content ? note.content.substring(0, 50) + (note.content.length > 50 ? '...' : '') : 'Empty note'}
-        </div>
-        <div style="font-size: 11px; color: var(--pickachu-secondary-text, #666); margin-top: 4px;">
-          Created: ${new Date(note.createdAt).toLocaleString()}
-        </div>
-      </div>
-      <div style="display: flex; gap: 8px;">
-        <button onclick="focusNote('${note.id}')" style="
-          padding: 4px 8px;
-          border: 1px solid var(--pickachu-border, #ddd);
-          background: var(--pickachu-button-bg, #f0f0f0);
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 12px;
-          color: #000000;
-        ">Focus</button>
-        <button onclick="deleteNote('${note.id}')" style="
-          padding: 4px 8px;
-          border: 1px solid var(--pickachu-border, #ddd);
-          background: var(--pickachu-error-color, #dc3545);
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 12px;
-          color: var(--pickachu-bg, #fff);
-        ">Delete</button>
-      </div>
-    </div>
-  `).join('');
-}
-
-// Global functions for inline onclick handlers
-window.focusNote = function(noteId) {
-  const noteElement = document.getElementById(noteId);
-  if (noteElement) {
-    noteElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    noteElement.style.transform = 'scale(1.1)';
-    noteElement.style.boxShadow = '0 6px 20px rgba(0,0,0,0.25)';
-    setTimeout(() => {
-      noteElement.style.transform = 'scale(1)';
-      noteElement.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-    }, 1000);
-  }
-};
-
-// Focus a specific note (bring to front and highlight)
-function focusNote(noteElement) {
-  // Bring to front
-  noteElement.style.zIndex = '2147483647';
-  
-  // Add highlight effect
-  noteElement.style.transform = 'scale(1.05)';
-  noteElement.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3)';
-  
-  // Focus the textarea
-  const textarea = noteElement.querySelector('textarea');
-  if (textarea) {
-    textarea.focus();
-  }
-  
-  // Remove highlight after 2 seconds
-  setTimeout(() => {
-    noteElement.style.transform = '';
-    noteElement.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-  }, 2000);
-}
-
-// Delete a note
+// Delete a note with enhanced error handling
 function deleteNote(noteId) {
-  if (confirm('Are you sure you want to delete this note?')) {
-    // Remove from DOM
-    const noteElement = document.getElementById(noteId);
-    if (noteElement) {
-      noteElement.remove();
+  try {
+    if (!noteId || typeof noteId !== 'string') {
+      throw new Error('Invalid note ID');
     }
     
-    // Remove from notes array
-    const noteIndex = notes.findIndex(note => note.id === noteId);
-    if (noteIndex !== -1) {
-      notes.splice(noteIndex, 1);
-      saveNotes();
-      showSuccess('Note deleted successfully');
+    const sanitizedNoteId = sanitizeInput(noteId);
+    
+    if (window.confirm('Are you sure you want to delete this note? This action cannot be undone.')) {
+      // Remove from DOM
+      const noteElement = safeExecute(() => document.getElementById(sanitizedNoteId), 'get note element');
+      if (noteElement) {
+        noteElement.remove();
+      }
+      
+      // Remove from notes array
+      const noteIndex = notes.findIndex(note => note.id === sanitizedNoteId);
+      if (noteIndex !== -1) {
+        notes.splice(noteIndex, 1);
+        saveNotes();
+        showSuccess('Note deleted successfully');
+      }
     }
+  } catch (error) {
+    handleError(error, 'deleteNote');
+    showError('Failed to delete note');
   }
 }
 
-// Make deleteNote globally available for inline onclick handlers
+// Focus a note with enhanced error handling
+function focusNoteById(noteId) {
+  try {
+    if (!noteId || typeof noteId !== 'string') {
+      throw new Error('Invalid note ID');
+    }
+    
+    const sanitizedNoteId = sanitizeInput(noteId);
+    const noteElement = safeExecute(() => document.getElementById(sanitizedNoteId), 'get note element');
+    if (noteElement) {
+      safeExecute(() => noteElement.scrollIntoView({ behavior: 'smooth', block: 'center' }), 'scroll into view');
+      noteElement.style.transform = 'scale(1.1)';
+      noteElement.style.boxShadow = '0 6px 20px rgba(0,0,0,0.25)';
+      setTimeout(() => {
+        try {
+          noteElement.style.transform = 'scale(1)';
+          noteElement.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+        } catch (error) {
+          handleError(error, 'focus note timeout');
+        }
+      }, 1000);
+    }
+  } catch (error) {
+    handleError(error, 'focusNoteById');
+    showError('Failed to focus note');
+  }
+}
+
+// Render all notes from all sites with enhanced error handling
+async function renderAllNotesList() {
+  try {
+    const allNotes = await loadAllNotes();
+    
+    if (allNotes.length === 0) {
+      return '<div style="text-align: center; color: var(--pickachu-secondary-text, #666); padding: 20px;">No notes found</div>';
+    }
+    
+    return allNotes.map(note => {
+      try {
+        const siteName = sanitizeInput(note.siteTitle || safeExecute(() => new URL(note.siteUrl).hostname, 'get hostname') || 'Unknown Site');
+        const shortContent = sanitizeInput(note.content.length > 50 ? note.content.substring(0, 50) + '...' : note.content);
+        const createdAt = safeExecute(() => new Date(note.createdAt).toLocaleDateString(), 'format date') || 'Unknown';
+        const sanitizedUrl = sanitizeInput(note.siteUrl);
+        
+        return `
+          <div style="
+            padding: 12px;
+            border: 1px solid var(--pickachu-border, #ddd);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            background: var(--pickachu-bg, #fff);
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+          " onclick="window.open('${sanitizedUrl}', '_blank')">
+            <div style="font-weight: 600; color: var(--pickachu-text, #333); margin-bottom: 4px;">
+              ${siteName}
+            </div>
+            <div style="font-size: 12px; color: var(--pickachu-secondary-text, #666); margin-bottom: 4px;">
+              Created: ${createdAt}
+            </div>
+            <div style="font-size: 13px; color: var(--pickachu-text, #333);">
+              ${shortContent || 'Empty note'}
+            </div>
+          </div>
+        `;
+      } catch (error) {
+        handleError(error, 'render note item');
+        return '';
+      }
+    }).join('');
+  } catch (error) {
+    handleError(error, 'renderAllNotesList');
+    return '<div style="text-align: center; color: var(--pickachu-error-color, #dc3545); padding: 20px;">Failed to load notes</div>';
+  }
+}
+
+// Update notes list in manager with enhanced error handling
+function updateNotesList() {
+  try {
+    const notesList = safeExecute(() => document.getElementById('notes-list'), 'get notes list');
+    if (notesList) {
+      notesList.innerHTML = renderNotesList();
+    }
+  } catch (error) {
+    handleError(error, 'updateNotesList');
+  }
+}
+
+// Render notes list in manager with enhanced error handling
+function renderNotesList() {
+  try {
+    if (notes.length === 0) {
+      return '<div style="text-align: center; padding: 20px; color: var(--pickachu-secondary-text, #666);">No notes found</div>';
+    }
+    
+    return notes.map(note => {
+      try {
+        const noteNumber = safeExecute(() => note.id.split('-')[1], 'get note number') || '?';
+        const shortContent = sanitizeInput(note.content ? note.content.substring(0, 50) + (note.content.length > 50 ? '...' : '') : 'Empty note');
+        const createdAt = safeExecute(() => new Date(note.createdAt).toLocaleString(), 'format created date') || 'Unknown';
+        const sanitizedNoteId = sanitizeInput(note.id);
+        
+        return `
+          <div style="
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            border: 1px solid var(--pickachu-border, #ddd);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            background: var(--pickachu-code-bg, #f8f9fa);
+          ">
+            <div style="flex: 1;">
+              <div style="font-weight: 600; margin-bottom: 4px; color: var(--pickachu-text, #333);">
+                Note ${noteNumber}
+              </div>
+              <div style="font-size: 12px; color: var(--pickachu-secondary-text, #666);">
+                ${shortContent}
+              </div>
+              <div style="font-size: 11px; color: var(--pickachu-secondary-text, #666); margin-top: 4px;">
+                Created: ${createdAt}
+              </div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button onclick="window.stickyNotesModule.focusNote('${sanitizedNoteId}')" style="
+                padding: 4px 8px;
+                border: 1px solid var(--pickachu-border, #ddd);
+                background: var(--pickachu-button-bg, #f0f0f0);
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 12px;
+                color: #000000;
+              ">Focus</button>
+              <button onclick="window.stickyNotesModule.deleteNote('${sanitizedNoteId}')" style="
+                padding: 4px 8px;
+                border: 1px solid var(--pickachu-border, #ddd);
+                background: var(--pickachu-error-color, #dc3545);
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 12px;
+                color: var(--pickachu-bg, #fff);
+              ">Delete</button>
+            </div>
+          </div>
+        `;
+      } catch (error) {
+        handleError(error, 'render note list item');
+        return '';
+      }
+    }).join('');
+  } catch (error) {
+    handleError(error, 'renderNotesList');
+    return '<div style="text-align: center; color: var(--pickachu-error-color, #dc3545); padding: 20px;">Failed to render notes</div>';
+  }
+}
+
+// Focus a specific note (bring to front and highlight) with enhanced error handling
+function focusNote(noteElement) {
+  try {
+    if (!noteElement) {
+      throw new Error('No note element provided');
+    }
+    
+    // Bring to front
+    noteElement.style.zIndex = '2147483647';
+    
+    // Add highlight effect
+    noteElement.style.transform = 'scale(1.05)';
+    noteElement.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3)';
+    
+    // Focus the textarea
+    const textarea = safeExecute(() => noteElement.querySelector('textarea'), 'get textarea');
+    if (textarea) {
+      safeExecute(() => textarea.focus(), 'focus textarea');
+    }
+    
+    // Remove highlight after 2 seconds
+    setTimeout(() => {
+      try {
+        noteElement.style.transform = '';
+        noteElement.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+      } catch (error) {
+        handleError(error, 'focus note cleanup');
+      }
+    }, 2000);
+  } catch (error) {
+    handleError(error, 'focusNote');
+  }
+}
+
+// Expose functions globally in a controlled way to avoid pollution
 if (typeof window !== 'undefined') {
-  window.deleteNote = deleteNote;
+  window.stickyNotesModule = {
+    deleteNote: deleteNote,
+    focusNote: focusNoteById
+  };
 }

@@ -1,6 +1,21 @@
 async function loadLang(lang){
-  const res = await fetch(chrome.runtime.getURL(`_locales/${lang}/messages.json`));
-  return res.json();
+  try {
+    const res = await fetch(chrome.runtime.getURL(`_locales/${lang}/messages.json`));
+    if (!res.ok) {
+      throw new Error(`Failed to load language: ${res.status}`);
+    }
+    return res.json();
+  } catch (error) {
+    console.error('Error loading language:', error);
+    // Fallback to English
+    try {
+      const res = await fetch(chrome.runtime.getURL(`_locales/en/messages.json`));
+      return res.json();
+    } catch (fallbackError) {
+      console.error('Error loading fallback language:', fallbackError);
+      return {};
+    }
+  }
 }
 
 function applyLang(map){
@@ -18,9 +33,49 @@ function applyTheme(theme){
   if(theme==='dark') document.body.classList.add('dark');
 }
 
+// Performance optimization: debounce function
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+// Performance optimization: throttle function
+function throttle(func, limit) {
+  let inThrottle;
+  return function() {
+    const args = arguments;
+    const context = this;
+    if (!inThrottle) {
+      func.apply(context, args);
+      inThrottle = true;
+      setTimeout(() => inThrottle = false, limit);
+    }
+  };
+}
+
 // Global variables to prevent duplicate listeners
 let isInitialized = false;
 let buttonListenersAdded = false;
+
+// Keyboard shortcuts mapping
+const keyboardShortcuts = {
+  '1': 'color-picker',
+  '2': 'element-picker', 
+  '3': 'link-picker',
+  '4': 'font-picker',
+  '5': 'image-picker',
+  '6': 'text-picker',
+  '7': 'screenshot-picker',
+  '8': 'sticky-notes-picker',
+  '9': 'site-info-picker'
+};
 
 function addButtonListeners(map) {
   if (buttonListenersAdded) return;
@@ -33,15 +88,37 @@ function addButtonListeners(map) {
     });
     
     // Add keyboard shortcuts to tooltips
-    const hint = btn.dataset.shortcut;
-    if (hint && map) {
+    const shortcut = Object.keys(keyboardShortcuts).find(key => keyboardShortcuts[key] === btn.id);
+    if (shortcut && map) {
       const titleId = btn.dataset.i18nTitle;
       const base = map[titleId]?.message || btn.title;
-      btn.title = `${base} (${hint})`;
+      btn.title = `${base} (${shortcut})`;
     }
   });
   
   buttonListenersAdded = true;
+}
+
+// Add keyboard shortcut support
+function addKeyboardShortcuts() {
+  document.addEventListener('keydown', (e) => {
+    // Don't trigger if user is typing in inputs
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+    
+    const shortcut = keyboardShortcuts[e.key];
+    if (shortcut) {
+      e.preventDefault();
+      const button = document.getElementById(shortcut);
+      if (button) {
+        button.click();
+      }
+    }
+    
+    // Escape key to close popup
+    if (e.key === 'Escape') {
+      window.close();
+    }
+  });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -73,6 +150,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Add button listeners after language is loaded
       addButtonListeners(map);
+      
+      // Add keyboard shortcuts
+      addKeyboardShortcuts();
 
       if (shortcutsEl) {
         const base = map.openShortcut?.message || 'Ctrl+Shift+9';

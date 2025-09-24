@@ -1,22 +1,27 @@
-import { createOverlay, removeOverlay, copyText, showModal, showError, showSuccess, showInfo, throttle, getCachedComputedStyle } from './helpers.js';
+import { createOverlay, removeOverlay, copyText, showModal, showError, showSuccess, showInfo, throttle, getCachedComputedStyle, handleError, safeExecute, sanitizeInput, addEventListenerWithCleanup } from './helpers.js';
 
 let overlay, deactivateCb;
 let currentElement = null;
+let cleanupFunctions = []; // New: Array to store cleanup functions for event listeners
 
-// Performance optimized move handler
+// Performance optimized move handler with enhanced error handling
 const throttledOnMove = throttle((e) => {
-  const el = e.target;
-  if (!el || el === overlay) return;
-  
-  currentElement = el;
-  const rect = el.getBoundingClientRect();
-  overlay.style.top = rect.top + window.scrollY + 'px';
-  overlay.style.left = rect.left + window.scrollX + 'px';
-  overlay.style.width = rect.width + 'px';
-  overlay.style.height = rect.height + 'px';
+  try {
+    const el = e.target;
+    if (!el || el === overlay) return;
+    
+    currentElement = el;
+    const rect = el.getBoundingClientRect();
+    overlay.style.top = rect.top + window.scrollY + 'px';
+    overlay.style.left = rect.left + window.scrollX + 'px';
+    overlay.style.width = rect.width + 'px';
+    overlay.style.height = rect.height + 'px';
+  } catch (error) {
+    handleError(error, 'throttledOnMove');
+  }
 }, 16);
 
-// Enhanced click handler with comprehensive font information
+// Enhanced click handler with comprehensive font information and error handling
 function onClick(e) {
   e.preventDefault();
   e.stopPropagation();
@@ -25,12 +30,16 @@ function onClick(e) {
   
   try {
     const el = currentElement;
-    const cs = getCachedComputedStyle(el);
+    const cs = safeExecute(() => getCachedComputedStyle(el), 'getCachedComputedStyle');
     
-    // Extract comprehensive font information
+    if (!cs) {
+      throw new Error('Failed to get computed styles');
+    }
+    
+    // Extract comprehensive font information with enhanced validation
     const fontInfo = {
       // Basic font properties
-      fontFamily: cs.fontFamily,
+      fontFamily: sanitizeInput(cs.fontFamily),
       fontSize: cs.fontSize,
       fontWeight: cs.fontWeight,
       fontStyle: cs.fontStyle,
@@ -55,26 +64,26 @@ function onClick(e) {
       // Font loading status
       fontDisplay: cs.fontDisplay,
       
-      // Computed values
+      // Computed values with enhanced error handling
       computed: {
-        fontSize: parseFloat(cs.fontSize),
-        lineHeight: parseFloat(cs.lineHeight),
+        fontSize: safeExecute(() => parseFloat(cs.fontSize), 'parseFloat fontSize') || 0,
+        lineHeight: safeExecute(() => parseFloat(cs.lineHeight), 'parseFloat lineHeight') || 0,
         fontWeight: cs.fontWeight,
-        fontFamily: cs.fontFamily.split(',').map(f => f.trim().replace(/['"]/g, '')),
-        isWebFont: cs.fontFamily.includes('Google') || cs.fontFamily.includes('Font'),
-        isSystemFont: cs.fontFamily.includes('system') || cs.fontFamily.includes('Arial')
+        fontFamily: safeExecute(() => cs.fontFamily.split(',').map(f => f.trim().replace(/['"]/g, '')), 'fontFamily split') || [],
+        isWebFont: safeExecute(() => cs.fontFamily.includes('Google') || cs.fontFamily.includes('Font'), 'isWebFont check') || false,
+        isSystemFont: safeExecute(() => cs.fontFamily.includes('system') || cs.fontFamily.includes('Arial'), 'isSystemFont check') || false
       },
       
-      // Element context
+      // Element context with sanitization
       element: {
         tagName: el.tagName.toLowerCase(),
-        textContent: el.textContent.trim().substring(0, 100),
-        className: el.className,
-        id: el.id
+        textContent: sanitizeInput(el.textContent.trim().substring(0, 100)),
+        className: sanitizeInput(el.className),
+        id: sanitizeInput(el.id)
       }
     };
     
-    // Generate CSS code
+    // Generate CSS code with enhanced formatting
     const cssCode = `/* Font styles for ${el.tagName.toLowerCase()} */
 font-family: ${fontInfo.fontFamily};
 font-size: ${fontInfo.fontSize};
@@ -98,24 +107,28 @@ text-decoration: ${fontInfo.textDecoration};`;
     deactivateCb();
     
   } catch (error) {
-    console.error('Font picker error:', error);
+    handleError(error, 'fontPicker');
     showError('Failed to extract font information. Please try again.');
   }
 }
 
-// Keyboard navigation
+// Keyboard navigation with enhanced error handling
 function onKeyDown(e) {
-  if (!overlay || !currentElement) return;
-  
-  switch (e.key) {
-    case 'Enter':
-      e.preventDefault();
-      onClick({ target: currentElement, preventDefault: () => {}, stopPropagation: () => {} });
-      break;
-    case 'Escape':
-      e.preventDefault();
-      deactivateCb();
-      break;
+  try {
+    if (!overlay || !currentElement) return;
+    
+    switch (e.key) {
+      case 'Enter':
+        e.preventDefault();
+        onClick({ target: currentElement, preventDefault: () => {}, stopPropagation: () => {} });
+        break;
+      case 'Escape':
+        e.preventDefault();
+        deactivateCb();
+        break;
+    }
+  } catch (error) {
+    handleError(error, 'onKeyDown');
   }
 }
 
@@ -140,14 +153,18 @@ export function activate(deactivate) {
     `;
     
     document.body.style.cursor = 'crosshair';
-    document.addEventListener('mousemove', throttledOnMove, true);
-    document.addEventListener('click', onClick, true);
-    document.addEventListener('keydown', onKeyDown, true);
+    
+    // Add event listeners with cleanup tracking
+    const cleanupMove = addEventListenerWithCleanup(document, 'mousemove', throttledOnMove, true);
+    const cleanupClick = addEventListenerWithCleanup(document, 'click', onClick, true);
+    const cleanupKeydown = addEventListenerWithCleanup(document, 'keydown', onKeyDown, true);
+    
+    cleanupFunctions.push(cleanupMove, cleanupClick, cleanupKeydown);
     
     showInfo('Hover over text elements to inspect fonts • Click to select • Enter to select • Esc to cancel', 3000);
     
   } catch (error) {
-    console.error('Font picker activation error:', error);
+    handleError(error, 'fontPicker activation');
     showError('Failed to activate font picker. Please try again.');
     deactivate();
   }
@@ -155,9 +172,15 @@ export function activate(deactivate) {
 
 export function deactivate() {
   try {
-    document.removeEventListener('mousemove', throttledOnMove, true);
-    document.removeEventListener('click', onClick, true);
-    document.removeEventListener('keydown', onKeyDown, true);
+    // Cleanup all event listeners
+    cleanupFunctions.forEach(cleanup => {
+      try {
+        cleanup();
+      } catch (error) {
+        handleError(error, 'event listener cleanup');
+      }
+    });
+    cleanupFunctions.length = 0;
     
     removeOverlay(overlay);
     overlay = null;
@@ -166,6 +189,6 @@ export function deactivate() {
     document.body.style.cursor = '';
     
   } catch (error) {
-    console.error('Font picker deactivation error:', error);
+    handleError(error, 'fontPicker deactivation');
   }
 }
