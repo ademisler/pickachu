@@ -38,7 +38,7 @@ function downloadScreenshot(dataUrl, filename) {
   }
 }
 
-// Capture full page screenshot using simple approach
+// Capture full page screenshot using proven approach
 async function captureFullPage() {
   try {
     console.log('Starting full page capture...');
@@ -46,106 +46,124 @@ async function captureFullPage() {
 
     const { scrollHeight, clientHeight } = document.documentElement;
     const devicePixelRatio = window.devicePixelRatio || 1;
-    
+
     let capturedHeight = 0;
     let capturedImages = [];
-    
     const originalScrollY = window.scrollY;
-    
+
     // Scroll to top first
     window.scrollTo(0, 0);
-    
+
     const captureAndScroll = () => {
       const scrollAmount = clientHeight * devicePixelRatio;
-      
-      return new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage({ 
-          type: 'CAPTURE_VISIBLE_TAB',
-          format: 'png',
-          quality: 100
-        }, (response) => {
-          if (chrome.runtime.lastError) {
-            reject(new Error(chrome.runtime.lastError.message));
-            return;
-          }
-          
-          if (response && response.success && response.dataUrl) {
-            capturedHeight += scrollAmount;
-            capturedImages.push(response.dataUrl);
-            
-            if (capturedHeight < scrollHeight * devicePixelRatio) {
-              // Scroll to next part
-              window.scrollTo(0, capturedHeight);
-              setTimeout(() => {
-                captureAndScroll().then(resolve).catch(reject);
-              }, 500); // Wait for scroll to settle
-            } else {
-              // All parts captured
-              resolve(capturedImages);
-            }
-          } else {
-            reject(new Error('Failed to capture screenshot'));
-          }
-        });
+
+      chrome.runtime.sendMessage({ 
+        type: 'CAPTURE_VISIBLE_TAB',
+        format: 'png',
+        quality: 100
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('Message error:', chrome.runtime.lastError);
+          throw new Error(chrome.runtime.lastError.message);
+        }
+        
+        if (!response || !response.success || !response.dataUrl) {
+          console.error('Invalid response:', response);
+          throw new Error('Failed to capture screenshot - invalid response');
+        }
+
+        capturedHeight += scrollAmount;
+        capturedImages.push(response.dataUrl);
+        console.log(`Captured chunk ${capturedImages.length}, height: ${capturedHeight}/${scrollHeight * devicePixelRatio}`);
+
+        if (capturedHeight < scrollHeight * devicePixelRatio) {
+          // Scroll to next part
+          window.scrollTo(0, capturedHeight);
+          setTimeout(captureAndScroll, 1000); // Wait for scroll to settle
+        } else {
+          // All parts captured, stitch images
+          console.log('All chunks captured, stitching...');
+          stitchImages(capturedImages);
+        }
       });
     };
-    
+
     // Start capturing
-    const images = await captureAndScroll();
-    
-    // Restore original scroll position
-    window.scrollTo(0, originalScrollY);
-    
-    // Stitch images together
-    if (images.length === 0) {
-      throw new Error('No images captured');
-    }
-    
-    if (images.length === 1) {
-      // Single image, download directly
-      return images[0];
-    }
-    
-    // Multiple images, stitch them
-    showInfo('Stitching images...', 0);
-    
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    
-    const firstImage = new Image();
-    firstImage.src = images[0];
-    
-    return new Promise((resolve, reject) => {
-      firstImage.onload = () => {
-        canvas.width = firstImage.width;
-        canvas.height = images.length * firstImage.height;
-        
-        let imagesLoaded = 0;
-        
-        const drawImageOnCanvas = (image, index) => {
-          context.drawImage(image, 0, index * firstImage.height);
-          imagesLoaded++;
-          
-          if (imagesLoaded === images.length) {
-            const fullPageDataUrl = canvas.toDataURL('image/png');
-            resolve(fullPageDataUrl);
-          }
-        };
-        
-        images.forEach((dataUrl, index) => {
-          const image = new Image();
-          image.onload = () => drawImageOnCanvas(image, index);
-          image.onerror = () => reject(new Error(`Failed to load image ${index}`));
-          image.src = dataUrl;
-        });
-      };
-      
-      firstImage.onerror = () => reject(new Error('Failed to load first image'));
-    });
-    
+    captureAndScroll();
+
+    // Restore original scroll position after a delay
+    setTimeout(() => {
+      window.scrollTo(0, originalScrollY);
+    }, 5000);
+
   } catch (error) {
     handleError(error, 'captureFullPage');
     throw error;
+  }
+}
+
+// Stitch multiple images together
+function stitchImages(images) {
+  try {
+    console.log('Stitching images...');
+    showInfo('Stitching images...', 0);
+
+    if (images.length === 0) {
+      throw new Error('No images to stitch');
+    }
+
+    if (images.length === 1) {
+      // Single image, download directly
+      const filename = getFilename(window.location.href);
+      downloadScreenshot(images[0], filename);
+      showSuccess('Full page screenshot captured and downloaded!');
+      return;
+    }
+
+    // Multiple images, stitch them
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+
+    const firstImage = new Image();
+    firstImage.src = images[0];
+
+    firstImage.onload = () => {
+      canvas.width = firstImage.width;
+      canvas.height = images.length * firstImage.height;
+
+      let imagesLoaded = 0;
+
+      const drawImageOnCanvas = (image, index) => {
+        context.drawImage(image, 0, index * firstImage.height);
+        imagesLoaded++;
+
+        if (imagesLoaded === images.length) {
+          const fullPageDataUrl = canvas.toDataURL('image/png');
+          const filename = getFilename(window.location.href);
+          downloadScreenshot(fullPageDataUrl, filename);
+          showSuccess('Full page screenshot captured and downloaded!');
+        }
+      };
+
+      images.forEach((dataUrl, index) => {
+        const image = new Image();
+        image.onload = () => drawImageOnCanvas(image, index);
+        image.onerror = () => {
+          console.error(`Failed to load image ${index}`);
+          showError('Failed to load some images for stitching');
+        };
+        image.src = dataUrl;
+      });
+    };
+
+    firstImage.onerror = () => {
+      console.error('Failed to load first image');
+      showError('Failed to load first image for stitching');
+    };
+
+  } catch (error) {
+    handleError(error, 'stitchImages');
+    showError('Failed to stitch images');
   }
 }
 
@@ -160,22 +178,7 @@ async function captureScreenshot() {
   
   try {
     showInfo('Starting full page capture...', 0);
-    
-    const dataUrl = await captureFullPage();
-    
-    if (!dataUrl) {
-      throw new Error('No screenshot data received');
-    }
-    
-    // Get current tab for filename
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const currentTab = tabs[0];
-    const filename = currentTab ? getFilename(currentTab.url) : 'screenshot.png';
-    
-    // Download the screenshot
-    downloadScreenshot(dataUrl, filename);
-    showSuccess('Full page screenshot captured and downloaded!');
-    
+    await captureFullPage();
   } catch (error) {
     console.error('Screenshot capture failed:', error);
     handleError(error, 'captureScreenshot');
