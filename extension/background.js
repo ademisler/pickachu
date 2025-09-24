@@ -62,7 +62,12 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
         return;
       }
       
-      const dataUrl = await chrome.tabs.captureVisibleTab(null, request.options);
+      // Capture visible tab with high quality
+      const dataUrl = await chrome.tabs.captureVisibleTab(null, {
+        format: 'png',
+        quality: 100
+      });
+      
       sendResponse({ success: true, dataUrl: dataUrl });
       
     } catch (error) {
