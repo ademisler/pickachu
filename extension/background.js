@@ -73,10 +73,13 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
         
         console.log('Active tab found:', tab.id, tab.url);
         
-        // Capture visible tab with high quality
+        // Capture visible tab with specified format and quality
+        const format = request.format || 'png';
+        const quality = request.quality || 100;
+        
         const dataUrl = await chrome.tabs.captureVisibleTab(null, {
-          format: 'png',
-          quality: 100
+          format: format,
+          quality: quality
         });
         
         if (!dataUrl) {
@@ -88,6 +91,47 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
         
       } catch (error) {
         console.error('Error capturing visible tab:', error);
+        sendResponse({ success: false, error: error.message || 'Unknown error occurred' });
+      }
+    })();
+    return true; // Keep message channel open for async response
+  }
+  
+  if (request.type === 'GET_PAGE_DIMENSIONS') {
+    (async () => {
+      try {
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        const tab = tabs[0];
+        
+        if (!tab) {
+          console.error('No active tab found');
+          sendResponse({ success: false, error: 'No active tab found' });
+          return;
+        }
+        
+        // Execute script to get page dimensions
+        const results = await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: () => {
+            return {
+              width: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth, window.innerWidth),
+              height: Math.max(document.documentElement.scrollHeight, document.body.scrollHeight, window.innerHeight),
+              scrollWidth: document.documentElement.scrollWidth,
+              scrollHeight: document.documentElement.scrollHeight,
+              innerWidth: window.innerWidth,
+              innerHeight: window.innerHeight
+            };
+          }
+        });
+        
+        if (results && results[0] && results[0].result) {
+          sendResponse({ success: true, dimensions: results[0].result });
+        } else {
+          throw new Error('Failed to get page dimensions');
+        }
+        
+      } catch (error) {
+        console.error('Error getting page dimensions:', error);
         sendResponse({ success: false, error: error.message || 'Unknown error occurred' });
       }
     })();
