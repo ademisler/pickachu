@@ -3,7 +3,7 @@ let langMap = {};
 let userTheme = 'system';
 
 // Performance utilities
-function debounce(func, wait) {
+export function debounce(func, wait) {
   let timeout;
   return function executedFunction(...args) {
     const later = () => {
@@ -15,7 +15,7 @@ function debounce(func, wait) {
   };
 }
 
-function throttle(func, limit) {
+export function throttle(func, limit) {
   let inThrottle;
   return function(...args) {
     if (!inThrottle) {
@@ -30,7 +30,7 @@ function throttle(func, limit) {
 const styleCache = new Map();
 const queryCache = new Map();
 
-function getCachedComputedStyle(element) {
+export function getCachedComputedStyle(element) {
   const key = `${element.tagName}-${element.id}-${element.className}`;
   if (!styleCache.has(key)) {
     styleCache.set(key, getComputedStyle(element));
@@ -152,19 +152,19 @@ export async function copyText(text) {
 }
 
 // Enhanced error handling
-function showError(message, duration = 3000) {
+export function showError(message, duration = 3000) {
   showToast(`❌ ${message}`, duration);
 }
 
-function showSuccess(message, duration = 2000) {
+export function showSuccess(message, duration = 2000) {
   showToast(`✅ ${message}`, duration);
 }
 
-function showWarning(message, duration = 2500) {
+export function showWarning(message, duration = 2500) {
   showToast(`⚠️ ${message}`, duration);
 }
 
-function showInfo(message, duration = 2000) {
+export function showInfo(message, duration = 2000) {
   showToast(`ℹ️ ${message}`, duration);
 }
 
