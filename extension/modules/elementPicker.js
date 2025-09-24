@@ -251,7 +251,6 @@ export function deactivate() {
     tooltip = null;
     
     currentElement = null;
-    elements = [];
     
     document.body.style.cursor = '';
     

@@ -1,4 +1,4 @@
-import { createOverlay, removeOverlay, copyText, showModal, showError, showSuccess, showInfo, throttle } from './helpers.js';
+import { createOverlay, removeOverlay, copyText, showModal, showError, showSuccess, showInfo, showWarning, throttle } from './helpers.js';
 
 let overlay, deactivateCb;
 let currentElement = null;

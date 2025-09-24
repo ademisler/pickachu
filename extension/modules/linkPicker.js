@@ -1,4 +1,4 @@
-import { copyText, showModal, showError, showSuccess, showInfo, throttle } from './helpers.js';
+import { copyText, showModal, showError, showSuccess, showInfo, showWarning, throttle } from './helpers.js';
 
 let startX, startY, box, deactivateCb;
 let isSelecting = false;

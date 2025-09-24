@@ -30,7 +30,6 @@ function resetActiveModule() {
 
 // Signal that content script is ready
 function signalReady() {
-  isReady = true;
   // Send ready signal to background script
   chrome.runtime.sendMessage({ type: 'CONTENT_SCRIPT_READY' }).catch(() => {
     // Ignore errors if background script is not available

@@ -1,6 +1,5 @@
 import { showError, showSuccess, showInfo, showModal } from './helpers.js';
 
-
 // Detect technologies and frameworks
 function detectTechnologies() {
   const technologies = {
@@ -438,7 +437,6 @@ ${report.overallScore >= 8 ? '🌟 Excellent website!' :
 }
 
 export function activate(deactivate) {
-  deactivateCb = deactivate;
   
   try {
     // Generate and show site report

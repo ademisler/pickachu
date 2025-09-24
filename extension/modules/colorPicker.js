@@ -1,4 +1,4 @@
-import { copyText, showModal, showError, showSuccess } from './helpers.js';
+import { copyText, showModal, showError, showSuccess, showInfo } from './helpers.js';
 
 // Color format utilities
 function hexToRgb(hex) {

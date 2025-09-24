@@ -224,7 +224,7 @@ async function getHistory() {
   }
 }
 
-async function saveHistory(item) {
+export async function saveHistory(item) {
   try {
     const hist = await getHistory();
     hist.unshift(item);
@@ -616,39 +616,6 @@ export async function showModal(title, content, icon = '', type = '') {
     document.addEventListener('mousemove', onDrag);
     document.addEventListener('mouseup', endDrag);
     document.addEventListener('mouseleave', endDrag);
-  });
-  closeBtn.addEventListener('click', () => overlay.remove());
-  copyBtn.addEventListener('click', () => {
-    copyText(ta.value);
-    showToast(t('copy'));
-  });
-  exportBtn.addEventListener('click', () => {
-    const promptMsg = t('exportPrompt');
-    const format = prompt(promptMsg, 'txt');
-    let dataStr = ta.value;
-    let typeStr = 'text/plain';
-    let fileName = 'pickachu.' + (format || 'txt');
-    if (format === 'json') { typeStr = 'application/json'; }
-    if (format === 'csv') { typeStr = 'text/csv'; }
-    const blob = new Blob([dataStr], { type: typeStr });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast(t('export'));
-  });
-  const item = { id: Date.now(), title, content, type, favorite: false };
-  saveHistory(item);
-  favBtn.addEventListener('click', async () => {
-    const val = await toggleFavorite(item.id);
-    favBtn.textContent = val ? '★' : '☆';
-    showToast(val ? t('favorite') : t('unfavorite'));
-  });
-  historyBtn.addEventListener('click', () => {
-    overlay.remove();
-    showHistory();
   });
   return overlay;
 }
