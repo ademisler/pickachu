@@ -1,134 +1,137 @@
 :root {
   --pickachu-primary: #FFDE00;
   --pickachu-accent: #00BFFF;
-  --pickachu-bg: #f4f4f9;
-  --pickachu-button-bg: #fff;
-  --pickachu-button-border: #ccc;
-  --pickachu-button-hover: #e9e9ed;
-  --pickachu-select-bg: #fff;
-  --pickachu-select-text: #333;
-  --pickachu-text: #333;
-  --pickachu-modal-border: #ccc;
-  --pickachu-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  --pickachu-shadow-hover: 0 4px 12px rgba(0,0,0,0.15);
-  --pickachu-transition: all 0.2s ease;
+  --pickachu-bg: #f8f9fa;
+  --pickachu-button-bg: #ffffff;
+  --pickachu-button-border: #e1e5e9;
+  --pickachu-button-hover: #f1f3f4;
+  --pickachu-select-bg: #ffffff;
+  --pickachu-select-text: #333333;
+  --pickachu-text: #333333;
+  --pickachu-text-secondary: #6c757d;
+  --pickachu-border: #e1e5e9;
+  --pickachu-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  --pickachu-shadow-hover: 0 4px 16px rgba(0,0,0,0.12);
+  --pickachu-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   --pickachu-border-radius: 12px;
-  --pickachu-border-radius-small: 6px;
+  --pickachu-border-radius-small: 8px;
+  --pickachu-border-radius-large: 16px;
 }
+
 @media (prefers-color-scheme: dark) {
   :root {
-    --pickachu-bg: #2b2b2b;
-    --pickachu-button-bg: #3c3c3c;
-    --pickachu-button-border: #555;
-    --pickachu-button-hover: #444;
-    --pickachu-select-bg: #3c3c3c;
-    --pickachu-select-text: #f5f5f5;
-    --pickachu-text: #f5f5f5;
-    --pickachu-modal-border: #555;
+    --pickachu-bg: #1a1a1a;
+    --pickachu-button-bg: #2d2d2d;
+    --pickachu-button-border: #404040;
+    --pickachu-button-hover: #3a3a3a;
+    --pickachu-select-bg: #2d2d2d;
+    --pickachu-select-text: #ffffff;
+    --pickachu-text: #ffffff;
+    --pickachu-text-secondary: #a0a0a0;
+    --pickachu-border: #404040;
     --pickachu-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    --pickachu-shadow-hover: 0 4px 12px rgba(0,0,0,0.4);
+    --pickachu-shadow-hover: 0 4px 16px rgba(0,0,0,0.4);
   }
+}
+
+.light {
+  --pickachu-bg: #f8f9fa;
+  --pickachu-button-bg: #ffffff;
+  --pickachu-button-border: #e1e5e9;
+  --pickachu-button-hover: #f1f3f4;
+  --pickachu-select-bg: #ffffff;
+  --pickachu-select-text: #333333;
+  --pickachu-text: #333333;
+  --pickachu-text-secondary: #6c757d;
+  --pickachu-border: #e1e5e9;
+}
+
+.dark {
+  --pickachu-bg: #1a1a1a;
+  --pickachu-button-bg: #2d2d2d;
+  --pickachu-button-border: #404040;
+  --pickachu-button-hover: #3a3a3a;
+  --pickachu-select-bg: #2d2d2d;
+  --pickachu-select-text: #ffffff;
+  --pickachu-text: #ffffff;
+  --pickachu-text-secondary: #a0a0a0;
+  --pickachu-border: #404040;
 }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  width: 300px;
-  min-width: 280px;
+  width: 320px;
+  min-width: 300px;
   max-width: 400px;
-  padding: 12px;
+  padding: 16px;
   background-color: var(--pickachu-bg);
   color: var(--pickachu-text);
   transition: var(--pickachu-transition);
-}
-
-/* Responsive design */
-@media (max-width: 320px) {
-  body {
-    width: 280px;
-    padding: 8px;
-  }
-  
-  .grid {
-    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
-    gap: 8px;
-  }
-  
-  button {
-    padding: 6px 4px;
-  }
-  
-  button img.icon {
-    width: 22px;
-    height: 22px;
-  }
-  
-  button .label {
-    font-size: 11px;
-  }
-  
-  button .shortcut-key {
-    font-size: 9px;
-    padding: 1px 3px;
-  }
-}
-.light {
-  --bg: #ffffff;
-  --button-bg: #fff;
-  --button-hover: #e9e9ed;
-  --button-border: #ccc;
-  --select-bg: #fff;
-  --select-text: #333;
-  --text: #333;
-}
-.dark {
-  --bg: #2b2b2b;
-  --button-bg: #3c3c3c;
-  --button-border: #555;
-  --button-hover: #444;
-  --select-bg: #3c3c3c;
-  --select-text: #f5f5f5;
-  --text: #f5f5f5;
+  margin: 0;
+  line-height: 1.5;
 }
 
 .options {
-  margin-top: 5px;
+  margin-top: 8px;
   display: flex;
   justify-content: center;
-  gap: 5px;
+  gap: 8px;
 }
 
 .options select {
   background: var(--pickachu-select-bg);
   color: var(--pickachu-select-text);
-  border: 1px solid var(--pickachu-button-border);
+  border: 1px solid var(--pickachu-border);
   border-radius: var(--pickachu-border-radius-small);
-  padding: 2px 4px;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  transition: var(--pickachu-transition);
+}
+
+.options select:focus {
+  outline: none;
+  border-color: var(--pickachu-accent);
+  box-shadow: 0 0 0 2px rgba(0, 191, 255, 0.1);
 }
 
 .header {
   text-align: center;
-  border-bottom: 1px solid var(--pickachu-button-border);
-  padding-bottom: 10px;
-  margin-bottom: 15px;
+  border-bottom: 1px solid var(--pickachu-border);
+  padding-bottom: 16px;
+  margin-bottom: 20px;
 }
 
-.header h1,
+.header h1 {
+  margin: 0 0 4px 0;
+  color: var(--pickachu-text);
+  font-size: 20px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
 .header p {
   margin: 0;
-  color: var(--pickachu-text);
+  color: var(--pickachu-text-secondary);
+  font-size: 13px;
+  font-weight: 400;
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 button {
   background-color: var(--pickachu-button-bg);
-  border: 1px solid var(--pickachu-button-border);
+  border: 1px solid var(--pickachu-border);
   border-radius: var(--pickachu-border-radius);
-  padding: 8px 6px;
+  padding: 12px 8px;
   cursor: pointer;
   transition: var(--pickachu-transition);
   display: flex;
@@ -138,12 +141,16 @@ button {
   box-shadow: var(--pickachu-shadow);
   color: var(--pickachu-text);
   position: relative;
+  min-height: 80px;
+  font-family: inherit;
 }
 
 button img.icon {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   filter: brightness(0);
+  margin-bottom: 6px;
+  transition: var(--pickachu-transition);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -161,75 +168,114 @@ button img.icon {
 }
 
 button .label {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--pickachu-text);
-}
-
-button .shortcut-key {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  background: var(--pickachu-primary);
-  color: #000;
-  font-size: 10px;
-  font-weight: bold;
-  padding: 2px 4px;
-  border-radius: 3px;
-  min-width: 16px;
+  font-weight: 500;
   text-align: center;
-  line-height: 1;
+  line-height: 1.2;
 }
 
 button:hover {
   background-color: var(--pickachu-button-hover);
   transform: translateY(-2px);
   box-shadow: var(--pickachu-shadow-hover);
+  border-color: var(--pickachu-accent);
+}
+
+button:hover img.icon {
+  transform: scale(1.05);
+}
+
+button:active {
+  transform: translateY(0);
+  box-shadow: var(--pickachu-shadow);
+}
+
+button:focus {
+  outline: none;
+  border-color: var(--pickachu-accent);
+  box-shadow: 0 0 0 2px rgba(0, 191, 255, 0.1);
 }
 
 .shortcuts {
-  margin-top: 6px;
+  margin-top: 12px;
   text-align: center;
-  font-size: 10px;
-  color: var(--pickachu-text);
-  font-weight: normal;
+  font-size: 11px;
+  color: var(--pickachu-text-secondary);
+  font-weight: 400;
 }
+
 .shortcuts .key {
   display: inline-block;
   background: var(--pickachu-button-bg);
-  border: 1px solid var(--pickachu-button-border);
+  border: 1px solid var(--pickachu-border);
   border-radius: var(--pickachu-border-radius-small);
-  padding: 1px 3px;
-  margin: 0 1px;
+  padding: 2px 6px;
+  margin: 0 2px;
+  font-weight: 500;
 }
 
 .footer {
-  margin-top: 8px;
+  margin-top: 16px;
   text-align: center;
+  padding-top: 16px;
+  border-top: 1px solid var(--pickachu-border);
 }
 
 .footer .icon-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  margin: 0 4px;
-  font-size: 12px;
-  color: var(--pickachu-text);
+  gap: 6px;
+  margin: 0 6px 8px 6px;
+  font-size: 11px;
+  color: var(--pickachu-text-secondary);
   text-decoration: none;
   background: var(--pickachu-button-bg);
-  border: 1px solid var(--pickachu-button-border);
+  border: 1px solid var(--pickachu-border);
   border-radius: var(--pickachu-border-radius-small);
-  padding: 2px 6px;
+  padding: 6px 10px;
   transition: var(--pickachu-transition);
+  font-weight: 500;
 }
 
 .footer .icon-btn:hover {
   background: var(--pickachu-button-hover);
+  color: var(--pickachu-text);
+  transform: translateY(-1px);
+  box-shadow: var(--pickachu-shadow);
 }
 
 .version-info {
-  margin-top: 6px;
-  font-size: 11px;
-  color: var(--pickachu-text);
-  opacity: 0.7;
-  font-weight: 500;
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--pickachu-text-secondary);
+  opacity: 0.8;
+  font-weight: 400;
+}
+
+/* Responsive design */
+@media (max-width: 320px) {
+  body {
+    width: 280px;
+    padding: 12px;
+  }
+  
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  
+  button {
+    padding: 10px 6px;
+    min-height: 70px;
+  }
+  
+  button img.icon {
+    width: 24px;
+    height: 24px;
+  }
+  
+  button .label {
+    font-size: 10px;
+  }
 }
