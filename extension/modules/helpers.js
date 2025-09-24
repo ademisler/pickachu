@@ -783,7 +783,6 @@ export async function showHistory() {
 
     // Assemble modal
     content.appendChild(list);
-    modal.appendChild(header);
     modal.appendChild(filterSection);
     modal.appendChild(content);
     overlay.appendChild(modal);
@@ -854,29 +853,6 @@ export async function showModal(title, content, icon = '', type = '') {
   
   applyTheme(overlay);
   applyTheme(modal);
-  
-  const header = document.createElement('div');
-  header.style.cssText = `
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--pickachu-border, #eee);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: var(--pickachu-header-bg, #f8f9fa);
-  `;
-  
-  const h3 = document.createElement('h3');
-  h3.style.cssText = `
-    margin: 0;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--pickachu-text, #333);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex: 1;
-  `;
-  h3.textContent = `${icon} ${title}`;
   
   const body = document.createElement('div');
   body.style.cssText = `
@@ -1056,48 +1032,10 @@ export async function showModal(title, content, icon = '', type = '') {
   buttons.appendChild(favBtn);
   buttons.appendChild(historyBtn);
   
-  modal.appendChild(header);
   modal.appendChild(body);
   modal.appendChild(buttons);
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
-  let startX, startY, isDragging = false;
-  
-  function onDrag(e) {
-    if (!isDragging) return;
-    e.preventDefault();
-    
-    const newX = e.clientX - startX;
-    const newY = e.clientY - startY;
-    
-    // Keep modal within viewport bounds
-    const maxX = window.innerWidth - modal.offsetWidth;
-    const maxY = window.innerHeight - modal.offsetHeight;
-    
-    modal.style.left = Math.max(0, Math.min(newX, maxX)) + 'px';
-    modal.style.top = Math.max(0, Math.min(newY, maxY)) + 'px';
-  }
-  
-  function endDrag() {
-    isDragging = false;
-    document.removeEventListener('mousemove', onDrag);
-    document.removeEventListener('mouseup', endDrag);
-    document.removeEventListener('mouseleave', endDrag);
-  }
-  
-  h3.style.cursor = 'move';
-  h3.addEventListener('mousedown', e => {
-    e.preventDefault();
-    isDragging = true;
-    startX = e.clientX - modal.offsetLeft;
-    startY = e.clientY - modal.offsetTop;
-    modal.style.transform = 'none';
-    modal.style.transition = 'none';
-    
-    document.addEventListener('mousemove', onDrag);
-    document.addEventListener('mouseup', endDrag);
-    document.addEventListener('mouseleave', endDrag);
-  });
   return overlay;
 }
 
