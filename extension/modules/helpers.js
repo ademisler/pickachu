@@ -1,27 +1,47 @@
 // Helper utilities for Pickachu
 let langMap = {};
+let userTheme = 'system';
+
 async function loadLanguage(lang = 'en') {
-  const res = await fetch(chrome.runtime.getURL(`_locales/${lang}/messages.json`));
-  langMap = await res.json();
+  try {
+    const res = await fetch(chrome.runtime.getURL(`_locales/${lang}/messages.json`));
+    langMap = await res.json();
+  } catch (error) {
+    console.error('Failed to load language:', error);
+  }
 }
+
+// Initialize language and theme with async/await
 if (typeof chrome !== 'undefined') {
-  chrome.storage.local.get('language', ({ language }) => {
-    loadLanguage(language || 'en');
-  });
-  chrome.storage.onChanged.addListener(ch => {
-    if (ch.language) {
-      loadLanguage(ch.language.newValue || 'en');
+  (async () => {
+    try {
+      const { language } = await chrome.storage.local.get('language');
+      await loadLanguage(language || 'en');
+    } catch (error) {
+      console.error('Error loading initial language:', error);
+    }
+  })();
+  
+  chrome.storage.onChanged.addListener(async (changes) => {
+    if (changes.language) {
+      await loadLanguage(changes.language.newValue || 'en');
+    }
+    if (changes.theme) {
+      userTheme = changes.theme.newValue;
     }
   });
 }
-let userTheme = 'system';
+
+// Initialize theme with async/await
 if (typeof chrome !== 'undefined') {
-  chrome.storage.local.get('theme', ({ theme }) => {
-    if (theme) userTheme = theme;
-  });
-  chrome.storage.onChanged.addListener(ch => {
-    if (ch.theme) userTheme = ch.theme.newValue;
-  });
+  (async () => {
+    try {
+      const { theme } = await chrome.storage.local.get('theme');
+      if (theme) userTheme = theme;
+    } catch (error) {
+      console.error('Error loading initial theme:', error);
+    }
+  })();
 }
 
 function applyTheme(el){
@@ -60,8 +80,34 @@ export function removeTooltip(tip) {
   if (tip && tip.parentNode) tip.parentNode.removeChild(tip);
 }
 
-export function copyText(text) {
-  navigator.clipboard.writeText(text).catch(err => console.error('Copy failed', err));
+export async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    console.log('Text copied to clipboard successfully');
+  } catch (err) {
+    console.error('Copy failed:', err);
+    // Fallback for older browsers
+    try {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      
+      if (!successful) {
+        throw new Error('Fallback copy failed');
+      }
+      console.log('Text copied using fallback method');
+    } catch (fallbackErr) {
+      console.error('All copy methods failed:', fallbackErr);
+      showToast('Copy failed. Please try manually.', 3000);
+    }
+  }
 }
 
 export function showToast(message, duration = 1500) {
@@ -73,29 +119,40 @@ export function showToast(message, duration = 1500) {
 }
 
 async function getHistory() {
-  return new Promise(resolve => {
-    chrome.storage.local.get('pickachuHistory', data => {
-      resolve(data.pickachuHistory || []);
-    });
-  });
+  try {
+    const data = await chrome.storage.local.get('pickachuHistory');
+    return data.pickachuHistory || [];
+  } catch (error) {
+    console.error('Error getting history:', error);
+    return [];
+  }
 }
 
 async function saveHistory(item) {
-  const hist = await getHistory();
-  hist.unshift(item);
-  if (hist.length > 20) hist.pop();
-  chrome.storage.local.set({ pickachuHistory: hist });
+  try {
+    const hist = await getHistory();
+    hist.unshift(item);
+    if (hist.length > 20) hist.pop();
+    await chrome.storage.local.set({ pickachuHistory: hist });
+  } catch (error) {
+    console.error('Error saving history:', error);
+  }
 }
 
 async function toggleFavorite(id) {
-  const hist = await getHistory();
-  const item = hist.find(i => i.id === id);
-  if (item) {
-    item.favorite = !item.favorite;
-    chrome.storage.local.set({ pickachuHistory: hist });
-    return item.favorite;
+  try {
+    const hist = await getHistory();
+    const item = hist.find(i => i.id === id);
+    if (item) {
+      item.favorite = !item.favorite;
+      await chrome.storage.local.set({ pickachuHistory: hist });
+      return item.favorite;
+    }
+    return false;
+  } catch (error) {
+    console.error('Error toggling favorite:', error);
+    return false;
   }
-  return false;
 }
 
 export async function showHistory() {
@@ -199,22 +256,42 @@ export async function showModal(title, content, icon = '', type = '') {
   modal.appendChild(buttons);
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
-  let startX, startY;
+  let startX, startY, isDragging = false;
+  
   function onDrag(e) {
-    modal.style.left = e.clientX - startX + 'px';
-    modal.style.top = e.clientY - startY + 'px';
+    if (!isDragging) return;
+    e.preventDefault();
+    
+    const newX = e.clientX - startX;
+    const newY = e.clientY - startY;
+    
+    // Keep modal within viewport bounds
+    const maxX = window.innerWidth - modal.offsetWidth;
+    const maxY = window.innerHeight - modal.offsetHeight;
+    
+    modal.style.left = Math.max(0, Math.min(newX, maxX)) + 'px';
+    modal.style.top = Math.max(0, Math.min(newY, maxY)) + 'px';
   }
+  
   function endDrag() {
+    isDragging = false;
     document.removeEventListener('mousemove', onDrag);
     document.removeEventListener('mouseup', endDrag);
+    document.removeEventListener('mouseleave', endDrag);
   }
+  
   h3.style.cursor = 'move';
   h3.addEventListener('mousedown', e => {
+    e.preventDefault();
+    isDragging = true;
     startX = e.clientX - modal.offsetLeft;
     startY = e.clientY - modal.offsetTop;
     modal.style.transform = 'none';
+    modal.style.transition = 'none';
+    
     document.addEventListener('mousemove', onDrag);
     document.addEventListener('mouseup', endDrag);
+    document.addEventListener('mouseleave', endDrag);
   });
   closeBtn.addEventListener('click', () => overlay.remove());
   copyBtn.addEventListener('click', () => {
@@ -254,23 +331,45 @@ export async function showModal(title, content, icon = '', type = '') {
 
 export function getCssSelector(el) {
   if (!(el instanceof Element)) return '';
+  
   const path = [];
-  while (el.nodeType === Node.ELEMENT_NODE) {
-    let selector = el.nodeName.toLowerCase();
-    if (el.id) {
-      selector += '#' + el.id;
-      path.unshift(selector);
-      break;
-    } else {
-      let sib = el, nth = 1;
-      while (sib = sib.previousElementSibling) {
-        if (sib.nodeName.toLowerCase() === selector) nth++;
+  let current = el;
+  
+  while (current && current.nodeType === Node.ELEMENT_NODE) {
+    let selector = current.nodeName.toLowerCase();
+    
+    // Use ID if available and unique
+    if (current.id) {
+      const idSelector = `#${current.id}`;
+      // Check if ID is unique
+      if (document.querySelectorAll(idSelector).length === 1) {
+        selector += idSelector;
+        path.unshift(selector);
+        break;
       }
-      if (nth !== 1) selector += `:nth-of-type(${nth})`;
     }
+    
+    // Add class names if they exist
+    if (current.className && typeof current.className === 'string') {
+      const classes = current.className.trim().split(/\s+/).filter(cls => cls.length > 0);
+      if (classes.length > 0) {
+        selector += '.' + classes.join('.');
+      }
+    }
+    
+    // Add nth-of-type if there are siblings with same tag
+    const siblings = Array.from(current.parentNode?.children || [])
+      .filter(sibling => sibling.nodeName === current.nodeName);
+    
+    if (siblings.length > 1) {
+      const index = siblings.indexOf(current) + 1;
+      selector += `:nth-of-type(${index})`;
+    }
+    
     path.unshift(selector);
-    el = el.parentNode;
+    current = current.parentNode;
   }
+  
   return path.join(' > ');
 }
 
