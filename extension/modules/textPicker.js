@@ -118,7 +118,7 @@ function onClick(e) {
     showSuccess(`Text copied to clipboard! (${textAnalysis.wordCount} words)`);
     
     const title = chrome.i18n ? chrome.i18n.getMessage('textTitle') : 'Text Analysis';
-    const content = `Text: ${text.substring(0, 100)}${text.length > 100 ? '...' : ''}\n\nStatistics:\n- Words: ${textAnalysis.wordCount}\n- Characters: ${textAnalysis.characterCount}\n- Sentences: ${textAnalysis.statistics.sentences}\n- Language: ${textAnalysis.language.detected}\n\nFull Analysis:\n${textAnalysis.formats.json}`;
+    const content = `Text:\n${text}\n\nStatistics:\n- Words: ${textAnalysis.wordCount}\n- Characters: ${textAnalysis.characterCount}\n- Sentences: ${textAnalysis.statistics.sentences}`;
     
     showModal(title, content, '🧾', 'text');
     deactivateCb();
