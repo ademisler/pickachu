@@ -1,25 +1,34 @@
 import { showError, showSuccess, showInfo, handleError, safeExecute, sanitizeInput } from './helpers.js';
 
-// Screenshot configuration
-const SCREENSHOT_CONFIG = {
-  format: 'png',
-  quality: 100,
-  timeout: 15000, // 15 seconds
-  maxRetries: 3,
-  chunkSize: 2000, // Height in pixels for full page capture
-  delayBetweenChunks: 100 // ms
-};
-
 // Screenshot state management
 let screenshotState = {
   isCapturing: false,
   currentTab: null,
-  retryCount: 0
+  retryCount: 0,
+  chunks: [],
+  totalChunks: 0,
+  currentChunk: 0
 };
 
-// Helper to create blob from data URL
-function dataUrlToBlob(dataUrl) {
+// Configuration
+const SCREENSHOT_CONFIG = {
+  format: 'png',
+  quality: 100,
+  timeout: 15000,
+  maxRetries: 3,
+  chunkHeight: 1000, // Height in pixels for each chunk
+  delayBetweenChunks: 200, // ms
+  scrollDelay: 100 // ms
+};
+
+// Helper to download screenshot
+function downloadScreenshot(dataUrl, filename, format = 'png') {
   try {
+    if (!dataUrl || !filename) {
+      throw new Error('Missing required parameters for download');
+    }
+    
+    // Convert data URL to blob
     const parts = dataUrl.split(',');
     if (parts.length !== 2) {
       throw new Error('Invalid data URL format');
@@ -33,29 +42,15 @@ function dataUrlToBlob(dataUrl) {
     for (let i = 0; i < byteString.length; i++) {
       ia[i] = byteString.charCodeAt(i);
     }
-    
-    return new Blob([ab], { type: mimeString });
-  } catch (error) {
-    handleError(error, 'dataUrlToBlob');
-    throw error;
-  }
-}
-
-// Helper to download screenshot with multiple format options
-function downloadScreenshot(dataUrl, filename, format = 'png') {
-  try {
-    if (!dataUrl || !filename) {
-      throw new Error('Missing required parameters for download');
-    }
-    
-    const blob = dataUrlToBlob(dataUrl);
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const extension = format === 'jpeg' ? 'jpg' : format;
-    const finalFilename = `${sanitizeInput(filename)}-${timestamp}.${extension}`;
+    const blob = new Blob([ab], { type: mimeString });
     
     // Use Chrome downloads API if available
     if (chrome.downloads) {
       const url = URL.createObjectURL(blob);
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const extension = format === 'jpeg' ? 'jpg' : format;
+      const finalFilename = `${sanitizeInput(filename)}-${timestamp}.${extension}`;
+      
       chrome.downloads.download({
         url: url,
         filename: finalFilename,
@@ -74,7 +69,7 @@ function downloadScreenshot(dataUrl, filename, format = 'png') {
       });
     } else {
       // Fallback to anchor download
-      fallbackDownload(dataUrl, finalFilename);
+      fallbackDownload(dataUrl, filename);
     }
   } catch (error) {
     handleError(error, 'downloadScreenshot');
@@ -98,7 +93,7 @@ function fallbackDownload(dataUrl, filename) {
   }
 }
 
-// Get page dimensions for full-page capture
+// Get page dimensions
 async function getPageDimensions() {
   try {
     const dimensions = await new Promise((resolve, reject) => {
@@ -150,8 +145,6 @@ async function captureVisibleArea() {
   try {
     console.log('Capturing visible area...');
     
-    // Always use background script since chrome.tabs is not available in content scripts
-    console.log('Using background script for capture');
     const dataUrl = await new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error('Screenshot capture timeout - please try again'));
@@ -186,7 +179,7 @@ async function captureVisibleArea() {
   }
 }
 
-// Capture full page screenshot by stitching multiple captures
+// Capture full page screenshot using GoFullPage-like approach
 async function captureFullPage() {
   try {
     console.log('Starting full page capture...');
@@ -206,51 +199,72 @@ async function captureFullPage() {
       return await captureVisibleArea();
     }
     
-    const chunks = [];
-    const chunkHeight = SCREENSHOT_CONFIG.chunkSize;
+    // Calculate number of chunks needed
+    const chunkHeight = SCREENSHOT_CONFIG.chunkHeight;
     const totalChunks = Math.ceil(dimensions.height / chunkHeight);
+    
+    screenshotState.chunks = [];
+    screenshotState.totalChunks = totalChunks;
+    screenshotState.currentChunk = 0;
     
     showInfo(`Capturing full page (${totalChunks} parts)...`, 0);
     
-    // Capture each chunk
-    for (let i = 0; i < totalChunks; i++) {
-      const scrollTop = i * chunkHeight;
-      
-      // Scroll to position
-      window.scrollTo(0, scrollTop);
-      
-      // Wait for scroll to complete
-      await new Promise(resolve => setTimeout(resolve, SCREENSHOT_CONFIG.delayBetweenChunks));
-      
-      // Capture this chunk
-      const chunkDataUrl = await captureVisibleArea();
-      
-      if (!chunkDataUrl) {
-        throw new Error(`Failed to capture chunk ${i + 1}/${totalChunks}`);
+    // Store original scroll position
+    const originalScrollX = window.scrollX;
+    const originalScrollY = window.scrollY;
+    
+    try {
+      // Capture each chunk
+      for (let i = 0; i < totalChunks; i++) {
+        screenshotState.currentChunk = i;
+        const scrollTop = i * chunkHeight;
+        
+        // Scroll to position
+        window.scrollTo(0, scrollTop);
+        
+        // Wait for scroll to complete
+        await new Promise(resolve => setTimeout(resolve, SCREENSHOT_CONFIG.scrollDelay));
+        
+        // Capture this chunk
+        const chunkDataUrl = await captureVisibleArea();
+        
+        if (!chunkDataUrl) {
+          throw new Error(`Failed to capture chunk ${i + 1}/${totalChunks}`);
+        }
+        
+        screenshotState.chunks.push({
+          dataUrl: chunkDataUrl,
+          scrollTop: scrollTop,
+          index: i,
+          height: Math.min(chunkHeight, dimensions.height - scrollTop)
+        });
+        
+        // Update progress
+        const progress = Math.round(((i + 1) / totalChunks) * 100);
+        showInfo(`Capturing full page... ${progress}%`, 0);
+        
+        // Add delay between chunks
+        if (i < totalChunks - 1) {
+          await new Promise(resolve => setTimeout(resolve, SCREENSHOT_CONFIG.delayBetweenChunks));
+        }
       }
       
-      chunks.push({
-        dataUrl: chunkDataUrl,
-        scrollTop: scrollTop,
-        index: i
-      });
+      // Scroll back to original position
+      window.scrollTo(originalScrollX, originalScrollY);
       
-      // Update progress
-      const progress = Math.round(((i + 1) / totalChunks) * 100);
-      showInfo(`Capturing full page... ${progress}%`, 0);
+      // Stitch chunks together
+      showInfo('Stitching image chunks...', 0);
+      const fullPageDataUrl = await stitchChunks(screenshotState.chunks, dimensions);
+      
+      return fullPageDataUrl;
+      
+    } catch (error) {
+      // Always scroll back to original position on error
+      window.scrollTo(originalScrollX, originalScrollY);
+      throw error;
     }
     
-    // Scroll back to top
-    window.scrollTo(0, 0);
-    
-    // Stitch chunks together
-    showInfo('Stitching image chunks...', 0);
-    const fullPageDataUrl = await stitchChunks(chunks, dimensions);
-    
-    return fullPageDataUrl;
   } catch (error) {
-    // Scroll back to top on error
-    window.scrollTo(0, 0);
     handleError(error, 'captureFullPage');
     throw error;
   }
@@ -286,7 +300,7 @@ async function stitchChunks(chunks, dimensions) {
           clearTimeout(timeout);
           try {
             const y = chunk.scrollTop;
-            const chunkHeight = Math.min(SCREENSHOT_CONFIG.chunkSize, dimensions.height - y);
+            const chunkHeight = chunk.height;
             
             // Ensure we don't draw outside canvas bounds
             const drawHeight = Math.min(chunkHeight, canvas.height - y);
@@ -320,7 +334,7 @@ async function stitchChunks(chunks, dimensions) {
   }
 }
 
-// Main screenshot capture function with retry logic
+// Main screenshot capture function
 async function captureScreenshot(options = {}) {
   if (screenshotState.isCapturing) {
     showError('Screenshot capture already in progress. Please wait...');
@@ -333,8 +347,7 @@ async function captureScreenshot(options = {}) {
     const { 
       type = 'visible', // 'visible' or 'fullpage'
       format = SCREENSHOT_CONFIG.format,
-      quality = SCREENSHOT_CONFIG.quality,
-      showPreview = false
+      quality = SCREENSHOT_CONFIG.quality
     } = options;
     
     showInfo(`Capturing ${type === 'fullpage' ? 'full page' : 'visible area'} screenshot...`, 0);
@@ -351,15 +364,10 @@ async function captureScreenshot(options = {}) {
       throw new Error('No screenshot data received');
     }
     
-    // Show preview if requested
-    if (showPreview) {
-      await showScreenshotPreview(dataUrl, type);
-    } else {
-      // Download immediately
-      const filename = type === 'fullpage' ? 'fullpage-screenshot' : 'screenshot';
-      downloadScreenshot(dataUrl, filename, format);
-      showSuccess(`${type === 'fullpage' ? 'Full page' : 'Visible area'} screenshot captured and downloaded!`);
-    }
+    // Download the screenshot
+    const filename = type === 'fullpage' ? 'fullpage-screenshot' : 'screenshot';
+    downloadScreenshot(dataUrl, filename, format);
+    showSuccess(`${type === 'fullpage' ? 'Full page' : 'Visible area'} screenshot captured and downloaded!`);
     
     screenshotState.retryCount = 0;
     
@@ -383,147 +391,10 @@ async function captureScreenshot(options = {}) {
     
   } finally {
     screenshotState.isCapturing = false;
-  }
-}
-
-// Show screenshot preview modal
-async function showScreenshotPreview(dataUrl, type) {
-  try {
-    const modal = document.createElement('div');
-    modal.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.8);
-      z-index: 10000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      box-sizing: border-box;
-    `;
-    
-    const preview = document.createElement('div');
-    preview.style.cssText = `
-      background: white;
-      border-radius: 8px;
-      padding: 20px;
-      max-width: 90%;
-      max-height: 90%;
-      overflow: auto;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-    `;
-    
-    const img = document.createElement('img');
-    img.src = dataUrl;
-    img.style.cssText = `
-      max-width: 100%;
-      height: auto;
-      border-radius: 4px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    `;
-    
-    const controls = document.createElement('div');
-    controls.style.cssText = `
-      margin-top: 15px;
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      flex-wrap: wrap;
-    `;
-    
-    const downloadBtn = document.createElement('button');
-    downloadBtn.textContent = '📥 Download';
-    downloadBtn.style.cssText = `
-      padding: 8px 16px;
-      background: #007bff;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
-    `;
-    downloadBtn.onclick = () => {
-      const filename = type === 'fullpage' ? 'fullpage-screenshot' : 'screenshot';
-      downloadScreenshot(dataUrl, filename);
-      modal.remove();
-      showSuccess('Screenshot downloaded!');
-    };
-    
-    const copyBtn = document.createElement('button');
-    copyBtn.textContent = '📋 Copy to Clipboard';
-    copyBtn.style.cssText = `
-      padding: 8px 16px;
-      background: #28a745;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
-    `;
-    copyBtn.onclick = async () => {
-      try {
-        // Check if clipboard API is available
-        if (!navigator.clipboard || !navigator.clipboard.write) {
-          throw new Error('Clipboard API not available');
-        }
-        
-        const blob = dataUrlToBlob(dataUrl);
-        await navigator.clipboard.write([
-          new ClipboardItem({ [blob.type]: blob })
-        ]);
-        showSuccess('Screenshot copied to clipboard!');
-      } catch (error) {
-        handleError(error, 'copyScreenshot');
-        showError('Failed to copy screenshot to clipboard. Try downloading instead.');
-      }
-    };
-    
-    const closeBtn = document.createElement('button');
-    closeBtn.textContent = '❌ Close';
-    closeBtn.style.cssText = `
-      padding: 8px 16px;
-      background: #6c757d;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
-    `;
-    closeBtn.onclick = () => modal.remove();
-    
-    controls.appendChild(downloadBtn);
-    controls.appendChild(copyBtn);
-    controls.appendChild(closeBtn);
-    
-    preview.appendChild(img);
-    preview.appendChild(controls);
-    modal.appendChild(preview);
-    
-    // Close on escape key
-    const handleEscape = (e) => {
-      if (e.key === 'Escape') {
-        modal.remove();
-        document.removeEventListener('keydown', handleEscape);
-      }
-    };
-    document.addEventListener('keydown', handleEscape);
-    
-    // Close on background click
-    modal.onclick = (e) => {
-      if (e.target === modal) {
-        modal.remove();
-        document.removeEventListener('keydown', handleEscape);
-      }
-    };
-    
-    document.body.appendChild(modal);
-    
-  } catch (error) {
-    handleError(error, 'showScreenshotPreview');
-    showError('Failed to show screenshot preview');
+    // Clean up chunks
+    screenshotState.chunks = [];
+    screenshotState.totalChunks = 0;
+    screenshotState.currentChunk = 0;
   }
 }
 
@@ -581,13 +452,6 @@ function showScreenshotOptions() {
         </select>
       </div>
       
-      <div style="margin-bottom: 20px;">
-        <label style="display: flex; align-items: center; cursor: pointer;">
-          <input type="checkbox" id="showPreview" style="margin-right: 8px;">
-          <span>Show preview before download</span>
-        </label>
-      </div>
-      
       <div style="display: flex; gap: 10px; justify-content: center;">
         <button id="captureBtn" style="
           padding: 10px 20px;
@@ -622,18 +486,15 @@ function showScreenshotOptions() {
       captureBtn.onclick = () => {
         const captureTypeRadio = document.querySelector('input[name="captureType"]:checked');
         const formatSelect = document.getElementById('screenshotFormat');
-        const previewCheckbox = document.getElementById('showPreview');
         
         const captureType = captureTypeRadio ? captureTypeRadio.value : 'visible';
         const format = formatSelect ? formatSelect.value : 'png';
-        const showPreview = previewCheckbox ? previewCheckbox.checked : false;
         
         modal.remove();
         
         captureScreenshot({
           type: captureType,
-          format: format,
-          showPreview: showPreview
+          format: format
         });
       };
     }
@@ -643,7 +504,6 @@ function showScreenshotOptions() {
         modal.remove();
       };
     }
-    
     
     // Close on escape key
     const handleEscape = (e) => {
@@ -694,4 +554,7 @@ export function deactivate() {
   // Reset state
   screenshotState.isCapturing = false;
   screenshotState.retryCount = 0;
+  screenshotState.chunks = [];
+  screenshotState.totalChunks = 0;
+  screenshotState.currentChunk = 0;
 }
