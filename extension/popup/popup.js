@@ -80,7 +80,7 @@ const keyboardShortcuts = {
 function addButtonListeners(map) {
   if (buttonListenersAdded) return;
   
-  document.querySelectorAll('.grid button').forEach(btn => {
+  document.querySelectorAll('.tool-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       chrome.runtime.sendMessage({ type: 'ACTIVATE_TOOL', tool: btn.id });
       // Delay closing to ensure message is sent

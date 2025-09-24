@@ -184,6 +184,82 @@
   color: var(--pickachu-text, #333);
   box-shadow: var(--pickachu-shadow, 0 4px 16px rgba(0,0,0,0.1));
   line-height: 1.6;
+  animation: pickachu-modal-slide-in 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes pickachu-modal-slide-in {
+  from {
+    transform: translate(-50%, -50%) scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+}
+
+/* Enhanced button animations */
+#pickachu-modal-buttons button {
+  position: relative;
+  overflow: hidden;
+}
+
+#pickachu-modal-buttons button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
+  pointer-events: none;
+}
+
+#pickachu-modal-buttons button:hover::before {
+  left: 100%;
+}
+
+/* Enhanced tooltip */
+#pickachu-tooltip {
+  animation: pickachu-tooltip-fade-in 0.2s ease-out;
+}
+
+@keyframes pickachu-tooltip-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Enhanced form inputs */
+#pickachu-modal-content .form-input {
+  position: relative;
+}
+
+#pickachu-modal-content .form-input:focus {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(68, 138, 255, 0.15);
+}
+
+/* Enhanced code preview */
+#pickachu-modal-content .code-preview {
+  position: relative;
+  overflow: hidden;
+}
+
+#pickachu-modal-content .code-preview::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--pickachu-primary-color), transparent);
 }
 #pickachu-modal-content textarea {
   width: 100%;
