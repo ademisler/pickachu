@@ -22,6 +22,8 @@ export function activate(deactivate) {
     
     // Load existing notes
     loadNotes().then(() => {
+      // Auto-open existing notes for this site
+      loadExistingNotesForCurrentSite();
       showNotesManager();
     }).catch(error => {
       handleError(error, 'stickyNotesPicker activation loadNotes');
@@ -415,40 +417,40 @@ function showNotesManager() {
     </div>
     
     <div style="padding: 20px;">
-      <div style="margin-bottom: 16px;">
-        <button id="create-new-note" class="btn btn-primary">+ Add New Note</button>
-        <button id="save-notes" class="btn btn-success" style="margin-left: 8px;">💾 Save Notes</button>
-        <button id="export-notes" class="btn btn-info" style="margin-left: 8px;">📤 Export</button>
-        <button id="import-notes" class="btn btn-warning" style="margin-left: 8px;">📥 Import</button>
-        <button id="clear-all-notes" class="btn btn-danger" style="margin-left: 8px;">🗑️ Clear All</button>
+      <div style="margin-bottom: 20px; text-align: center;">
+        <button id="create-new-note" style="
+          background: var(--pickachu-primary-color, #007bff);
+          color: white;
+          border: none;
+          padding: 12px 24px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 600;
+          margin-right: 12px;
+        ">+ Add New Note</button>
+        <button id="clear-all-notes" style="
+          background: var(--pickachu-danger-color, #dc3545);
+          color: white;
+          border: none;
+          padding: 12px 24px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 600;
+        ">🗑️ Clear All</button>
       </div>
       
       <div style="margin-bottom: 16px;">
-        <div style="font-weight: 600; margin-bottom: 8px; color: var(--pickachu-text, #333);">All Notes from All Sites:</div>
+        <div style="font-weight: 600; margin-bottom: 12px; color: var(--pickachu-text, #333); text-align: center;">All Notes from All Sites</div>
         <div id="all-notes-list" style="
-          max-height: 300px;
+          max-height: 400px;
           overflow-y: auto;
           border: 1px solid var(--pickachu-border, #ddd);
-          border-radius: 6px;
-          padding: 12px;
+          border-radius: 8px;
+          padding: 16px;
           background: var(--pickachu-code-bg, #f8f9fa);
         "></div>
-      </div>
-      
-      <div style="margin-bottom: 16px;">
-        <div style="font-weight: 600; margin-bottom: 8px; color: var(--pickachu-text, #333);">Instructions:</div>
-        <div style="font-size: 14px; color: var(--pickachu-secondary-text, #666); line-height: 1.4;">
-          • Click "Add New Note" to create a sticky note<br>
-          • Drag notes by their header to move them<br>
-          • Click the 🎨 button to change note color<br>
-          • Click × to close individual notes<br>
-          • Click on note headers to focus them<br>
-          • Notes are automatically saved and will persist
-        </div>
-      </div>
-      
-      <div id="notes-list" style="max-height: 300px; overflow-y: auto;">
-        ${renderNotesList()}
       </div>
     </div>
   `;
@@ -474,26 +476,6 @@ function showNotesManager() {
     });
   }
   
-  const saveBtn = document.getElementById('save-notes');
-  if (saveBtn) {
-    saveBtn.addEventListener('click', () => {
-      saveNotes();
-    });
-  }
-
-  const exportBtn = document.getElementById('export-notes');
-  if (exportBtn) {
-    exportBtn.addEventListener('click', () => {
-      exportNotes();
-    });
-  }
-
-  const importBtn = document.getElementById('import-notes');
-  if (importBtn) {
-    importBtn.addEventListener('click', () => {
-      importNotes();
-    });
-  }
 
   const clearBtn = document.getElementById('clear-all-notes');
   if (clearBtn) {
@@ -505,11 +487,14 @@ function showNotesManager() {
         });
         notes = [];
         saveNotes();
-        const notesList = document.getElementById('notes-list');
-        if (notesList) {
-          notesList.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--pickachu-secondary-text, #666);">No notes found</div>';
-        }
         showSuccess('All notes cleared');
+        // Refresh the all notes list
+        const allNotesList = document.getElementById('all-notes-list');
+        if (allNotesList) {
+          renderAllNotesList().then(html => {
+            allNotesList.innerHTML = html;
+          });
+        }
       }
     });
   }
@@ -522,16 +507,21 @@ function showNotesManager() {
     });
   }
   
-  // Load existing notes
-  loadExistingNotes();
 }
 
-
-// Load existing notes onto the page
-function loadExistingNotes() {
-  notes.forEach(note => {
-    renderStickyNote(note);
-  });
+// Load existing notes for current site and display them
+function loadExistingNotesForCurrentSite() {
+  try {
+    notes.forEach(note => {
+      // Check if note is already rendered on the page
+      const existingNote = document.getElementById(note.id);
+      if (!existingNote) {
+        renderStickyNote(note);
+      }
+    });
+  } catch (error) {
+    handleError(error, 'loadExistingNotesForCurrentSite');
+  }
 }
 
 // Save notes to storage (site-specific) with enhanced error handling
@@ -756,21 +746,24 @@ async function renderAllNotesList() {
         
         return `
           <div style="
-            padding: 12px;
+            padding: 16px;
             border: 1px solid var(--pickachu-border, #ddd);
-            border-radius: 6px;
-            margin-bottom: 8px;
+            border-radius: 8px;
+            margin-bottom: 12px;
             background: var(--pickachu-bg, #fff);
             cursor: pointer;
-            transition: background-color 0.2s ease;
-          " onclick="window.open('${sanitizedUrl}', '_blank')">
-            <div style="font-weight: 600; color: var(--pickachu-text, #333); margin-bottom: 4px;">
-              ${siteName}
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+          " onclick="window.open('${sanitizedUrl}', '_blank')" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.05)'">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+              <div style="font-weight: 600; color: var(--pickachu-text, #333); font-size: 14px;">
+                ${siteName}
+              </div>
+              <div style="font-size: 11px; color: var(--pickachu-secondary-text, #666); background: var(--pickachu-code-bg, #f8f9fa); padding: 2px 6px; border-radius: 4px;">
+                ${createdAt}
+              </div>
             </div>
-            <div style="font-size: 12px; color: var(--pickachu-secondary-text, #666); margin-bottom: 4px;">
-              Created: ${createdAt}
-            </div>
-            <div style="font-size: 13px; color: var(--pickachu-text, #333);">
+            <div style="font-size: 13px; color: var(--pickachu-text, #333); line-height: 1.4;">
               ${shortContent || 'Empty note'}
             </div>
           </div>
@@ -786,86 +779,6 @@ async function renderAllNotesList() {
   }
 }
 
-// Update notes list in manager with enhanced error handling
-function updateNotesList() {
-  try {
-    const notesList = safeExecute(() => document.getElementById('notes-list'), 'get notes list');
-    if (notesList) {
-      notesList.innerHTML = renderNotesList();
-    }
-  } catch (error) {
-    handleError(error, 'updateNotesList');
-  }
-}
-
-// Render notes list in manager with enhanced error handling
-function renderNotesList() {
-  try {
-    if (notes.length === 0) {
-      return '<div style="text-align: center; padding: 20px; color: var(--pickachu-secondary-text, #666);">No notes found</div>';
-    }
-    
-    return notes.map(note => {
-      try {
-        const noteNumber = safeExecute(() => note.id.split('-')[1], 'get note number') || '?';
-        const shortContent = sanitizeInput(note.content ? note.content.substring(0, 50) + (note.content.length > 50 ? '...' : '') : 'Empty note');
-        const createdAt = safeExecute(() => new Date(note.createdAt).toLocaleString(), 'format created date') || 'Unknown';
-        const sanitizedNoteId = sanitizeInput(note.id);
-        
-        return `
-          <div style="
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px;
-            border: 1px solid var(--pickachu-border, #ddd);
-            border-radius: 6px;
-            margin-bottom: 8px;
-            background: var(--pickachu-code-bg, #f8f9fa);
-          ">
-            <div style="flex: 1;">
-              <div style="font-weight: 600; margin-bottom: 4px; color: var(--pickachu-text, #333);">
-                Note ${noteNumber}
-              </div>
-              <div style="font-size: 12px; color: var(--pickachu-secondary-text, #666);">
-                ${shortContent}
-              </div>
-              <div style="font-size: 11px; color: var(--pickachu-secondary-text, #666); margin-top: 4px;">
-                Created: ${createdAt}
-              </div>
-            </div>
-            <div style="display: flex; gap: 8px;">
-              <button onclick="window.stickyNotesModule.focusNote('${sanitizedNoteId}')" style="
-                padding: 4px 8px;
-                border: 1px solid var(--pickachu-border, #ddd);
-                background: var(--pickachu-button-bg, #f0f0f0);
-                border-radius: 4px;
-                cursor: pointer;
-                font-size: 12px;
-                color: #000000;
-              ">Focus</button>
-              <button onclick="window.stickyNotesModule.deleteNote('${sanitizedNoteId}')" style="
-                padding: 4px 8px;
-                border: 1px solid var(--pickachu-border, #ddd);
-                background: var(--pickachu-error-color, #dc3545);
-                border-radius: 4px;
-                cursor: pointer;
-                font-size: 12px;
-                color: var(--pickachu-bg, #fff);
-              ">Delete</button>
-            </div>
-          </div>
-        `;
-      } catch (error) {
-        handleError(error, 'render note list item');
-        return '';
-      }
-    }).join('');
-  } catch (error) {
-    handleError(error, 'renderNotesList');
-    return '<div style="text-align: center; color: var(--pickachu-error-color, #dc3545); padding: 20px;">Failed to render notes</div>';
-  }
-}
 
 // Focus a specific note (bring to front and highlight) with enhanced error handling
 function focusNote(noteElement) {

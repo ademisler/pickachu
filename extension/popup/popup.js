@@ -191,20 +191,20 @@ document.addEventListener('DOMContentLoaded', () => {
         applyTheme(t);
       });
 
-      // Add history button event listener
-      const historyBtn = document.getElementById('history-btn');
-      if (historyBtn) {
-        historyBtn.addEventListener('click', async () => {
+      // Add favorites button event listener
+      const favoritesBtn = document.getElementById('favorites-btn');
+      if (favoritesBtn) {
+        favoritesBtn.addEventListener('click', async () => {
           try {
-            // Send message to content script to show history
+            // Send message to content script to show favorites
             const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
             const tab = tabs[0];
             if (tab) {
-              chrome.tabs.sendMessage(tab.id, { type: 'SHOW_HISTORY' });
+              chrome.tabs.sendMessage(tab.id, { type: 'SHOW_FAVORITES' });
               window.close();
             }
           } catch (error) {
-            console.error('Error opening history:', error);
+            console.error('Error opening favorites:', error);
           }
         });
       }

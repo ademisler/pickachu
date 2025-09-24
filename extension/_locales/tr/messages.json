@@ -38,6 +38,9 @@
   "history": {
     "message": "Geçmiş"
   },
+  "favorites": {
+    "message": "Favoriler"
+  },
   "favorite": {
     "message": "Favori"
   },

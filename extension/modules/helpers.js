@@ -495,13 +495,14 @@ async function toggleFavorite(id) {
   }
 }
 
-export async function showHistory() {
+export async function showFavorites() {
   try {
     const data = await getHistory();
+    const favorites = data.filter(item => item.favorite);
     
     // Create modal overlay
     const overlay = document.createElement('div');
-    overlay.id = 'pickachu-history-overlay';
+    overlay.id = 'pickachu-favorites-overlay';
     overlay.style.cssText = `
       position: fixed;
       top: 0;
@@ -555,9 +556,9 @@ export async function showHistory() {
         gap: 8px;
         flex: 1;
       ">
-        📚 History
+        ⭐ Favorites
       </h3>
-      <button id="close-history-modal" style="
+      <button id="close-favorites-modal" style="
         background: none;
         border: none;
         font-size: 20px;
@@ -568,43 +569,6 @@ export async function showHistory() {
       ">×</button>
     `;
 
-    // Filter section
-    const filterSection = document.createElement('div');
-    filterSection.style.cssText = `
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--pickachu-border, #eee);
-      background: var(--pickachu-header-bg, #f8f9fa);
-    `;
-
-    const filter = document.createElement('select');
-    const types = ['all', ...new Set(data.map(d => d.type))];
-    types.forEach(type => {
-      const opt = document.createElement('option');
-      opt.value = type;
-      opt.textContent = type.charAt(0).toUpperCase() + type.slice(1);
-      filter.appendChild(opt);
-    });
-
-    filter.style.cssText = `
-      padding: 8px 12px;
-      border: 1px solid var(--pickachu-border, #ddd);
-      background: var(--pickachu-bg, #fff);
-      color: var(--pickachu-text, #333);
-      border-radius: 6px;
-      font-size: 14px;
-      cursor: pointer;
-    `;
-
-    filterSection.innerHTML = `
-      <label style="
-        display: block;
-        font-weight: 600;
-        color: var(--pickachu-text, #333);
-        margin-bottom: 8px;
-      ">Filter by type:</label>
-    `;
-    filterSection.appendChild(filter);
-
     // Content area
     const content = document.createElement('div');
     content.style.cssText = `
@@ -614,30 +578,28 @@ export async function showHistory() {
     `;
 
     const list = document.createElement('div');
-    list.id = 'pickachu-history-list';
+    list.id = 'pickachu-favorites-list';
     list.style.cssText = `
       padding: 0;
     `;
 
-    function renderHistory(filterType) {
+    function renderFavorites() {
       list.innerHTML = '';
       
-      const filteredData = data.filter(d => filterType === 'all' || d.type === filterType);
-      
-      if (filteredData.length === 0) {
+      if (favorites.length === 0) {
         list.innerHTML = `
           <div style="
             text-align: center;
             padding: 40px 20px;
             color: var(--pickachu-secondary-text, #666);
           ">
-            No history items found
+            No favorites yet. Click the star button in any tool to add favorites!
           </div>
         `;
         return;
       }
 
-      filteredData.forEach((item) => {
+      favorites.forEach((item) => {
         const itemDiv = document.createElement('div');
         itemDiv.style.cssText = `
           padding: 16px 20px;
@@ -683,6 +645,7 @@ export async function showHistory() {
                 text-transform: uppercase;
               ">${item.type}</span>
               <span>${formatTimestamp(item.timestamp)}</span>
+              <span style="color: var(--pickachu-warning-color, #ffc107);">⭐</span>
             </div>
             <div style="
               font-size: 13px;
@@ -693,16 +656,26 @@ export async function showHistory() {
               ${item.content.length > 120 ? item.content.substring(0, 120) + '...' : item.content}
             </div>
           </div>
-          <button style="
-            background: var(--pickachu-primary-color, #007bff);
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-size: 12px;
-            cursor: pointer;
-            flex-shrink: 0;
-          ">Copy</button>
+          <div style="display: flex; gap: 8px; flex-shrink: 0;">
+            <button style="
+              background: var(--pickachu-primary-color, #007bff);
+              color: white;
+              border: none;
+              padding: 6px 12px;
+              border-radius: 4px;
+              font-size: 12px;
+              cursor: pointer;
+            ">Copy</button>
+            <button style="
+              background: var(--pickachu-warning-color, #ffc107);
+              color: var(--pickachu-text, #333);
+              border: none;
+              padding: 6px 12px;
+              border-radius: 4px;
+              font-size: 12px;
+              cursor: pointer;
+            ">★</button>
+          </div>
         `;
 
         itemDiv.addEventListener('click', () => {
@@ -753,16 +726,11 @@ export async function showHistory() {
       }
     }
 
-    // Initialize with all items
-    renderHistory('all');
-
-    // Filter change handler
-    filter.addEventListener('change', (e) => {
-      renderHistory(e.target.value);
-    });
+    // Initialize with favorites
+    renderFavorites();
 
     // Event listeners
-    document.getElementById('close-history-modal').addEventListener('click', () => {
+    document.getElementById('close-favorites-modal').addEventListener('click', () => {
       overlay.remove();
     });
 
@@ -783,14 +751,13 @@ export async function showHistory() {
 
     // Assemble modal
     content.appendChild(list);
-    modal.appendChild(filterSection);
     modal.appendChild(content);
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
 
   } catch (error) {
-    handleError(error, 'showHistory');
-    showError('Failed to load history');
+    handleError(error, 'showFavorites');
+    showError('Failed to load favorites');
   }
 }
 
@@ -918,7 +885,7 @@ export async function showModal(title, content, icon = '', type = '') {
     border-top: 1px solid var(--pickachu-border, #eee);
     display: flex;
     gap: 8px;
-    justify-content: flex-end;
+    justify-content: center;
     background: var(--pickachu-header-bg, #f8f9fa);
   `;
   
@@ -975,10 +942,10 @@ export async function showModal(title, content, icon = '', type = '') {
     font-size: 14px;
   `;
   
-  const historyBtn = document.createElement('button');
-  historyBtn.textContent = t('history');
-  historyBtn.title = t('history');
-  historyBtn.style.cssText = `
+  const favoritesBtn = document.createElement('button');
+  favoritesBtn.textContent = t('favorites');
+  favoritesBtn.title = t('favorites');
+  favoritesBtn.style.cssText = `
     padding: 8px 16px;
     border: 1px solid var(--pickachu-border, #ddd);
     background: var(--pickachu-secondary-color, #6c757d);
@@ -1021,16 +988,16 @@ export async function showModal(title, content, icon = '', type = '') {
     }
   });
   
-  historyBtn.addEventListener('click', () => {
+  favoritesBtn.addEventListener('click', () => {
     overlay.remove();
-    showHistory();
+    showFavorites();
   });
   
   buttons.appendChild(closeBtn);
   buttons.appendChild(copyBtn);
   buttons.appendChild(exportBtn);
   buttons.appendChild(favBtn);
-  buttons.appendChild(historyBtn);
+  buttons.appendChild(favoritesBtn);
   
   modal.appendChild(body);
   modal.appendChild(buttons);

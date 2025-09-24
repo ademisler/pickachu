@@ -167,8 +167,10 @@ body {
 .tools-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
+  gap: 12px;
   margin-bottom: 20px;
+  max-height: 300px;
+  overflow: visible;
 }
 
 /* Tool Buttons */
@@ -176,7 +178,7 @@ body {
   background-color: var(--pickachu-button-bg);
   border: 1px solid var(--pickachu-border);
   border-radius: var(--pickachu-border-radius);
-  padding: 16px 12px;
+  padding: 12px 8px;
   cursor: pointer;
   transition: var(--pickachu-transition);
   display: flex;
@@ -186,7 +188,7 @@ body {
   box-shadow: var(--pickachu-shadow);
   color: var(--pickachu-text);
   position: relative;
-  min-height: 88px;
+  min-height: 75px;
   font-family: inherit;
   text-decoration: none;
 }
@@ -214,10 +216,10 @@ body {
 }
 
 .tool-icon {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   filter: brightness(0);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   transition: var(--pickachu-transition);
 }
 
@@ -236,12 +238,12 @@ body {
 }
 
 .tool-label {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--pickachu-text);
   font-weight: 600;
   text-align: center;
   line-height: 1.2;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
 }
 
 /* Shortcuts */

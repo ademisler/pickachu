@@ -38,6 +38,9 @@
   "history": {
     "message": "History"
   },
+  "favorites": {
+    "message": "Favorites"
+  },
   "favorite": {
     "message": "Favorite"
   },
