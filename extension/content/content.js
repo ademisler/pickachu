@@ -1,6 +1,5 @@
 let activeModule = null;
 const modules = {};
-let isReady = false;
 
 async function loadModule(name) {
   if (modules[name]) return modules[name];
@@ -28,10 +27,6 @@ function resetActiveModule() {
   document.body.style.cursor = '';
 }
 
-// Clear module cache when needed
-function clearModuleCache() {
-  Object.keys(modules).forEach(key => delete modules[key]);
-}
 
 // Signal that content script is ready
 function signalReady() {

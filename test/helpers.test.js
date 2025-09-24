@@ -1,21 +1,132 @@
-let getCssSelector, getXPath;
+// Test file for helpers.js module
+import { 
+  debounce, 
+  throttle, 
+  showError, 
+  showSuccess, 
+  showInfo, 
+  createOverlay, 
+  removeOverlay,
+  copyText,
+  getCssSelector,
+  getXPath
+} from '../extension/modules/helpers.js';
 
-beforeAll(async () => {
-  const mod = await import('../extension/modules/helpers.js');
-  getCssSelector = mod.getCssSelector;
-  getXPath = mod.getXPath;
-});
+describe('Helpers Module', () => {
+  
+  describe('debounce', () => {
+    test('should debounce function calls', (done) => {
+      let callCount = 0;
+      const debouncedFn = debounce(() => {
+        callCount++;
+      }, 100);
 
-describe('helpers', () => {
-  test('getCssSelector returns a simple selector', () => {
-    document.body.innerHTML = '<div id="c"><span></span><span class="foo"></span></div>';
-    const span = document.querySelector('.foo');
-    expect(getCssSelector(span)).toBe('div#c > span:nth-of-type(2)');
+      debouncedFn();
+      debouncedFn();
+      debouncedFn();
+
+      setTimeout(() => {
+        expect(callCount).toBe(1);
+        done();
+      }, 150);
+    });
   });
 
-  test('getXPath returns an xpath to the element', () => {
-    document.body.innerHTML = '<div><p></p><p></p></div>';
-    const el = document.querySelectorAll('p')[1];
-    expect(getXPath(el)).toMatch(/\/html\[1\]\/body\[1\]\/div\[1\]\/p\[2\]$/);
+  describe('throttle', () => {
+    test('should throttle function calls', (done) => {
+      let callCount = 0;
+      const throttledFn = throttle(() => {
+        callCount++;
+      }, 100);
+
+      throttledFn();
+      throttledFn();
+      throttledFn();
+
+      setTimeout(() => {
+        expect(callCount).toBe(1);
+        done();
+      }, 50);
+    });
   });
+
+  describe('showError', () => {
+    test('should create error toast', () => {
+      showError('Test error');
+      expect(document.createElement).toHaveBeenCalled();
+    });
+  });
+
+  describe('showSuccess', () => {
+    test('should create success toast', () => {
+      showSuccess('Test success');
+      expect(document.createElement).toHaveBeenCalled();
+    });
+  });
+
+  describe('showInfo', () => {
+    test('should create info toast', () => {
+      showInfo('Test info');
+      expect(document.createElement).toHaveBeenCalled();
+    });
+  });
+
+  describe('createOverlay', () => {
+    test('should create overlay element', () => {
+      const overlay = createOverlay();
+      expect(document.createElement).toHaveBeenCalledWith('div');
+      expect(document.body.appendChild).toHaveBeenCalled();
+    });
+  });
+
+  describe('removeOverlay', () => {
+    test('should remove overlay element', () => {
+      const mockOverlay = {
+        parentNode: { removeChild: jest.fn() }
+      };
+      removeOverlay(mockOverlay);
+      expect(mockOverlay.parentNode.removeChild).toHaveBeenCalledWith(mockOverlay);
+    });
+  });
+
+  describe('copyText', () => {
+    test('should copy text to clipboard', async () => {
+      await copyText('test text');
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('test text');
+    });
+  });
+
+  describe('getCssSelector', () => {
+    test('should generate CSS selector for element with ID', () => {
+      const mockElement = {
+        id: 'test-id',
+        tagName: 'DIV',
+        className: 'test-class',
+        parentNode: null,
+        nodeType: 1
+      };
+      
+      global.document.querySelectorAll = jest.fn((selector) => 
+        selector === '#test-id' ? [mockElement] : []
+      );
+
+      const selector = getCssSelector(mockElement);
+      expect(selector).toBe('#test-id');
+    });
+  });
+
+  describe('getXPath', () => {
+    test('should generate XPath for element with ID', () => {
+      const mockElement = {
+        id: 'test-id',
+        tagName: 'DIV',
+        parentNode: null,
+        nodeType: 1
+      };
+
+      const xpath = getXPath(mockElement);
+      expect(xpath).toBe('//*[@id="test-id"]');
+    });
+  });
+
 });

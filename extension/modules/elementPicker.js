@@ -1,9 +1,7 @@
-import { createOverlay, removeOverlay, createTooltip, removeTooltip, copyText, getCssSelector, showModal, showError, showSuccess, showInfo, debounce, throttle, getCachedComputedStyle } from './helpers.js';
+import { createOverlay, removeOverlay, createTooltip, removeTooltip, copyText, getCssSelector, showModal, showError, showSuccess, showInfo, throttle, getCachedComputedStyle } from './helpers.js';
 
 let overlay, tooltip, deactivateCb;
 let currentElement = null;
-let elementIndex = 0;
-let elements = [];
 
 // Performance optimized move handler
 const throttledOnMove = throttle((e) => {

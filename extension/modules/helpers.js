@@ -28,7 +28,6 @@ export function throttle(func, limit) {
 
 // Cache for computed styles and DOM queries
 const styleCache = new Map();
-const queryCache = new Map();
 
 export function getCachedComputedStyle(element) {
   const key = `${element.tagName}-${element.id}-${element.className}`;
@@ -38,10 +37,6 @@ export function getCachedComputedStyle(element) {
   return styleCache.get(key);
 }
 
-function clearCaches() {
-  styleCache.clear();
-  queryCache.clear();
-}
 
 async function loadLanguage(lang = 'en') {
   try {

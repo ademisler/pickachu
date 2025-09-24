@@ -1,6 +1,5 @@
-import { showError, showSuccess, showInfo, showWarning, showModal } from './helpers.js';
+import { showError, showSuccess, showInfo, showModal } from './helpers.js';
 
-let deactivateCb;
 
 // Detect technologies and frameworks
 function detectTechnologies() {
@@ -162,7 +161,7 @@ function detectTechnologies() {
   };
   
   return Object.entries(technologies)
-    .filter(([key, tech]) => tech.detected)
+    .filter(([, tech]) => tech.detected)
     .map(([key, tech]) => ({ key, ...tech }));
 }
 
@@ -347,7 +346,7 @@ async function generateSiteReport() {
       },
       
       // Social Media
-      social: Object.entries(social).filter(([key, value]) => value).map(([key]) => key),
+      social: Object.entries(social).filter(([, value]) => value).map(([key]) => key),
       
       // Structure
       structure: {

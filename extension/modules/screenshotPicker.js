@@ -1,4 +1,4 @@
-import { showError, showSuccess, showInfo, showWarning } from './helpers.js';
+import { showError, showSuccess, showInfo } from './helpers.js';
 
 let deactivateCb;
 
@@ -266,9 +266,6 @@ function showScreenshotOptions(pageInfo, tab) {
 // Capture visible area only
 async function captureVisibleArea(quality = 100) {
   try {
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const tab = tabs[0];
-    
     const screenshot = await chrome.tabs.captureVisibleTab({
       format: 'png',
       quality: quality

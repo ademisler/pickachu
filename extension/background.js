@@ -20,7 +20,7 @@ async function ensureContentScriptInjected(tabId) {
   }
 }
 
-chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener(async (request) => {
   if (request.type === 'ACTIVATE_TOOL') {
     try {
       const tabs = await chrome.tabs.query({ active: true, currentWindow: true });

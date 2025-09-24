@@ -1,4 +1,4 @@
-import { copyText, showModal, showError, showSuccess, showWarning } from './helpers.js';
+import { copyText, showModal, showError, showSuccess } from './helpers.js';
 
 // Color format utilities
 function hexToRgb(hex) {
@@ -69,15 +69,6 @@ async function saveColorToHistory(color) {
   }
 }
 
-async function getColorHistory() {
-  try {
-    const { colorHistory = [] } = await chrome.storage.local.get('colorHistory');
-    return colorHistory;
-  } catch (error) {
-    console.error('Failed to get color history:', error);
-    return [];
-  }
-}
 
 export function activate(deactivate) {
   if (!window.EyeDropper) {

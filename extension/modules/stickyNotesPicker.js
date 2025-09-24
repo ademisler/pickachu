@@ -1,9 +1,7 @@
-import { showError, showSuccess, showInfo, showWarning } from './helpers.js';
+import { showError, showSuccess, showInfo } from './helpers.js';
 
-let deactivateCb;
 let notes = [];
 let isCreatingNote = false;
-let currentNote = null;
 
 // Load notes for current page
 async function loadNotesForPage() {
@@ -338,8 +336,8 @@ async function loadAllNotes() {
   }
 }
 
-// Show notes management modal
-function showNotesManager() {
+// Show notes management modal (currently unused)
+// function showNotesManager() {
   const modal = document.createElement('div');
   modal.id = 'pickachu-notes-manager';
   modal.style.cssText = `
@@ -463,7 +461,7 @@ function showNotesManager() {
     }
   };
   document.addEventListener('keydown', escapeHandler);
-}
+// }
 
 // Load all notes for manager
 async function loadAllNotesForManager() {
@@ -604,7 +602,6 @@ window.openNote = function(noteId) {
 };
 
 export function activate(deactivate) {
-  deactivateCb = deactivate;
   
   try {
     // Add CSS animations
