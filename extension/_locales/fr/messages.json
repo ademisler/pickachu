@@ -124,5 +124,8 @@
   },
   "exportPrompt": {
     "message": "txt/json/csv"
+  },
+  "version": {
+    "message": "Version 1.1"
   }
 }
