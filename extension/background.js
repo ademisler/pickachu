@@ -28,12 +28,14 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
       
       if (!tab) {
         console.error('No active tab found');
+        sendResponse({ success: false, error: 'No active tab found' });
         return;
       }
 
       const injected = await ensureContentScriptInjected(tab.id);
       if (!injected) {
         console.error('Failed to inject content script');
+        sendResponse({ success: false, error: 'Failed to inject content script' });
         return;
       }
 
@@ -47,9 +49,13 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
         });
       }, 100);
       
+      sendResponse({ success: true });
+      
     } catch (error) {
       console.error('Error in ACTIVATE_TOOL:', error);
+      sendResponse({ success: false, error: error.message });
     }
+    return true; // Keep message channel open for async response
   }
   
   if (request.type === 'CAPTURE_VISIBLE_TAB') {

@@ -110,6 +110,8 @@ function cleanupStyles(stack = styleStack) {
       item.element.style.cssText = item.before;
     }
   }
+  // Clear the stack
+  stack.length = 0;
 }
 
 // Disable animations and transitions

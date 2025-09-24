@@ -1,4 +1,4 @@
-import { createOverlay, removeOverlay, createTooltip, removeTooltip, copyText, getCssSelector, showModal, showError, showSuccess, showInfo, throttle, getCachedComputedStyle } from './helpers.js';
+import { createOverlay, removeOverlay, createTooltip, removeTooltip, copyText, getCssSelector, getXPath, showModal, showError, showSuccess, showInfo, throttle, getCachedComputedStyle } from './helpers.js';
 
 let overlay, tooltip, deactivateCb;
 let currentElement = null;
@@ -123,23 +123,7 @@ function onClick(e) {
   }
 }
 
-// XPath generator
-function getXPath(el) {
-  if (el.id) return `//*[@id="${el.id}"]`;
-  const parts = [];
-  while (el && el.nodeType === Node.ELEMENT_NODE) {
-    let nb = 1;
-    let sib = el.previousSibling;
-    while (sib) {
-      if (sib.nodeType === Node.ELEMENT_NODE && sib.nodeName === el.nodeName) nb++;
-      sib = sib.previousSibling;
-    }
-    const part = `${el.nodeName.toLowerCase()}[${nb}]`;
-    parts.unshift(part);
-    el = el.parentNode;
-  }
-  return '/' + parts.join('/');
-}
+// XPath generator - moved to helpers.js to avoid duplication
 
 // Keyboard navigation
 function onKeyDown(e) {
