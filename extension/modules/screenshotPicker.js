@@ -15,28 +15,21 @@ async function captureFullPageScreenshot() {
   try {
     showInfo('Capturing full page screenshot...', 2000);
     
-    // Check if html2canvas is available
-    if (typeof window.html2canvas === 'undefined') {
-      showError('Screenshot functionality requires html2canvas library. Please install it or use browser screenshot tools.');
-      return;
-    }
-    
-    // Capture full page with html2canvas
-    const canvas = await window.html2canvas(document.body, {
-      scrollX: -window.scrollY,
-      scrollY: -window.scrollY,
-      windowWidth: document.documentElement.scrollWidth,
-      windowHeight: document.documentElement.scrollHeight,
-      useCORS: true,
-      allowTaint: true,
-      foreignObjectRendering: true,
-      scale: 1
+    // Send message to background script to capture visible tab
+    const dataUrl = await chrome.runtime.sendMessage({ 
+      type: 'CAPTURE_VISIBLE_TAB',
+      options: {
+        format: 'png',
+        quality: 100
+      }
     });
     
-    // Convert to data URL and download
-    const dataUrl = canvas.toDataURL('image/png', 1.0);
-    downloadScreenshot(dataUrl, 'full-page-screenshot');
-    showSuccess('Full page screenshot captured and downloaded!');
+    if (dataUrl && dataUrl.success) {
+      downloadScreenshot(dataUrl.dataUrl, 'screenshot');
+      showSuccess('Screenshot captured and downloaded!');
+    } else {
+      showError('Failed to capture screenshot. Please try again.');
+    }
     
   } catch (error) {
     console.error('Screenshot error:', error);

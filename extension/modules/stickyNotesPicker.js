@@ -97,7 +97,9 @@ function renderStickyNote(note) {
   `;
   
   const title = document.createElement('span');
-  title.textContent = 'Sticky Note';
+  // Show site name or domain instead of "Sticky Note"
+  const siteName = note.siteTitle || new URL(note.siteUrl).hostname || 'Sticky Note';
+  title.textContent = siteName.length > 20 ? siteName.substring(0, 20) + '...' : siteName;
   title.style.cssText = `
     font-weight: 600;
     color: #000000;
@@ -150,30 +152,19 @@ function renderStickyNote(note) {
     noteElement.style.display = 'none';
   });
   
-  // Focus button
-  const focusBtn = document.createElement('button');
-  focusBtn.innerHTML = '⚡';
-  focusBtn.title = 'Focus this note';
-  focusBtn.style.cssText = `
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 12px;
-    padding: 2px;
-    border-radius: 3px;
-    color: #000000;
-  `;
-  
-  focusBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    focusNote(noteElement);
-  });
-  
   controls.appendChild(colorBtn);
-  controls.appendChild(focusBtn);
   controls.appendChild(closeBtn);
   header.appendChild(title);
   header.appendChild(controls);
+  
+  // Make header clickable to focus the note
+  header.addEventListener('click', (e) => {
+    // Don't trigger if clicking on buttons
+    if (e.target === colorBtn || e.target === closeBtn) return;
+    
+    e.stopPropagation();
+    focusNote(noteElement);
+  });
   
   // Note content
   const content = document.createElement('textarea');
@@ -402,12 +393,25 @@ function showNotesManager() {
       </div>
       
       <div style="margin-bottom: 16px;">
+        <div style="font-weight: 600; margin-bottom: 8px; color: var(--pickachu-text, #333);">All Notes from All Sites:</div>
+        <div id="all-notes-list" style="
+          max-height: 300px;
+          overflow-y: auto;
+          border: 1px solid var(--pickachu-border, #ddd);
+          border-radius: 6px;
+          padding: 12px;
+          background: var(--pickachu-code-bg, #f8f9fa);
+        "></div>
+      </div>
+      
+      <div style="margin-bottom: 16px;">
         <div style="font-weight: 600; margin-bottom: 8px; color: var(--pickachu-text, #333);">Instructions:</div>
         <div style="font-size: 14px; color: var(--pickachu-secondary-text, #666); line-height: 1.4;">
           • Click "Add New Note" to create a sticky note<br>
           • Drag notes by their header to move them<br>
           • Click the 🎨 button to change note color<br>
-          • Click × to delete individual notes<br>
+          • Click × to close individual notes<br>
+          • Click on note headers to focus them<br>
           • Notes are automatically saved and will persist
         </div>
       </div>
@@ -479,6 +483,14 @@ function showNotesManager() {
     });
   }
   
+  // Load and display all notes from all sites
+  const allNotesList = document.getElementById('all-notes-list');
+  if (allNotesList) {
+    renderAllNotesList().then(html => {
+      allNotesList.innerHTML = html;
+    });
+  }
+  
   // Load existing notes
   loadExistingNotes();
 }
@@ -515,6 +527,62 @@ async function loadNotes() {
     console.error('Failed to load notes:', error);
     notes = [];
   }
+}
+
+// Load all notes from all sites
+async function loadAllNotes() {
+  try {
+    const result = await chrome.storage.local.get();
+    const allNotes = [];
+    
+    for (const [key, value] of Object.entries(result)) {
+      if (key.startsWith('stickyNotes_') && Array.isArray(value)) {
+        allNotes.push(...value);
+      }
+    }
+    
+    return allNotes;
+  } catch (error) {
+    console.error('Failed to load all notes:', error);
+    return [];
+  }
+}
+
+// Render all notes from all sites
+async function renderAllNotesList() {
+  const allNotes = await loadAllNotes();
+  
+  if (allNotes.length === 0) {
+    return '<div style="text-align: center; color: var(--pickachu-secondary-text, #666); padding: 20px;">No notes found</div>';
+  }
+  
+  return allNotes.map(note => {
+    const siteName = note.siteTitle || new URL(note.siteUrl).hostname || 'Unknown Site';
+    const shortContent = note.content.length > 50 ? note.content.substring(0, 50) + '...' : note.content;
+    const createdAt = new Date(note.createdAt).toLocaleDateString();
+    
+    return `
+      <div style="
+        padding: 12px;
+        border: 1px solid var(--pickachu-border, #ddd);
+        border-radius: 6px;
+        margin-bottom: 8px;
+        background: var(--pickachu-bg, #fff);
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+      " onclick="window.open('${note.siteUrl}', '_blank')">
+        <div style="font-weight: 600; color: var(--pickachu-text, #333); margin-bottom: 4px;">
+          ${siteName}
+        </div>
+        <div style="font-size: 12px; color: var(--pickachu-secondary-text, #666); margin-bottom: 4px;">
+          Created: ${createdAt}
+        </div>
+        <div style="font-size: 13px; color: var(--pickachu-text, #333);">
+          ${shortContent || 'Empty note'}
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 // Export notes as JSON

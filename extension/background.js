@@ -20,7 +20,7 @@ async function ensureContentScriptInjected(tabId) {
   }
 }
 
-chrome.runtime.onMessage.addListener(async (request) => {
+chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   if (request.type === 'ACTIVATE_TOOL') {
     try {
       const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -50,6 +50,26 @@ chrome.runtime.onMessage.addListener(async (request) => {
     } catch (error) {
       console.error('Error in ACTIVATE_TOOL:', error);
     }
+  }
+  
+  if (request.type === 'CAPTURE_VISIBLE_TAB') {
+    try {
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      const tab = tabs[0];
+      
+      if (!tab) {
+        sendResponse({ success: false, error: 'No active tab found' });
+        return;
+      }
+      
+      const dataUrl = await chrome.tabs.captureVisibleTab(null, request.options);
+      sendResponse({ success: true, dataUrl: dataUrl });
+      
+    } catch (error) {
+      console.error('Error capturing visible tab:', error);
+      sendResponse({ success: false, error: error.message });
+    }
+    return true; // Keep message channel open for async response
   }
 });
 
