@@ -194,7 +194,7 @@ chrome.runtime.onMessage.addListener(async (msg, sender, sendResponse) => {
     showPickachuOverlay();
   } else if (msg.type === 'SHOW_FAVORITES') {
     // Show favorites modal
-    import('./modules/helpers.js').then(helpers => {
+    import(chrome.runtime.getURL('modules/helpers.js')).then(helpers => {
       helpers.showFavorites();
     }).catch(error => {
       console.error('Failed to load helpers for favorites:', error);
@@ -221,7 +221,7 @@ async function autoLoadStickyNotes() {
     
     if (notes.length > 0) {
       // Import sticky notes module and load notes
-      const stickyNotesModule = await import('./modules/stickyNotesPicker.js');
+      const stickyNotesModule = await import(chrome.runtime.getURL('modules/stickyNotesPicker.js'));
       if (stickyNotesModule && stickyNotesModule.loadExistingNotesForCurrentSite) {
         // Set the notes data first
         window.stickyNotesData = notes;
