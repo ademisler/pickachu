@@ -399,7 +399,17 @@ function showNotesManager() {
   
   manager.innerHTML = `
     <div class="modal-header">
-      <h3 class="modal-title">
+      <h3 class="modal-title" style="
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--pickachu-text, #333);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        flex: 1;
+      ">
         📝 Sticky Notes Manager
       </h3>
       <button id="close-notes-manager" style="
@@ -510,9 +520,12 @@ function showNotesManager() {
 }
 
 // Load existing notes for current site and display them
-function loadExistingNotesForCurrentSite() {
+export function loadExistingNotesForCurrentSite() {
   try {
-    notes.forEach(note => {
+    // Get notes from window data if available, otherwise use current notes
+    const notesToLoad = window.stickyNotesData || notes;
+    
+    notesToLoad.forEach(note => {
       // Check if note is already rendered on the page
       const existingNote = document.getElementById(note.id);
       if (!existingNote) {
@@ -751,16 +764,27 @@ async function renderAllNotesList() {
             border-radius: 8px;
             margin-bottom: 12px;
             background: var(--pickachu-bg, #fff);
-            cursor: pointer;
             transition: all 0.2s ease;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-          " onclick="window.open('${sanitizedUrl}', '_blank')" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.05)'">
+          " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.05)'">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
-              <div style="font-weight: 600; color: var(--pickachu-text, #333); font-size: 14px;">
+              <div style="font-weight: 600; color: var(--pickachu-text, #333); font-size: 14px; cursor: pointer;" onclick="window.open('${sanitizedUrl}', '_blank')">
                 ${siteName}
               </div>
-              <div style="font-size: 11px; color: var(--pickachu-secondary-text, #666); background: var(--pickachu-code-bg, #f8f9fa); padding: 2px 6px; border-radius: 4px;">
-                ${createdAt}
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <div style="font-size: 11px; color: var(--pickachu-secondary-text, #666); background: var(--pickachu-code-bg, #f8f9fa); padding: 2px 6px; border-radius: 4px;">
+                  ${createdAt}
+                </div>
+                <button onclick="window.stickyNotesModule.deleteIndividualNote('${note.id}', '${sanitizedUrl}')" style="
+                  background: var(--pickachu-danger-color, #dc3545);
+                  color: white;
+                  border: none;
+                  padding: 4px 8px;
+                  border-radius: 4px;
+                  cursor: pointer;
+                  font-size: 10px;
+                  font-weight: 500;
+                " title="Delete this note">🗑️</button>
               </div>
             </div>
             <div style="font-size: 13px; color: var(--pickachu-text, #333); line-height: 1.4;">
@@ -814,10 +838,62 @@ function focusNote(noteElement) {
   }
 }
 
+// Delete individual note from all notes list
+async function deleteIndividualNote(noteId, noteUrl) {
+  try {
+    if (!noteId || !noteUrl) {
+      throw new Error('Invalid note ID or URL');
+    }
+    
+    if (window.confirm('Are you sure you want to delete this note? This action cannot be undone.')) {
+      // Remove from current site notes if it exists
+      const currentUrl = safeExecute(() => window.location.href, 'get current url') || '';
+      const currentSiteKey = `stickyNotes_${currentUrl}`;
+      
+      if (currentUrl === noteUrl) {
+        // Remove from current site notes
+        const noteIndex = notes.findIndex(note => note.id === noteId);
+        if (noteIndex !== -1) {
+          notes.splice(noteIndex, 1);
+          saveNotes();
+        }
+        
+        // Remove from DOM if it's currently visible
+        const noteElement = document.getElementById(noteId);
+        if (noteElement) {
+          noteElement.remove();
+        }
+      }
+      
+      // Remove from the specific site's storage
+      const siteKey = `stickyNotes_${noteUrl}`;
+      const result = await chrome.storage.local.get([siteKey]);
+      const siteNotes = result[siteKey] || [];
+      const updatedSiteNotes = siteNotes.filter(note => note.id !== noteId);
+      
+      await chrome.storage.local.set({ [siteKey]: updatedSiteNotes });
+      
+      // Refresh the all notes list
+      const allNotesList = document.getElementById('all-notes-list');
+      if (allNotesList) {
+        renderAllNotesList().then(html => {
+          allNotesList.innerHTML = html;
+        });
+      }
+      
+      showSuccess('Note deleted successfully');
+    }
+  } catch (error) {
+    handleError(error, 'deleteIndividualNote');
+    showError('Failed to delete note');
+  }
+}
+
 // Expose functions globally in a controlled way to avoid pollution
 if (typeof window !== 'undefined') {
   window.stickyNotesModule = {
     deleteNote: deleteNote,
-    focusNote: focusNoteById
+    focusNote: focusNoteById,
+    deleteIndividualNote: deleteIndividualNote
   };
 }

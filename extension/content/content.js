@@ -208,11 +208,43 @@ document.addEventListener('keydown', e => {
   }
 });
 
+// Auto-load sticky notes for current site
+async function autoLoadStickyNotes() {
+  try {
+    const currentUrl = window.location.href;
+    if (!currentUrl) return;
+    
+    // Load notes for current site
+    const siteKey = `stickyNotes_${currentUrl}`;
+    const result = await chrome.storage.local.get([siteKey]);
+    const notes = result[siteKey] || [];
+    
+    if (notes.length > 0) {
+      // Import sticky notes module and load notes
+      const stickyNotesModule = await import('./modules/stickyNotesPicker.js');
+      if (stickyNotesModule && stickyNotesModule.loadExistingNotesForCurrentSite) {
+        // Set the notes data first
+        window.stickyNotesData = notes;
+        // Load the notes
+        stickyNotesModule.loadExistingNotesForCurrentSite();
+      }
+    }
+  } catch (error) {
+    console.log('Auto-load sticky notes failed:', error);
+  }
+}
+
 // Initialize content script
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', signalReady);
+  document.addEventListener('DOMContentLoaded', () => {
+    signalReady();
+    // Auto-load sticky notes after a short delay
+    setTimeout(autoLoadStickyNotes, 500);
+  });
 } else {
   signalReady();
+  // Auto-load sticky notes after a short delay
+  setTimeout(autoLoadStickyNotes, 500);
 }
 
 } // End of pickachu initialization check
