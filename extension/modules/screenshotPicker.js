@@ -7,7 +7,9 @@ let screenshotState = {
   retryCount: 0,
   chunks: [],
   totalChunks: 0,
-  currentChunk: 0
+  currentChunk: 0,
+  screenshots: [],
+  arrangements: []
 };
 
 // Configuration
@@ -16,10 +18,31 @@ const SCREENSHOT_CONFIG = {
   quality: 100,
   timeout: 15000,
   maxRetries: 3,
-  chunkHeight: 1000, // Height in pixels for each chunk
-  delayBetweenChunks: 200, // ms
-  scrollDelay: 100 // ms
+  captureDelay: 150, // ms between captures
+  scrollDelay: 100 // ms for scroll settling
 };
+
+// Constants for canvas size limits
+const MAX_PRIMARY_DIMENSION = 15000 * 2;
+const MAX_SECONDARY_DIMENSION = 4000 * 2;
+const MAX_AREA = MAX_PRIMARY_DIMENSION * MAX_SECONDARY_DIMENSION;
+
+// Helper to get filename from URL
+function getFilename(contentURL) {
+  let name = contentURL.split('?')[0].split('#')[0];
+  if (name) {
+    name = name
+      .replace(/^https?:\/\//, '')
+      .replace(/[^A-Za-z0-9]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^[-_]+/, '')
+      .replace(/[-_]+$/, '');
+    name = '-' + name;
+  } else {
+    name = '';
+  }
+  return 'screencapture' + name + '-' + Date.now() + '.png';
+}
 
 // Helper to download screenshot
 function downloadScreenshot(dataUrl, filename, format = 'png') {
@@ -44,33 +67,23 @@ function downloadScreenshot(dataUrl, filename, format = 'png') {
     }
     const blob = new Blob([ab], { type: mimeString });
     
-    // Use Chrome downloads API if available
-    if (chrome.downloads) {
-      const url = URL.createObjectURL(blob);
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const extension = format === 'jpeg' ? 'jpg' : format;
-      const finalFilename = `${sanitizeInput(filename)}-${timestamp}.${extension}`;
-      
-      chrome.downloads.download({
-        url: url,
-        filename: finalFilename,
-        saveAs: false
-      }, (downloadId) => {
-        try {
-          URL.revokeObjectURL(url);
-          if (chrome.runtime.lastError) {
-            console.error('Download failed:', chrome.runtime.lastError);
-            // Fallback to anchor download
-            fallbackDownload(dataUrl, finalFilename);
-          }
-        } catch (error) {
-          handleError(error, 'downloadScreenshot cleanup');
-        }
-      });
-    } else {
-      // Fallback to anchor download
-      fallbackDownload(dataUrl, filename);
-    }
+    // Use Chrome downloads API
+    const url = URL.createObjectURL(blob);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const extension = format === 'jpeg' ? 'jpg' : format;
+    const finalFilename = `${sanitizeInput(filename)}-${timestamp}.${extension}`;
+    
+    chrome.downloads.download({
+      url: url,
+      filename: finalFilename,
+      saveAs: false
+    }, (downloadId) => {
+      URL.revokeObjectURL(url);
+      if (chrome.runtime.lastError) {
+        console.error('Download failed:', chrome.runtime.lastError);
+        fallbackDownload(dataUrl, finalFilename);
+      }
+    });
   } catch (error) {
     handleError(error, 'downloadScreenshot');
     showError('Failed to download screenshot. Please try again.');
@@ -93,56 +106,153 @@ function fallbackDownload(dataUrl, filename) {
   }
 }
 
-// Get page dimensions - simplified approach
-function getPageDimensions() {
+// Get page dimensions and calculate scroll arrangements
+function getPageDimensionsAndArrangements() {
   try {
-    const dimensions = {
-      width: Math.max(
-        document.documentElement.scrollWidth || 0,
-        document.body.scrollWidth || 0,
-        window.innerWidth || 0
-      ),
-      height: Math.max(
-        document.documentElement.scrollHeight || 0,
-        document.body.scrollHeight || 0,
-        window.innerHeight || 0
-      ),
-      scrollHeight: document.documentElement.scrollHeight || document.body.scrollHeight || 0,
-      scrollWidth: document.documentElement.scrollWidth || document.body.scrollWidth || 0
-    };
+    const body = document.body;
+    const originalBodyOverflowYStyle = body ? body.style.overflowY : '';
+    const originalX = window.scrollX;
+    const originalY = window.scrollY;
+    const originalOverflowStyle = document.documentElement.style.overflow;
+
+    // Fix scrolling issues
+    if (body) {
+      body.style.overflowY = 'visible';
+    }
+
+    const widths = [
+      document.documentElement.clientWidth,
+      body ? body.scrollWidth : 0,
+      document.documentElement.scrollWidth,
+      body ? body.offsetWidth : 0,
+      document.documentElement.offsetWidth
+    ];
     
-    console.log('Page dimensions calculated:', dimensions);
-    return dimensions;
-  } catch (error) {
-    handleError(error, 'getPageDimensions');
+    const heights = [
+      document.documentElement.clientHeight,
+      body ? body.scrollHeight : 0,
+      document.documentElement.scrollHeight,
+      body ? body.offsetHeight : 0,
+      document.documentElement.offsetHeight
+    ];
+
+    const fullWidth = Math.max.apply(Math, widths.filter(x => x));
+    const fullHeight = Math.max.apply(Math, heights.filter(x => x));
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+
+    // Pad for sticky headers
+    const scrollPad = 200;
+    const yDelta = windowHeight - (windowHeight > scrollPad ? scrollPad : 0);
+    const xDelta = windowWidth;
+
+    let yPos = fullHeight - windowHeight;
+    const arrangements = [];
+
+    // Fix zoom issues
+    let adjustedFullWidth = fullWidth;
+    if (fullWidth <= xDelta + 1) {
+      adjustedFullWidth = xDelta;
+    }
+
+    // Disable scrollbars during capture
+    document.documentElement.style.overflow = 'hidden';
+
+    // Calculate scroll positions
+    while (yPos > -yDelta) {
+      let xPos = 0;
+      while (xPos < adjustedFullWidth) {
+        arrangements.push([xPos, yPos]);
+        xPos += xDelta;
+      }
+      yPos -= yDelta;
+    }
+
     return {
-      width: window.innerWidth || 1024,
-      height: window.innerHeight || 768,
-      scrollHeight: window.innerHeight || 768,
-      scrollWidth: window.innerWidth || 1024
+      dimensions: {
+        fullWidth: adjustedFullWidth,
+        fullHeight: fullHeight,
+        windowWidth: windowWidth,
+        windowHeight: windowHeight
+      },
+      arrangements: arrangements,
+      cleanup: () => {
+        document.documentElement.style.overflow = originalOverflowStyle;
+        if (body) {
+          body.style.overflowY = originalBodyOverflowYStyle;
+        }
+        window.scrollTo(originalX, originalY);
+      }
     };
+  } catch (error) {
+    handleError(error, 'getPageDimensionsAndArrangements');
+    throw error;
   }
 }
 
-// Capture visible area screenshot - using direct approach
+// Initialize screenshot canvases
+function initScreenshots(totalWidth, totalHeight) {
+  const badSize = (totalHeight > MAX_PRIMARY_DIMENSION ||
+                   totalWidth > MAX_PRIMARY_DIMENSION ||
+                   totalHeight * totalWidth > MAX_AREA);
+  
+  const biggerWidth = totalWidth > totalHeight;
+  const maxWidth = (!badSize ? totalWidth :
+                    (biggerWidth ? MAX_PRIMARY_DIMENSION : MAX_SECONDARY_DIMENSION));
+  const maxHeight = (!badSize ? totalHeight :
+                     (biggerWidth ? MAX_SECONDARY_DIMENSION : MAX_PRIMARY_DIMENSION));
+  
+  const numCols = Math.ceil(totalWidth / maxWidth);
+  const numRows = Math.ceil(totalHeight / maxHeight);
+  
+  const result = [];
+  let canvasIndex = 0;
+
+  for (let row = 0; row < numRows; row++) {
+    for (let col = 0; col < numCols; col++) {
+      const canvas = document.createElement('canvas');
+      canvas.width = (col === numCols - 1 ? totalWidth % maxWidth || maxWidth : maxWidth);
+      canvas.height = (row === numRows - 1 ? totalHeight % maxHeight || maxHeight : maxHeight);
+
+      const left = col * maxWidth;
+      const top = row * maxHeight;
+
+      result.push({
+        canvas: canvas,
+        ctx: canvas.getContext('2d'),
+        index: canvasIndex,
+        left: left,
+        right: left + canvas.width,
+        top: top,
+        bottom: top + canvas.height
+      });
+
+      canvasIndex++;
+    }
+  }
+
+  return result;
+}
+
+// Filter screenshots that match image location
+function filterScreenshots(imgLeft, imgTop, imgWidth, imgHeight, screenshots) {
+  const imgRight = imgLeft + imgWidth;
+  const imgBottom = imgTop + imgHeight;
+  
+  return screenshots.filter(screenshot => {
+    return (imgLeft < screenshot.right &&
+            imgRight > screenshot.left &&
+            imgTop < screenshot.bottom &&
+            imgBottom > screenshot.top);
+  });
+}
+
+// Capture visible area screenshot
 async function captureVisibleArea() {
   try {
-    console.log('Capturing visible area...');
-    
-    // Try to use chrome.tabs.captureVisibleTab directly if available
-    if (chrome.tabs && chrome.tabs.captureVisibleTab) {
-      console.log('Using direct chrome.tabs.captureVisibleTab');
-      return await chrome.tabs.captureVisibleTab(null, {
-        format: SCREENSHOT_CONFIG.format,
-        quality: SCREENSHOT_CONFIG.quality
-      });
-    }
-    
-    // Fallback: use background script
-    console.log('Using background script for capture');
     return await new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        reject(new Error('Screenshot capture timeout - please try again'));
+        reject(new Error('Screenshot capture timeout'));
       }, SCREENSHOT_CONFIG.timeout);
       
       chrome.runtime.sendMessage({
@@ -166,164 +276,129 @@ async function captureVisibleArea() {
         }
       });
     });
-    
   } catch (error) {
     handleError(error, 'captureVisibleArea');
     throw error;
   }
 }
 
-// Capture full page screenshot using GoFullPage-like approach
-async function captureFullPage() {
+// Process screenshot data and draw on canvases
+async function processScreenshot(data, screenshots) {
   try {
-    console.log('Starting full page capture...');
+    const dataUrl = await captureVisibleArea();
     
-    const dimensions = getPageDimensions();
-    console.log('Page dimensions:', dimensions);
-    
-    // Check if page is too large for full capture
-    const maxHeight = 100000; // Chrome's limit
-    if (dimensions.height > maxHeight) {
-      throw new Error(`Page too large (${dimensions.height}px). Maximum supported height is ${maxHeight}px.`);
-    }
-    
-    // Check if page is too small (already fits in viewport)
-    if (dimensions.height <= window.innerHeight) {
-      console.log('Page fits in viewport, using visible area capture');
-      return await captureVisibleArea();
-    }
-    
-    // Calculate number of chunks needed
-    const chunkHeight = SCREENSHOT_CONFIG.chunkHeight;
-    const totalChunks = Math.ceil(dimensions.height / chunkHeight);
-    
-    screenshotState.chunks = [];
-    screenshotState.totalChunks = totalChunks;
-    screenshotState.currentChunk = 0;
-    
-    showInfo(`Capturing full page (${totalChunks} parts)...`, 0);
-    
-    // Store original scroll position
-    const originalScrollX = window.scrollX;
-    const originalScrollY = window.scrollY;
-    
-    try {
-      // Capture each chunk
-      for (let i = 0; i < totalChunks; i++) {
-        screenshotState.currentChunk = i;
-        const scrollTop = i * chunkHeight;
-        
-        // Scroll to position
-        window.scrollTo(0, scrollTop);
-        
-        // Wait for scroll to complete
-        await new Promise(resolve => setTimeout(resolve, SCREENSHOT_CONFIG.scrollDelay));
-        
-        // Capture this chunk
-        const chunkDataUrl = await captureVisibleArea();
-        
-        if (!chunkDataUrl) {
-          throw new Error(`Failed to capture chunk ${i + 1}/${totalChunks}`);
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          data.image = { width: img.width, height: img.height };
+
+          // Adjust for device pixel ratio or zooming
+          if (data.windowWidth !== img.width) {
+            const scale = img.width / data.windowWidth;
+            data.x *= scale;
+            data.y *= scale;
+            data.totalWidth *= scale;
+            data.totalHeight *= scale;
+          }
+
+          // Initialize screenshots if needed
+          if (!screenshots.length) {
+            screenshots.push(...initScreenshots(data.totalWidth, data.totalHeight));
+          }
+
+          // Draw on matching canvases
+          const matchingScreenshots = filterScreenshots(
+            data.x, data.y, img.width, img.height, screenshots
+          );
+
+          matchingScreenshots.forEach(screenshot => {
+            screenshot.ctx.drawImage(
+              img,
+              data.x - screenshot.left,
+              data.y - screenshot.top
+            );
+          });
+
+          resolve(true);
+        } catch (error) {
+          reject(error);
         }
-        
-        screenshotState.chunks.push({
-          dataUrl: chunkDataUrl,
-          scrollTop: scrollTop,
-          index: i,
-          height: Math.min(chunkHeight, dimensions.height - scrollTop)
-        });
-        
-        // Update progress
-        const progress = Math.round(((i + 1) / totalChunks) * 100);
-        showInfo(`Capturing full page... ${progress}%`, 0);
-        
-        // Add delay between chunks
-        if (i < totalChunks - 1) {
-          await new Promise(resolve => setTimeout(resolve, SCREENSHOT_CONFIG.delayBetweenChunks));
-        }
-      }
+      };
       
-      // Scroll back to original position
-      window.scrollTo(originalScrollX, originalScrollY);
+      img.onerror = () => {
+        reject(new Error('Failed to load captured image'));
+      };
       
-      // Stitch chunks together
-      showInfo('Stitching image chunks...', 0);
-      const fullPageDataUrl = await stitchChunks(screenshotState.chunks, dimensions);
-      
-      return fullPageDataUrl;
-      
-    } catch (error) {
-      // Always scroll back to original position on error
-      window.scrollTo(originalScrollX, originalScrollY);
-      throw error;
-    }
-    
+      img.src = dataUrl;
+    });
   } catch (error) {
-    handleError(error, 'captureFullPage');
+    handleError(error, 'processScreenshot');
     throw error;
   }
 }
 
-// Stitch multiple image chunks into one full page image
-async function stitchChunks(chunks, dimensions) {
+// Capture full page screenshot
+async function captureFullPage() {
   try {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+    console.log('Starting full page capture...');
+    showInfo('Starting full page capture...', 0);
+
+    const pageData = getPageDimensionsAndArrangements();
+    const { dimensions, arrangements, cleanup } = pageData;
     
-    if (!ctx) {
-      throw new Error('Failed to get canvas context');
+    console.log('Page dimensions:', dimensions);
+    console.log('Arrangements:', arrangements.length);
+
+    screenshotState.screenshots = [];
+    screenshotState.totalChunks = arrangements.length;
+    screenshotState.currentChunk = 0;
+
+    // Process each arrangement
+    for (let i = 0; i < arrangements.length; i++) {
+      screenshotState.currentChunk = i;
+      const [x, y] = arrangements[i];
+
+      // Scroll to position
+      window.scrollTo(x, y);
+
+      // Wait for scroll to settle
+      await new Promise(resolve => setTimeout(resolve, SCREENSHOT_CONFIG.scrollDelay));
+
+      // Prepare capture data
+      const captureData = {
+        x: window.scrollX,
+        y: window.scrollY,
+        complete: (i + 1) / arrangements.length,
+        windowWidth: dimensions.windowWidth,
+        totalWidth: dimensions.fullWidth,
+        totalHeight: dimensions.fullHeight,
+        devicePixelRatio: window.devicePixelRatio
+      };
+
+      // Wait for capture delay
+      await new Promise(resolve => setTimeout(resolve, SCREENSHOT_CONFIG.captureDelay));
+
+      // Process screenshot
+      await processScreenshot(captureData, screenshotState.screenshots);
+
+      // Update progress
+      const progress = Math.round(((i + 1) / arrangements.length) * 100);
+      showInfo(`Capturing full page... ${progress}%`, 0);
     }
+
+    // Clean up
+    cleanup();
+
+    // Convert canvases to data URLs
+    const dataUrls = screenshotState.screenshots.map(screenshot => 
+      screenshot.canvas.toDataURL(`image/${SCREENSHOT_CONFIG.format}`, SCREENSHOT_CONFIG.quality / 100)
+    );
+
+    return dataUrls.length === 1 ? dataUrls[0] : dataUrls;
     
-    canvas.width = dimensions.width;
-    canvas.height = dimensions.height;
-    
-    // Fill background with white
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Draw each chunk
-    for (const chunk of chunks) {
-      const img = new Image();
-      
-      await new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new Error(`Timeout loading chunk ${chunk.index}`));
-        }, 10000);
-        
-        img.onload = () => {
-          clearTimeout(timeout);
-          try {
-            const y = chunk.scrollTop;
-            const chunkHeight = chunk.height;
-            
-            // Ensure we don't draw outside canvas bounds
-            const drawHeight = Math.min(chunkHeight, canvas.height - y);
-            if (drawHeight > 0) {
-              ctx.drawImage(img, 0, y, canvas.width, drawHeight);
-            }
-            resolve();
-          } catch (error) {
-            reject(error);
-          }
-        };
-        
-        img.onerror = () => {
-          clearTimeout(timeout);
-          reject(new Error(`Failed to load chunk ${chunk.index}`));
-        };
-        
-        // Set crossOrigin to handle potential CORS issues
-        img.crossOrigin = 'anonymous';
-        img.src = chunk.dataUrl;
-      });
-    }
-    
-    const quality = SCREENSHOT_CONFIG.quality / 100;
-    const format = SCREENSHOT_CONFIG.format === 'jpeg' ? 'image/jpeg' : 'image/png';
-    
-    return canvas.toDataURL(format, quality);
   } catch (error) {
-    handleError(error, 'stitchChunks');
+    handleError(error, 'captureFullPage');
     throw error;
   }
 }
@@ -339,7 +414,7 @@ async function captureScreenshot(options = {}) {
   
   try {
     const { 
-      type = 'fullpage', // Default to fullpage
+      type = 'fullpage',
       format = SCREENSHOT_CONFIG.format,
       quality = SCREENSHOT_CONFIG.quality
     } = options;
@@ -358,10 +433,25 @@ async function captureScreenshot(options = {}) {
       throw new Error('No screenshot data received');
     }
     
-    // Download the screenshot
-    const filename = type === 'fullpage' ? 'fullpage-screenshot' : 'screenshot';
-    downloadScreenshot(dataUrl, filename, format);
-    showSuccess(`${type === 'fullpage' ? 'Full page' : 'Visible area'} screenshot captured and downloaded!`);
+    // Get current tab for filename
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const currentTab = tabs[0];
+    const filename = currentTab ? getFilename(currentTab.url) : 'screenshot';
+    
+    // Handle multiple screenshots (if page was too large)
+    if (Array.isArray(dataUrl)) {
+      showInfo(`Page was too large, created ${dataUrl.length} screenshots`, 0);
+      for (let i = 0; i < dataUrl.length; i++) {
+        const suffix = dataUrl.length > 1 ? `-part${i + 1}` : '';
+        const finalFilename = filename.replace('.png', `${suffix}.png`);
+        downloadScreenshot(dataUrl[i], finalFilename.replace('.png', ''), format);
+      }
+      showSuccess(`Full page screenshot captured as ${dataUrl.length} parts!`);
+    } else {
+      // Single screenshot
+      downloadScreenshot(dataUrl, filename.replace('.png', ''), format);
+      showSuccess(`${type === 'fullpage' ? 'Full page' : 'Visible area'} screenshot captured and downloaded!`);
+    }
     
     screenshotState.retryCount = 0;
     
@@ -385,10 +475,11 @@ async function captureScreenshot(options = {}) {
     
   } finally {
     screenshotState.isCapturing = false;
-    // Clean up chunks
-    screenshotState.chunks = [];
+    // Clean up state
+    screenshotState.screenshots = [];
     screenshotState.totalChunks = 0;
     screenshotState.currentChunk = 0;
+    screenshotState.arrangements = [];
   }
 }
 
@@ -417,7 +508,8 @@ export function deactivate() {
   // Reset state
   screenshotState.isCapturing = false;
   screenshotState.retryCount = 0;
-  screenshotState.chunks = [];
+  screenshotState.screenshots = [];
   screenshotState.totalChunks = 0;
   screenshotState.currentChunk = 0;
+  screenshotState.arrangements = [];
 }
