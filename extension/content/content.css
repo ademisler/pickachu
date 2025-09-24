@@ -151,6 +151,131 @@
 #pickachu-modal-content .secondary-text {
   color: var(--pickachu-secondary-text, #666);
 }
+
+/* Consistent modal header styles */
+#pickachu-modal-content .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--pickachu-border, #ddd);
+  background: var(--pickachu-header-bg, #f8f9fa);
+  border-radius: 12px 12px 0 0;
+  margin: -20px -20px 20px -20px;
+}
+
+#pickachu-modal-content .modal-title {
+  margin: 0;
+  color: var(--pickachu-text, #333);
+  font-size: 18px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#pickachu-modal-content .modal-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--pickachu-secondary-text, #666);
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+#pickachu-modal-content .modal-close:hover {
+  background: var(--pickachu-hover, #e0e0e0);
+}
+
+/* Consistent button styles */
+#pickachu-modal-content .btn {
+  padding: 10px 20px;
+  border: 1px solid var(--pickachu-border, #ddd);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#pickachu-modal-content .btn-primary {
+  background: var(--pickachu-button-bg, #007bff);
+  color: var(--pickachu-bg, #fff);
+  border-color: var(--pickachu-button-bg, #007bff);
+}
+
+#pickachu-modal-content .btn-secondary {
+  background: var(--pickachu-button-bg, #f0f0f0);
+  color: var(--pickachu-text, #333);
+}
+
+#pickachu-modal-content .btn-danger {
+  background: var(--pickachu-error-color, #dc3545);
+  color: var(--pickachu-bg, #fff);
+  border-color: var(--pickachu-error-color, #dc3545);
+}
+
+#pickachu-modal-content .btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+#pickachu-modal-content .btn:active {
+  transform: translateY(0);
+}
+
+/* Consistent form styles */
+#pickachu-modal-content .form-group {
+  margin-bottom: 16px;
+}
+
+#pickachu-modal-content .form-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--pickachu-text, #333);
+}
+
+#pickachu-modal-content .form-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--pickachu-border, #ddd);
+  border-radius: 6px;
+  background: var(--pickachu-code-bg, #f8f9fa);
+  color: var(--pickachu-code-text, #333);
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+}
+
+#pickachu-modal-content .form-input:focus {
+  outline: none;
+  border-color: var(--pickachu-button-bg, #007bff);
+  box-shadow: 0 0 0 2px rgba(0,123,255,0.1);
+}
+
+/* Grid layouts */
+#pickachu-modal-content .grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+#pickachu-modal-content .grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+#pickachu-modal-content .grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
 #pickachu-modal-buttons {
   margin-top: 15px;
   text-align: right;

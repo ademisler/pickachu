@@ -54,8 +54,37 @@ chrome.runtime.onMessage.addListener(async (request) => {
 });
 
 chrome.commands.onCommand.addListener(async (command) => {
-  if (command === 'open-popup') {
-    chrome.action.openPopup();
+  if (command === 'open-popup' || command === 'toggle-popup') {
+    try {
+      // Try to open popup first
+      await chrome.action.openPopup();
+    } catch (error) {
+      // If popup fails (common on macOS), fallback to tab-based approach
+      console.log('Popup failed, trying alternative approach:', error);
+      
+      try {
+        // Get the current active tab
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        const tab = tabs[0];
+        
+        if (tab) {
+          // Ensure content script is injected
+          const injected = await ensureContentScriptInjected(tab.id);
+          if (injected) {
+            // Send message to show popup in content script
+            setTimeout(() => {
+              chrome.tabs.sendMessage(tab.id, {
+                type: 'SHOW_PICKACHU_POPUP'
+              }).catch(error => {
+                console.error('Failed to show popup via content script:', error);
+              });
+            }, 100);
+          }
+        }
+      } catch (fallbackError) {
+        console.error('Fallback popup method also failed:', fallbackError);
+      }
+    }
     return;
   }
 });

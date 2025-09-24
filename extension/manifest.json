@@ -62,6 +62,13 @@
         "mac": "Command+Shift+9"
       },
       "description": "__MSG_openPickachu__"
+    },
+    "toggle-popup": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+P",
+        "mac": "Command+Shift+P"
+      },
+      "description": "Toggle Pickachu popup"
     }
   }
 }

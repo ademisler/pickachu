@@ -252,30 +252,25 @@ function showColorPicker(note) {
   `;
   
   modal.innerHTML = `
-    <h3 style="margin: 0 0 16px 0; color: var(--pickachu-text, #333);">Choose Color</h3>
-    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px;">
-      ${NOTE_COLORS.map(color => `
-        <button class="color-option" data-color="${color.value}" style="
-          width: 40px;
-          height: 40px;
-          border: 2px solid ${color.value === note.color ? 'var(--pickachu-text, #333)' : 'transparent'};
-          border-radius: 6px;
-          background: ${color.value};
-          cursor: pointer;
-          transition: transform 0.2s ease;
-        " title="${color.name}"></button>
-      `).join('')}
+    <div class="modal-header">
+      <h3 class="modal-title">Choose Color</h3>
+      <button id="cancel-color" class="modal-close">×</button>
     </div>
-    <div style="text-align: right;">
-      <button id="cancel-color" style="
-        padding: 8px 16px;
-        margin-right: 8px;
-        border: 1px solid var(--pickachu-border, #ddd);
-        background: var(--pickachu-button-bg, #f0f0f0);
-        border-radius: 4px;
-        cursor: pointer;
-        color: var(--pickachu-text, #333);
-      ">Cancel</button>
+    
+    <div style="padding: 20px;">
+      <div class="grid-4" style="margin-bottom: 16px;">
+        ${NOTE_COLORS.map(color => `
+          <button class="color-option" data-color="${color.value}" style="
+            width: 40px;
+            height: 40px;
+            border: 2px solid ${color.value === note.color ? 'var(--pickachu-text, #333)' : 'transparent'};
+            border-radius: 6px;
+            background: ${color.value};
+            cursor: pointer;
+            transition: transform 0.2s ease;
+          " title="${color.name}"></button>
+        `).join('')}
+      </div>
     </div>
   `;
   
@@ -348,45 +343,17 @@ function showNotesManager() {
   `;
   
   manager.innerHTML = `
-    <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--pickachu-border, #ddd); background: var(--pickachu-header-bg, #f8f9fa);">
-      <h3 style="margin: 0; color: var(--pickachu-text, #333); display: flex; align-items: center; gap: 8px;">
+    <div class="modal-header">
+      <h3 class="modal-title">
         📝 Sticky Notes Manager
       </h3>
-      <button id="close-notes-manager" style="
-        background: none;
-        border: none;
-        font-size: 20px;
-        cursor: pointer;
-        color: var(--pickachu-secondary-text, #666);
-        padding: 4px 8px;
-        border-radius: 4px;
-      ">×</button>
+      <button id="close-notes-manager" class="modal-close">×</button>
     </div>
     
     <div style="padding: 20px;">
       <div style="margin-bottom: 16px;">
-        <button id="create-new-note" style="
-          padding: 10px 20px;
-          border: 1px solid var(--pickachu-border, #ddd);
-          background: var(--pickachu-button-bg, #007bff);
-          color: var(--pickachu-bg, #fff);
-          border-radius: 6px;
-          cursor: pointer;
-          font-size: 14px;
-          font-weight: 500;
-        ">+ Add New Note</button>
-        
-        <button id="clear-all-notes" style="
-          padding: 10px 20px;
-          margin-left: 12px;
-          border: 1px solid var(--pickachu-border, #ddd);
-          background: var(--pickachu-error-color, #dc3545);
-          color: var(--pickachu-bg, #fff);
-          border-radius: 6px;
-          cursor: pointer;
-          font-size: 14px;
-          font-weight: 500;
-        ">🗑️ Clear All</button>
+        <button id="create-new-note" class="btn btn-primary">+ Add New Note</button>
+        <button id="clear-all-notes" class="btn btn-danger" style="margin-left: 12px;">🗑️ Clear All</button>
       </div>
       
       <div style="margin-bottom: 16px;">

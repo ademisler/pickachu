@@ -36,6 +36,110 @@ function signalReady() {
   });
 }
 
+// Show Pickachu overlay when keyboard shortcut is used
+function showPickachuOverlay() {
+  // Remove existing overlay if any
+  const existingOverlay = document.getElementById('pickachu-overlay');
+  if (existingOverlay) {
+    existingOverlay.remove();
+  }
+  
+  const overlay = document.createElement('div');
+  overlay.id = 'pickachu-overlay';
+  overlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 2147483646;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    animation: pickachu-fade-in 0.3s ease-out;
+  `;
+  
+  const popup = document.createElement('div');
+  popup.style.cssText = `
+    background: var(--pickachu-bg, #fff);
+    border: 1px solid var(--pickachu-border, #ddd);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    color: var(--pickachu-text, #333);
+    min-width: 300px;
+    text-align: center;
+  `;
+  
+  popup.innerHTML = `
+    <div style="margin-bottom: 20px;">
+      <h2 style="margin: 0 0 16px 0; color: var(--pickachu-text, #333); display: flex; align-items: center; justify-content: center; gap: 8px;">
+        🎯 Pickachu
+      </h2>
+      <p style="margin: 0; color: var(--pickachu-secondary-text, #666); font-size: 14px;">
+        Use the extension icon in your browser toolbar to access all tools.
+      </p>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
+      <div style="padding: 12px; background: var(--pickachu-code-bg, #f8f9fa); border-radius: 8px; border: 1px solid var(--pickachu-border, #ddd);">
+        <div style="font-size: 18px; margin-bottom: 4px;">🎨</div>
+        <div style="font-size: 12px; font-weight: 600;">Color Picker</div>
+      </div>
+      <div style="padding: 12px; background: var(--pickachu-code-bg, #f8f9fa); border-radius: 8px; border: 1px solid var(--pickachu-border, #ddd);">
+        <div style="font-size: 18px; margin-bottom: 4px;">🧾</div>
+        <div style="font-size: 12px; font-weight: 600;">Text Picker</div>
+      </div>
+      <div style="padding: 12px; background: var(--pickachu-code-bg, #f8f9fa); border-radius: 8px; border: 1px solid var(--pickachu-border, #ddd);">
+        <div style="font-size: 18px; margin-bottom: 4px;">🧱</div>
+        <div style="font-size: 12px; font-weight: 600;">Element Picker</div>
+      </div>
+      <div style="padding: 12px; background: var(--pickachu-code-bg, #f8f9fa); border-radius: 8px; border: 1px solid var(--pickachu-border, #ddd);">
+        <div style="font-size: 18px; margin-bottom: 4px;">📸</div>
+        <div style="font-size: 12px; font-weight: 600;">Screenshot</div>
+      </div>
+    </div>
+    
+    <button id="close-pickachu-overlay" style="
+      padding: 10px 20px;
+      border: 1px solid var(--pickachu-border, #ddd);
+      background: var(--pickachu-button-bg, #f0f0f0);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--pickachu-text, #333);
+    ">Close</button>
+  `;
+  
+  overlay.appendChild(popup);
+  document.body.appendChild(overlay);
+  
+  // Add event listeners
+  document.getElementById('close-pickachu-overlay').addEventListener('click', () => {
+    overlay.remove();
+  });
+  
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+      overlay.remove();
+    }
+  });
+  
+  // Close on Escape key
+  const handleKeydown = (e) => {
+    if (e.key === 'Escape') {
+      overlay.remove();
+      document.removeEventListener('keydown', handleKeydown);
+    }
+  };
+  document.addEventListener('keydown', handleKeydown);
+}
+
 chrome.runtime.onMessage.addListener(async (msg, sender, sendResponse) => {
   if (msg.type === 'ACTIVATE_TOOL_ON_PAGE') {
     try {
@@ -99,6 +203,9 @@ chrome.runtime.onMessage.addListener(async (msg, sender, sendResponse) => {
       url: window.location.href
     };
     sendResponse(pageInfo);
+  } else if (msg.type === 'SHOW_PICKACHU_POPUP') {
+    // Show popup overlay when keyboard shortcut is used
+    showPickachuOverlay();
   }
 });
 

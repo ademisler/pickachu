@@ -11,7 +11,9 @@ function detectTechnologies() {
                 !!document.querySelector('script[src*="react"]') ||
                 !!document.querySelector('script[src*="react-dom"]') ||
                 !!document.querySelector('div[id*="react"]') ||
-                !!window.__REACT_DEVTOOLS_GLOBAL_HOOK__,
+                !!window.__REACT_DEVTOOLS_GLOBAL_HOOK__ ||
+                !!document.querySelector('[data-react-helmet]') ||
+                !!window.ReactDOM,
       confidence: 'high'
     },
     nextjs: {
@@ -20,34 +22,90 @@ function detectTechnologies() {
                 !!window.__NEXT_DATA__ ||
                 !!document.querySelector('meta[name="next-head-count"]') ||
                 !!document.querySelector('script[src*="next"]') ||
-                !!document.querySelector('link[rel="preload"][as="script"][href*="_next"]'),
+                !!document.querySelector('link[rel="preload"][as="script"][href*="_next"]') ||
+                !!document.querySelector('script[src*="_next/static"]') ||
+                !!document.querySelector('link[href*="_next/static"]'),
       confidence: 'high'
     },
     nuxt: {
       name: 'Nuxt.js',
       detected: !!window.$nuxt ||
                 !!document.querySelector('script[id="__NUXT__"]') ||
-                !!document.querySelector('meta[name="nuxt-app"]'),
+                !!document.querySelector('meta[name="nuxt-app"]') ||
+                !!document.querySelector('script[src*="nuxt"]') ||
+                !!document.querySelector('link[href*="_nuxt"]'),
       confidence: 'high'
     },
     vue: {
       name: 'Vue.js',
       detected: !!window.Vue || 
                 !!document.querySelector('[data-v-]') ||
-                !!document.querySelector('script[src*="vue"]'),
+                !!document.querySelector('script[src*="vue"]') ||
+                !!document.querySelector('[v-]') ||
+                !!window.VueRouter ||
+                !!window.vue,
       confidence: 'high'
     },
     angular: {
       name: 'Angular',
       detected: !!window.ng || 
                 !!document.querySelector('[ng-app]') ||
-                !!document.querySelector('script[src*="angular"]'),
+                !!document.querySelector('script[src*="angular"]') ||
+                !!document.querySelector('[ng-]') ||
+                !!window.angular ||
+                !!document.querySelector('script[src*="angularjs"]'),
       confidence: 'high'
     },
     svelte: {
       name: 'Svelte',
       detected: !!document.querySelector('script[src*="svelte"]') ||
-                !!window.svelte,
+                !!window.svelte ||
+                !!document.querySelector('[data-svelte]') ||
+                !!document.querySelector('script[src*="sveltejs"]'),
+      confidence: 'medium'
+    },
+    sveltekit: {
+      name: 'SvelteKit',
+      detected: !!document.querySelector('script[src*="sveltekit"]') ||
+                !!window.__sveltekit ||
+                !!document.querySelector('link[href*="sveltekit"]'),
+      confidence: 'high'
+    },
+    gatsby: {
+      name: 'Gatsby',
+      detected: !!document.querySelector('script[src*="gatsby"]') ||
+                !!window.___gatsby ||
+                !!document.querySelector('link[href*="gatsby"]') ||
+                !!document.querySelector('meta[name="generator"][content*="Gatsby"]'),
+      confidence: 'high'
+    },
+    astro: {
+      name: 'Astro',
+      detected: !!document.querySelector('script[src*="astro"]') ||
+                !!window.astro ||
+                !!document.querySelector('meta[name="generator"][content*="Astro"]') ||
+                !!document.querySelector('link[href*="astro"]'),
+      confidence: 'high'
+    },
+    remix: {
+      name: 'Remix',
+      detected: !!document.querySelector('script[src*="remix"]') ||
+                !!window.__remixContext ||
+                !!document.querySelector('link[href*="remix"]'),
+      confidence: 'high'
+    },
+    solid: {
+      name: 'SolidJS',
+      detected: !!window.Solid ||
+                !!document.querySelector('script[src*="solid"]') ||
+                !!document.querySelector('[data-solid]'),
+      confidence: 'medium'
+    },
+    preact: {
+      name: 'Preact',
+      detected: !!window.preact ||
+                !!document.querySelector('script[src*="preact"]') ||
+                !!window.h,
       confidence: 'medium'
     },
     
@@ -73,7 +131,7 @@ function detectTechnologies() {
       confidence: 'high'
     },
     
-    // E-commerce
+    // E-commerce Platforms
     shopify: {
       name: 'Shopify',
       detected: !!document.querySelector('script[src*="shopify"]') ||
@@ -82,19 +140,119 @@ function detectTechnologies() {
                 !!document.querySelector('meta[name="shopify-digital-wallet"]') ||
                 !!document.querySelector('script[src*="cdn.shopify.com"]') ||
                 !!window.ShopifyAnalytics ||
-                !!document.querySelector('[data-shopify]'),
+                !!document.querySelector('[data-shopify]') ||
+                !!document.querySelector('script[src*="shopifyapps"]') ||
+                !!window.ShopifyPay,
       confidence: 'high'
     },
     woocommerce: {
       name: 'WooCommerce',
       detected: !!document.querySelector('script[src*="woocommerce"]') ||
-                !!document.querySelector('link[href*="woocommerce"]'),
-      confidence: 'medium'
+                !!document.querySelector('link[href*="woocommerce"]') ||
+                !!document.querySelector('script[src*="wc-"]') ||
+                !!document.querySelector('[data-product_id]') ||
+                !!window.wc_add_to_cart_params,
+      confidence: 'high'
     },
     magento: {
       name: 'Magento',
       detected: !!document.querySelector('script[src*="magento"]') ||
-                !!document.querySelector('link[href*="magento"]'),
+                !!document.querySelector('link[href*="magento"]') ||
+                !!document.querySelector('script[src*="mage/"]') ||
+                !!window.Mage ||
+                !!document.querySelector('[data-mage-init]'),
+      confidence: 'high'
+    },
+    bigcommerce: {
+      name: 'BigCommerce',
+      detected: !!document.querySelector('script[src*="bigcommerce"]') ||
+                !!window.BigCommerce ||
+                !!document.querySelector('[data-product-options]') ||
+                !!document.querySelector('script[src*="bc-app"]'),
+      confidence: 'high'
+    },
+    prestashop: {
+      name: 'PrestaShop',
+      detected: !!document.querySelector('script[src*="prestashop"]') ||
+                !!document.querySelector('link[href*="prestashop"]') ||
+                !!document.querySelector('[data-prestashop]'),
+      confidence: 'medium'
+    },
+    opencart: {
+      name: 'OpenCart',
+      detected: !!document.querySelector('script[src*="opencart"]') ||
+                !!document.querySelector('link[href*="opencart"]') ||
+                !!window.oc ||
+                !!document.querySelector('[data-opencart]'),
+      confidence: 'medium'
+    },
+    squarespace: {
+      name: 'Squarespace',
+      detected: !!document.querySelector('script[src*="squarespace"]') ||
+                !!window.Squarespace ||
+                !!document.querySelector('[data-squarespace]') ||
+                !!document.querySelector('link[href*="squarespace"]'),
+      confidence: 'high'
+    },
+    wix: {
+      name: 'Wix',
+      detected: !!document.querySelector('script[src*="wix"]') ||
+                !!window.wix ||
+                !!document.querySelector('[data-wix]') ||
+                !!document.querySelector('script[src*="wixstatic"]'),
+      confidence: 'high'
+    },
+    webflow: {
+      name: 'Webflow',
+      detected: !!document.querySelector('script[src*="webflow"]') ||
+                !!window.Webflow ||
+                !!document.querySelector('[data-wf]') ||
+                !!document.querySelector('link[href*="webflow"]'),
+      confidence: 'high'
+    },
+    ghost: {
+      name: 'Ghost',
+      detected: !!document.querySelector('script[src*="ghost"]') ||
+                !!document.querySelector('meta[name="generator"][content*="Ghost"]') ||
+                !!window.Ghost ||
+                !!document.querySelector('[data-ghost]'),
+      confidence: 'high'
+    },
+    strapi: {
+      name: 'Strapi',
+      detected: !!document.querySelector('script[src*="strapi"]') ||
+                !!window.strapi ||
+                !!document.querySelector('[data-strapi]'),
+      confidence: 'medium'
+    },
+    contentful: {
+      name: 'Contentful',
+      detected: !!document.querySelector('script[src*="contentful"]') ||
+                !!window.contentful ||
+                !!document.querySelector('[data-contentful]'),
+      confidence: 'medium'
+    },
+    sanity: {
+      name: 'Sanity',
+      detected: !!document.querySelector('script[src*="sanity"]') ||
+                !!window.sanity ||
+                !!document.querySelector('[data-sanity]'),
+      confidence: 'medium'
+    },
+    netlify: {
+      name: 'Netlify',
+      detected: !!document.querySelector('script[src*="netlify"]') ||
+                !!window.netlify ||
+                !!document.querySelector('[data-netlify]') ||
+                !!document.querySelector('meta[name="generator"][content*="Netlify"]'),
+      confidence: 'medium'
+    },
+    vercel: {
+      name: 'Vercel',
+      detected: !!document.querySelector('script[src*="vercel"]') ||
+                !!window.vercel ||
+                !!document.querySelector('[data-vercel]') ||
+                !!document.querySelector('meta[name="generator"][content*="Vercel"]'),
       confidence: 'medium'
     },
     
