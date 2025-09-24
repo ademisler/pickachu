@@ -9,7 +9,11 @@
     "clipboardWrite",
     "storage",
     "tabs",
-    "unlimitedStorage"
+    "unlimitedStorage",
+    "downloads"
+  ],
+  "optional_permissions": [
+    "webNavigation"
   ],
   "background": {
     "service_worker": "background.js"
