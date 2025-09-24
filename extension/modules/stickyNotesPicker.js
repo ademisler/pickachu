@@ -31,10 +31,12 @@ export function deactivate() {
     existingManager.remove();
   }
   
-  // Remove any existing sticky notes from the page
-  document.querySelectorAll('.pickachu-sticky-note').forEach(note => note.remove());
-  
-  if (deactivateCb) deactivateCb();
+  // Don't remove sticky notes from page - they should persist
+  // Only call deactivateCb if it exists and we haven't called it yet
+  if (deactivateCb && !deactivateCb.called) {
+    deactivateCb.called = true;
+    deactivateCb();
+  }
 }
 
 // Create a new sticky note
@@ -127,29 +129,30 @@ function renderStickyNote(note) {
     showColorPicker(note);
   });
   
-  // Delete button
-  const deleteBtn = document.createElement('button');
-  deleteBtn.innerHTML = '×';
-  deleteBtn.title = 'Delete note';
-  deleteBtn.style.cssText = `
+  // Close button (instead of delete)
+  const closeBtn = document.createElement('button');
+  closeBtn.innerHTML = '×';
+  closeBtn.title = 'Close note';
+  closeBtn.style.cssText = `
     background: none;
     border: none;
     cursor: pointer;
     font-size: 16px;
     padding: 2px 4px;
     border-radius: 3px;
-    color: var(--pickachu-error-color, #dc3545);
+    color: var(--pickachu-secondary-text, #666);
     font-weight: bold;
   `;
   
-  deleteBtn.addEventListener('click', (e) => {
+  closeBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    deleteNote(note.id);
+    // Just hide the note, don't delete it
+    noteElement.style.display = 'none';
   });
   
   // Focus button
   const focusBtn = document.createElement('button');
-  focusBtn.innerHTML = '🔍';
+  focusBtn.innerHTML = '⚡';
   focusBtn.title = 'Focus this note';
   focusBtn.style.cssText = `
     background: none;
@@ -168,7 +171,7 @@ function renderStickyNote(note) {
   
   controls.appendChild(colorBtn);
   controls.appendChild(focusBtn);
-  controls.appendChild(deleteBtn);
+  controls.appendChild(closeBtn);
   header.appendChild(title);
   header.appendChild(controls);
   

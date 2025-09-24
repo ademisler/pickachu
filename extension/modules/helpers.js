@@ -635,11 +635,11 @@ export async function showModal(title, content, icon = '', type = '') {
   
   const header = document.createElement('div');
   header.style.cssText = `
-    padding: 16px 20px;
+    padding: 12px 16px;
     border-bottom: 1px solid var(--pickachu-border, #eee);
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     background: var(--pickachu-header-bg, #f8f9fa);
   `;
   
