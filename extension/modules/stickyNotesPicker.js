@@ -99,7 +99,7 @@ function renderNote(note) {
         border: none;
         font-weight: 600;
         font-size: 14px;
-        color: #333;
+        color: var(--pickachu-text, #333);
         flex: 1;
         outline: none;
         padding: 2px 4px;
@@ -121,7 +121,7 @@ function renderNote(note) {
           background: none;
           cursor: pointer;
           font-size: 12px;
-          color: #666;
+          color: var(--pickachu-secondary-text, #666);
         " title="Minimize">−</button>
         <button class="note-delete-btn" style="
           width: 16px;
@@ -130,7 +130,7 @@ function renderNote(note) {
           background: none;
           cursor: pointer;
           font-size: 12px;
-          color: #dc3545;
+          color: var(--pickachu-error-color, #dc3545);
         " title="Delete">×</button>
       </div>
     </div>
@@ -149,7 +149,7 @@ function renderNote(note) {
         font-family: inherit;
         font-size: inherit;
         line-height: inherit;
-        color: #333;
+        color: var(--pickachu-text, #333);
       " placeholder="Write your note here...">${note.content}</textarea>
     </div>
   `;
@@ -370,7 +370,7 @@ async function loadAllNotes() {
   
   content.innerHTML = `
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-      <h3 style="margin: 0; color: #333; display: flex; align-items: center; gap: 8px;">
+      <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">
         📝 Notes Manager
       </h3>
       <button id="close-notes-manager" style="
@@ -378,7 +378,7 @@ async function loadAllNotes() {
         border: none;
         font-size: 20px;
         cursor: pointer;
-        color: #666;
+        color: var(--pickachu-secondary-text, #666);
         padding: 4px 8px;
         border-radius: 4px;
       ">×</button>
@@ -388,7 +388,7 @@ async function loadAllNotes() {
       <button id="create-new-note" style="
         padding: 8px 16px;
         border: 1px solid #007bff;
-        background: #007bff;
+        background: var(--pickachu-button-bg, #007bff);
         color: white;
         border-radius: 6px;
         cursor: pointer;
@@ -399,7 +399,7 @@ async function loadAllNotes() {
       <button id="export-notes" style="
         padding: 8px 16px;
         border: 1px solid #28a745;
-        background: #28a745;
+        background: var(--pickachu-button-bg, #28a745);
         color: white;
         border-radius: 6px;
         cursor: pointer;
@@ -410,7 +410,7 @@ async function loadAllNotes() {
       <button id="import-notes" style="
         padding: 8px 16px;
         border: 1px solid #6c757d;
-        background: #6c757d;
+        background: var(--pickachu-button-bg, #6c757d);
         color: white;
         border-radius: 6px;
         cursor: pointer;
@@ -474,7 +474,7 @@ async function loadAllNotesForManager() {
     const notesList = document.getElementById('notes-list');
     
     if (allNotes.length === 0) {
-      notesList.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">No notes found</div>';
+      notesList.innerHTML = '<div style="text-align: center; padding: 20px;" class="secondary-text">No notes found</div>';
       return;
     }
     
@@ -490,10 +490,10 @@ async function loadAllNotesForManager() {
       const pageTitle = pageNotes[0].pageTitle || new URL(url).hostname;
       html += `
         <div style="margin-bottom: 16px; border-bottom: 1px solid #eee; padding-bottom: 12px;">
-          <h4 style="margin: 0 0 8px 0; color: #333; font-size: 16px;">
+          <h4 style="margin: 0 0 8px 0; font-size: 16px;">
             📄 ${pageTitle}
           </h4>
-          <div style="font-size: 12px; color: #666; margin-bottom: 8px;">
+          <div style="font-size: 12px; margin-bottom: 8px;" class="secondary-text">
             ${url} (${pageNotes.length} notes)
           </div>
           <div style="display: flex; flex-wrap: wrap; gap: 8px;">
@@ -510,10 +510,10 @@ async function loadAllNotesForManager() {
                 <div style="font-weight: 600; margin-bottom: 4px; font-size: 13px;">
                   ${note.title}
                 </div>
-                <div style="font-size: 12px; color: #666; margin-bottom: 4px;">
+                <div style="font-size: 12px; margin-bottom: 4px;" class="secondary-text">
                   ${note.content.substring(0, 100)}${note.content.length > 100 ? '...' : ''}
                 </div>
-                <div style="font-size: 11px; color: #999;">
+                <div style="font-size: 11px;" class="secondary-text">
                   ${new Date(note.updatedAt).toLocaleDateString()}
                 </div>
               </div>
@@ -527,7 +527,7 @@ async function loadAllNotesForManager() {
     
   } catch (error) {
     console.error('Failed to load notes for manager:', error);
-    document.getElementById('notes-list').innerHTML = '<div style="text-align: center; color: #dc3545; padding: 20px;">Error loading notes</div>';
+    document.getElementById('notes-list').innerHTML = '<div style="text-align: center; padding: 20px; color: var(--pickachu-error-color, #dc3545);">Error loading notes</div>';
   }
 }
 

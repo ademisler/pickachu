@@ -147,22 +147,22 @@ function showScreenshotOptions(pageInfo, tab) {
   `;
   
   content.innerHTML = `
-    <h3 style="margin: 0 0 16px 0; color: #333; display: flex; align-items: center; gap: 8px;">
+    <h3 style="margin: 0 0 16px 0; display: flex; align-items: center; gap: 8px;">
       📸 Screenshot Options
     </h3>
     
     <div style="margin-bottom: 16px;">
       <div style="font-weight: 600; margin-bottom: 8px;">Page Information:</div>
-      <div style="font-size: 14px; color: #666; margin-bottom: 4px;">
+      <div style="font-size: 14px; margin-bottom: 4px;" class="secondary-text">
         <strong>URL:</strong> ${tab.url}
       </div>
-      <div style="font-size: 14px; color: #666; margin-bottom: 4px;">
+      <div style="font-size: 14px; margin-bottom: 4px;" class="secondary-text">
         <strong>Title:</strong> ${tab.title}
       </div>
-      <div style="font-size: 14px; color: #666; margin-bottom: 4px;">
+      <div style="font-size: 14px; margin-bottom: 4px;" class="secondary-text">
         <strong>Dimensions:</strong> ${pageInfo.width} x ${pageInfo.height}px
       </div>
-      <div style="font-size: 14px; color: #666;">
+      <div style="font-size: 14px;" class="secondary-text">
         <strong>Viewport:</strong> ${pageInfo.viewportWidth} x ${pageInfo.viewportHeight}px
       </div>
     </div>
@@ -209,8 +209,8 @@ function showScreenshotOptions(pageInfo, tab) {
       <button id="cancel-screenshot" style="
         padding: 8px 16px;
         border: 1px solid #ddd;
-        background: #f8f9fa;
-        color: #333;
+        background: var(--pickachu-button-bg, #f8f9fa);
+        color: var(--pickachu-text, #333);
         border-radius: 6px;
         cursor: pointer;
         font-size: 14px;
@@ -219,7 +219,7 @@ function showScreenshotOptions(pageInfo, tab) {
       <button id="capture-screenshot" style="
         padding: 8px 16px;
         border: 1px solid #007bff;
-        background: #007bff;
+        background: var(--pickachu-button-bg, #007bff);
         color: white;
         border-radius: 6px;
         cursor: pointer;

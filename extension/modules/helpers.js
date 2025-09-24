@@ -414,16 +414,16 @@ export async function showModal(title, content, icon = '', type = '') {
       const color = colorMatch[0];
       body.innerHTML = `
         <div style="display: flex; gap: 16px; margin-bottom: 16px;">
-          <div style="width: 60px; height: 60px; background-color: ${color}; border-radius: 8px; border: 2px solid #ddd;"></div>
+          <div style="width: 60px; height: 60px; background-color: ${color}; border-radius: 8px; border: 2px solid var(--pickachu-border, #ddd);"></div>
           <div style="flex: 1;">
             <div style="font-weight: 600; margin-bottom: 8px;">Color Preview</div>
-            <div style="font-family: monospace; background: #f5f5f5; padding: 8px; border-radius: 4px; margin-bottom: 8px;">${color}</div>
+            <div class="code-preview">${color}</div>
           </div>
         </div>
-        <textarea style="width: 100%; height: 200px; font-family: monospace; background: #f8f9fa; padding: 12px; border-radius: 6px; border: 1px solid #ddd; resize: vertical;">${content}</textarea>
+        <textarea style="width: 100%; height: 200px;">${content}</textarea>
       `;
     } else {
-      body.innerHTML = `<textarea style="width: 100%; height: 200px; font-family: monospace; background: #f8f9fa; padding: 12px; border-radius: 6px; border: 1px solid #ddd; resize: vertical;">${content}</textarea>`;
+      body.innerHTML = `<textarea style="width: 100%; height: 200px;">${content}</textarea>`;
     }
   } else if (type === 'image' && content.includes('http')) {
     const urlMatch = content.match(/https?:\/\/[^\s]+/);
@@ -432,26 +432,26 @@ export async function showModal(title, content, icon = '', type = '') {
       body.innerHTML = `
         <div style="margin-bottom: 16px;">
           <div style="font-weight: 600; margin-bottom: 8px;">Image Preview</div>
-          <img src="${imageUrl}" style="max-width: 200px; max-height: 150px; border-radius: 6px; border: 1px solid #ddd;" onerror="this.style.display='none'">
+          <img src="${imageUrl}" style="max-width: 200px; max-height: 150px; border-radius: 6px; border: 1px solid var(--pickachu-border, #ddd);" onerror="this.style.display='none'">
         </div>
-        <textarea style="width: 100%; height: 200px; font-family: monospace; background: #f8f9fa; padding: 12px; border-radius: 6px; border: 1px solid #ddd; resize: vertical;">${content}</textarea>
+        <textarea style="width: 100%; height: 200px;">${content}</textarea>
       `;
     } else {
-      body.innerHTML = `<textarea style="width: 100%; height: 200px; font-family: monospace; background: #f8f9fa; padding: 12px; border-radius: 6px; border: 1px solid #ddd; resize: vertical;">${content}</textarea>`;
+      body.innerHTML = `<textarea style="width: 100%; height: 200px;">${content}</textarea>`;
     }
   } else if (type === 'font') {
     body.innerHTML = `
       <div style="margin-bottom: 16px;">
         <div style="font-weight: 600; margin-bottom: 8px;">Font Preview</div>
-        <div style="padding: 12px; border: 1px solid #ddd; border-radius: 6px; background: #f8f9fa;">
+        <div class="code-preview">
           <div style="font-size: 18px; margin-bottom: 8px;">The quick brown fox jumps over the lazy dog</div>
-          <div style="font-size: 14px; color: #666;">ABCDEFGHIJKLMNOPQRSTUVWXYZ</div>
+          <div style="font-size: 14px;" class="secondary-text">ABCDEFGHIJKLMNOPQRSTUVWXYZ</div>
         </div>
       </div>
-      <textarea style="width: 100%; height: 200px; font-family: monospace; background: #f8f9fa; padding: 12px; border-radius: 6px; border: 1px solid #ddd; resize: vertical;">${content}</textarea>
+      <textarea style="width: 100%; height: 200px;">${content}</textarea>
     `;
   } else {
-    body.innerHTML = `<textarea style="width: 100%; height: 200px; font-family: monospace; background: #f8f9fa; padding: 12px; border-radius: 6px; border: 1px solid #ddd; resize: vertical;">${content}</textarea>`;
+    body.innerHTML = `<textarea style="width: 100%; height: 200px;">${content}</textarea>`;
   }
   
   const buttons = document.createElement('div');

@@ -5,6 +5,14 @@
   --pickachu-button-bg: #f0f0f0;
   --pickachu-button-border: #ccc;
   --pickachu-hover: #e0e0e0;
+  --pickachu-header-bg: #f8f9fa;
+  --pickachu-border: #ddd;
+  --pickachu-code-bg: #f8f9fa;
+  --pickachu-code-text: #333;
+  --pickachu-preview-bg: #f5f5f5;
+  --pickachu-preview-text: #333;
+  --pickachu-secondary-text: #666;
+  --pickachu-error-color: #dc3545;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -14,6 +22,13 @@
     --pickachu-button-bg: #3c3c3c;
     --pickachu-button-border: #555;
     --pickachu-hover: #555;
+    --pickachu-header-bg: #3c3c3c;
+    --pickachu-border: #555;
+    --pickachu-code-bg: #1e1e1e;
+    --pickachu-code-text: #f5f5f5;
+    --pickachu-preview-bg: #404040;
+    --pickachu-preview-text: #f5f5f5;
+    --pickachu-secondary-text: #cccccc;
   }
 }
 .light-theme {
@@ -22,6 +37,14 @@
   --pickachu-button-bg: #f0f0f0;
   --pickachu-button-border: #ccc;
   --pickachu-hover: #e0e0e0;
+  --pickachu-header-bg: #f8f9fa;
+  --pickachu-border: #ddd;
+  --pickachu-code-bg: #f8f9fa;
+  --pickachu-code-text: #333;
+  --pickachu-preview-bg: #f5f5f5;
+  --pickachu-preview-text: #333;
+  --pickachu-secondary-text: #666;
+  --pickachu-error-color: #dc3545;
 }
 .dark-theme {
   --pickachu-bg: #2b2b2b;
@@ -29,6 +52,14 @@
   --pickachu-button-bg: #3c3c3c;
   --pickachu-button-border: #555;
   --pickachu-hover: #555;
+  --pickachu-header-bg: #3c3c3c;
+  --pickachu-border: #555;
+  --pickachu-code-bg: #1e1e1e;
+  --pickachu-code-text: #f5f5f5;
+  --pickachu-preview-bg: #404040;
+  --pickachu-preview-text: #f5f5f5;
+  --pickachu-secondary-text: #cccccc;
+  --pickachu-error-color: #ff6b6b;
 }
 
 #pickachu-highlight-overlay {
@@ -96,6 +127,29 @@
 #pickachu-modal-content textarea {
   width: 100%;
   height: 100px;
+  background: var(--pickachu-code-bg, #f8f9fa);
+  color: var(--pickachu-code-text, #333);
+  border: 1px solid var(--pickachu-border, #ddd);
+  border-radius: 6px;
+  padding: 12px;
+  font-family: monospace;
+  font-size: 14px;
+  line-height: 1.4;
+  resize: vertical;
+}
+
+#pickachu-modal-content .code-preview {
+  background: var(--pickachu-preview-bg, #f5f5f5);
+  color: var(--pickachu-preview-text, #333);
+  border: 1px solid var(--pickachu-border, #ddd);
+  border-radius: 6px;
+  padding: 12px;
+  font-family: monospace;
+  margin-bottom: 8px;
+}
+
+#pickachu-modal-content .secondary-text {
+  color: var(--pickachu-secondary-text, #666);
 }
 #pickachu-modal-buttons {
   margin-top: 15px;
