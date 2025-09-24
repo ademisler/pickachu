@@ -25,9 +25,6 @@ export function activate(deactivate) {
 }
 
 export function deactivate() {
-  // Save notes before deactivating
-  saveNotes();
-  
   // Remove any existing note managers
   const existingManager = document.getElementById('pickachu-notes-manager');
   if (existingManager) {
@@ -50,7 +47,9 @@ function createStickyNote(x, y, color = NOTE_COLORS[0].value) {
     color: color,
     content: '',
     createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
+    siteUrl: window.location.href,
+    siteTitle: document.title
   };
   
   notes.push(note);
@@ -148,7 +147,27 @@ function renderStickyNote(note) {
     deleteNote(note.id);
   });
   
+  // Focus button
+  const focusBtn = document.createElement('button');
+  focusBtn.innerHTML = '🔍';
+  focusBtn.title = 'Focus this note';
+  focusBtn.style.cssText = `
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 2px;
+    border-radius: 3px;
+    color: #000000;
+  `;
+  
+  focusBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    focusNote(noteElement);
+  });
+  
   controls.appendChild(colorBtn);
+  controls.appendChild(focusBtn);
   controls.appendChild(deleteBtn);
   header.appendChild(title);
   header.appendChild(controls);
@@ -209,21 +228,31 @@ function renderStickyNote(note) {
     const x = e.clientX - dragOffset.x;
     const y = e.clientY - dragOffset.y;
     
-    noteElement.style.left = Math.max(0, Math.min(window.innerWidth - 250, x)) + 'px';
-    noteElement.style.top = Math.max(0, Math.min(window.innerHeight - 150, y)) + 'px';
+    // Constrain to viewport with better bounds
+    const maxX = window.innerWidth - 250;
+    const maxY = window.innerHeight - 150;
     
-    note.x = parseInt(noteElement.style.left);
-    note.y = parseInt(noteElement.style.top);
+    const constrainedX = Math.max(0, Math.min(maxX, x));
+    const constrainedY = Math.max(0, Math.min(maxY, y));
+    
+    noteElement.style.left = constrainedX + 'px';
+    noteElement.style.top = constrainedY + 'px';
+    
+    // Update note position in real-time
+    note.x = constrainedX;
+    note.y = constrainedY;
   }
   
   function handleDragEnd() {
     isDragging = false;
-    noteElement.style.transform = 'scale(1)';
+    noteElement.style.transform = '';
     noteElement.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
     
     document.removeEventListener('mousemove', handleDrag);
     document.removeEventListener('mouseup', handleDragEnd);
     
+    // Update note with timestamp and save
+    note.updatedAt = new Date().toISOString();
     saveNotes();
   }
   
@@ -254,7 +283,18 @@ function showColorPicker(note) {
   modal.innerHTML = `
     <div class="modal-header">
       <h3 class="modal-title">Choose Color</h3>
-      <button id="cancel-color" class="modal-close">×</button>
+      <button id="cancel-color" style="
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: var(--pickachu-secondary-text, #666);
+        padding: 4px 8px;
+        border-radius: 4px;
+      ">×</button>
     </div>
     
     <div style="padding: 20px;">
@@ -452,17 +492,6 @@ function showNotesManager() {
   loadExistingNotes();
 }
 
-// Load existing notes from storage
-async function loadNotes() {
-  try {
-    const result = await chrome.storage.local.get(['stickyNotes']);
-    notes = result.stickyNotes || [];
-    noteCounter = Math.max(0, ...notes.map(note => parseInt(note.id.split('-')[1]) || 0));
-  } catch (error) {
-    console.error('Failed to load notes:', error);
-    notes = [];
-  }
-}
 
 // Load existing notes onto the page
 function loadExistingNotes() {
@@ -471,14 +500,29 @@ function loadExistingNotes() {
   });
 }
 
-// Save notes to storage
+// Save notes to storage (site-specific)
 async function saveNotes() {
   try {
-    await chrome.storage.local.set({ stickyNotes: notes });
+    const currentUrl = window.location.href;
+    const siteKey = `stickyNotes_${currentUrl}`;
+    await chrome.storage.local.set({ [siteKey]: notes });
     showSuccess('Notes saved successfully!');
   } catch (error) {
     console.error('Failed to save notes:', error);
     showError('Failed to save notes');
+  }
+}
+
+// Load notes from storage (site-specific)
+async function loadNotes() {
+  try {
+    const currentUrl = window.location.href;
+    const siteKey = `stickyNotes_${currentUrl}`;
+    const result = await chrome.storage.local.get([siteKey]);
+    notes = result[siteKey] || [];
+  } catch (error) {
+    console.error('Failed to load notes:', error);
+    notes = [];
   }
 }
 
@@ -609,5 +653,46 @@ window.focusNote = function(noteId) {
     }, 1000);
   }
 };
+
+// Focus a specific note (bring to front and highlight)
+function focusNote(noteElement) {
+  // Bring to front
+  noteElement.style.zIndex = '2147483647';
+  
+  // Add highlight effect
+  noteElement.style.transform = 'scale(1.05)';
+  noteElement.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3)';
+  
+  // Focus the textarea
+  const textarea = noteElement.querySelector('textarea');
+  if (textarea) {
+    textarea.focus();
+  }
+  
+  // Remove highlight after 2 seconds
+  setTimeout(() => {
+    noteElement.style.transform = '';
+    noteElement.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+  }, 2000);
+}
+
+// Delete a note
+function deleteNote(noteId) {
+  if (confirm('Are you sure you want to delete this note?')) {
+    // Remove from DOM
+    const noteElement = document.getElementById(noteId);
+    if (noteElement) {
+      noteElement.remove();
+    }
+    
+    // Remove from notes array
+    const noteIndex = notes.findIndex(note => note.id === noteId);
+    if (noteIndex !== -1) {
+      notes.splice(noteIndex, 1);
+      saveNotes();
+      showSuccess('Note deleted successfully');
+    }
+  }
+}
 
 window.deleteNote = deleteNote;

@@ -2,6 +2,22 @@
 let langMap = {};
 let userTheme = 'system';
 
+// Convert emoji to icon
+function getIcon(icon) {
+  const iconMap = {
+    '🎨': '🎨', // Keep color picker as is
+    '🧾': '📄', // Text picker
+    '🧱': '🔍', // Element picker
+    '📸': '📷', // Screenshot
+    '🔗': '🔗', // Link picker
+    '🔤': '🔤', // Font picker
+    '🖼️': '🖼️', // Image picker
+    '🔍': 'ℹ️', // Site info
+    '📝': '📝', // Sticky notes
+  };
+  return iconMap[icon] || icon;
+}
+
 // Performance utilities
 export function debounce(func, wait) {
   let timeout;

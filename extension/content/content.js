@@ -1,3 +1,9 @@
+// Prevent multiple injections
+if (window.pickachuInitialized) {
+  console.log('Pickachu already initialized, skipping...');
+} else {
+  window.pickachuInitialized = true;
+
 let activeModule = null;
 const modules = {};
 
@@ -221,3 +227,5 @@ if (document.readyState === 'loading') {
 } else {
   signalReady();
 }
+
+} // End of pickachu initialization check

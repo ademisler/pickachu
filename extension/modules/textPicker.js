@@ -98,7 +98,7 @@ function onClick(e) {
         plain: text,
         html: el.innerHTML,
         markdown: convertToMarkdown(el),
-        json: JSON.stringify({ text, metadata: textAnalysis }, null, 2),
+        json: JSON.stringify({ text, metadata: { wordCount: textAnalysis.wordCount, characterCount: textAnalysis.characterCount } }, null, 2),
         csv: `"${text.replace(/"/g, '""')}"`,
         xml: `<text>${text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</text>`
       }

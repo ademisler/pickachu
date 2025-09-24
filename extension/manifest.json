@@ -47,7 +47,8 @@
     {
       "resources": [
         "modules/*.js",
-        "content/*.css"
+        "content/*.css",
+        "_locales/*/messages.json"
       ],
       "matches": [
         "<all_urls>"
