@@ -73,9 +73,9 @@
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  width: 340px;
-  min-width: 320px;
-  max-width: 400px;
+  width: 360px;
+  min-width: 340px;
+  max-width: 380px;
   padding: 0;
   background-color: var(--pickachu-bg);
   color: var(--pickachu-text);
@@ -89,7 +89,7 @@ body {
 
 /* Header Styles */
 .header {
-  padding: 20px 20px 16px 20px;
+  padding: 16px 20px 12px 20px;
   border-bottom: 1px solid var(--pickachu-border);
   background: var(--pickachu-bg);
 }
@@ -161,16 +161,15 @@ body {
 /* Main Content */
 .main {
   flex: 1;
-  padding: 20px;
+  padding: 16px 20px;
 }
 
 .tools-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 20px;
-  max-height: 300px;
-  overflow: visible;
+  padding: 0 4px;
 }
 
 /* Tool Buttons */
@@ -178,7 +177,7 @@ body {
   background-color: var(--pickachu-button-bg);
   border: 1px solid var(--pickachu-border);
   border-radius: var(--pickachu-border-radius);
-  padding: 12px 8px;
+  padding: 14px 8px;
   cursor: pointer;
   transition: var(--pickachu-transition);
   display: flex;
@@ -188,9 +187,10 @@ body {
   box-shadow: var(--pickachu-shadow);
   color: var(--pickachu-text);
   position: relative;
-  min-height: 75px;
+  min-height: 80px;
   font-family: inherit;
   text-decoration: none;
+  aspect-ratio: 1;
 }
 
 .tool-btn:hover {
@@ -216,8 +216,8 @@ body {
 }
 
 .tool-icon {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   filter: brightness(0);
   margin-bottom: 6px;
   transition: var(--pickachu-transition);
@@ -238,12 +238,13 @@ body {
 }
 
 .tool-label {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--pickachu-text);
-  font-weight: 600;
+  font-weight: 500;
   text-align: center;
-  line-height: 1.2;
-  letter-spacing: 0.2px;
+  line-height: 1.1;
+  letter-spacing: 0.1px;
+  margin-top: 2px;
 }
 
 /* Shortcuts */
@@ -273,7 +274,7 @@ body {
 
 /* Footer */
 .footer {
-  padding: 20px;
+  padding: 16px 20px;
   border-top: 1px solid var(--pickachu-border);
   background: var(--pickachu-bg);
 }
@@ -363,41 +364,41 @@ body {
 }
 
 /* Responsive Design */
-@media (max-width: 360px) {
+@media (max-width: 380px) {
   body {
-    width: 300px;
-    min-width: 280px;
+    width: 320px;
+    min-width: 300px;
   }
   
   .header {
-    padding: 16px;
+    padding: 12px 16px;
   }
   
   .main {
-    padding: 16px;
+    padding: 12px 16px;
   }
   
   .tools-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+    gap: 8px;
+    padding: 0 2px;
   }
   
   .tool-btn {
-    padding: 14px 10px;
-    min-height: 80px;
+    padding: 12px 6px;
+    min-height: 70px;
   }
   
   .tool-icon {
-    width: 28px;
-    height: 28px;
+    width: 22px;
+    height: 22px;
   }
   
   .tool-label {
-    font-size: 11px;
+    font-size: 9px;
   }
   
   .footer {
-    padding: 16px;
+    padding: 12px 16px;
   }
   
   .footer-links {
