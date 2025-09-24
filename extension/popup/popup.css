@@ -1,34 +1,75 @@
 :root {
-  --primary: #FFDE00;
-  --accent: #00BFFF;
-  --bg: #f4f4f9;
-  --button-bg: #fff;
-  --button-border: #ccc;
-  --button-hover: #e9e9ed;
-  --select-bg: #fff;
-  --select-text: #333;
-  --text: #333;
-  --modal-border: #ccc;
+  --pickachu-primary: #FFDE00;
+  --pickachu-accent: #00BFFF;
+  --pickachu-bg: #f4f4f9;
+  --pickachu-button-bg: #fff;
+  --pickachu-button-border: #ccc;
+  --pickachu-button-hover: #e9e9ed;
+  --pickachu-select-bg: #fff;
+  --pickachu-select-text: #333;
+  --pickachu-text: #333;
+  --pickachu-modal-border: #ccc;
+  --pickachu-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  --pickachu-shadow-hover: 0 4px 12px rgba(0,0,0,0.15);
+  --pickachu-transition: all 0.2s ease;
+  --pickachu-border-radius: 12px;
+  --pickachu-border-radius-small: 6px;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #2b2b2b;
-    --button-bg: #3c3c3c;
-    --button-border: #555;
-    --button-hover: #444;
-    --select-bg: #3c3c3c;
-    --select-text: #f5f5f5;
-    --text: #f5f5f5;
-    --modal-border: #555;
+    --pickachu-bg: #2b2b2b;
+    --pickachu-button-bg: #3c3c3c;
+    --pickachu-button-border: #555;
+    --pickachu-button-hover: #444;
+    --pickachu-select-bg: #3c3c3c;
+    --pickachu-select-text: #f5f5f5;
+    --pickachu-text: #f5f5f5;
+    --pickachu-modal-border: #555;
+    --pickachu-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    --pickachu-shadow-hover: 0 4px 12px rgba(0,0,0,0.4);
   }
 }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   width: 300px;
+  min-width: 280px;
+  max-width: 400px;
   padding: 12px;
-  background-color: var(--bg);
-  color: var(--text);
+  background-color: var(--pickachu-bg);
+  color: var(--pickachu-text);
+  transition: var(--pickachu-transition);
+}
+
+/* Responsive design */
+@media (max-width: 320px) {
+  body {
+    width: 280px;
+    padding: 8px;
+  }
+  
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+    gap: 8px;
+  }
+  
+  button {
+    padding: 6px 4px;
+  }
+  
+  button img.icon {
+    width: 22px;
+    height: 22px;
+  }
+  
+  button .label {
+    font-size: 11px;
+  }
+  
+  button .shortcut-key {
+    font-size: 9px;
+    padding: 1px 3px;
+  }
 }
 .light {
   --bg: #ffffff;
@@ -57,16 +98,16 @@ body {
 }
 
 .options select {
-  background: var(--select-bg);
-  color: var(--select-text);
-  border: 1px solid var(--button-border);
-  border-radius: 6px;
+  background: var(--pickachu-select-bg);
+  color: var(--pickachu-select-text);
+  border: 1px solid var(--pickachu-button-border);
+  border-radius: var(--pickachu-border-radius-small);
   padding: 2px 4px;
 }
 
 .header {
   text-align: center;
-  border-bottom: 1px solid var(--button-border);
+  border-bottom: 1px solid var(--pickachu-button-border);
   padding-bottom: 10px;
   margin-bottom: 15px;
 }
@@ -74,7 +115,7 @@ body {
 .header h1,
 .header p {
   margin: 0;
-  color: var(--text);
+  color: var(--pickachu-text);
 }
 
 .grid {
@@ -84,18 +125,19 @@ body {
 }
 
 button {
-  background-color: var(--button-bg);
-  border: 1px solid var(--button-border);
-  border-radius: 12px;
+  background-color: var(--pickachu-button-bg);
+  border: 1px solid var(--pickachu-button-border);
+  border-radius: var(--pickachu-border-radius);
   padding: 8px 6px;
   cursor: pointer;
-  transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+  transition: var(--pickachu-transition);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-  color: var(--text);
+  box-shadow: var(--pickachu-shadow);
+  color: var(--pickachu-text);
+  position: relative;
 }
 
 button img.icon {
@@ -120,27 +162,42 @@ button img.icon {
 
 button .label {
   font-size: 12px;
-  color: var(--text);
+  color: var(--pickachu-text);
+}
+
+button .shortcut-key {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: var(--pickachu-primary);
+  color: #000;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 2px 4px;
+  border-radius: 3px;
+  min-width: 16px;
+  text-align: center;
+  line-height: 1;
 }
 
 button:hover {
-  background-color: var(--button-hover);
+  background-color: var(--pickachu-button-hover);
   transform: translateY(-2px);
-  box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+  box-shadow: var(--pickachu-shadow-hover);
 }
 
 .shortcuts {
   margin-top: 6px;
   text-align: center;
   font-size: 10px;
-  color: var(--text);
+  color: var(--pickachu-text);
   font-weight: normal;
 }
 .shortcuts .key {
   display: inline-block;
-  background: var(--button-bg);
-  border: 1px solid var(--button-border);
-  border-radius: 4px;
+  background: var(--pickachu-button-bg);
+  border: 1px solid var(--pickachu-button-border);
+  border-radius: var(--pickachu-border-radius-small);
   padding: 1px 3px;
   margin: 0 1px;
 }
@@ -156,23 +213,23 @@ button:hover {
   gap: 4px;
   margin: 0 4px;
   font-size: 12px;
-  color: var(--text);
+  color: var(--pickachu-text);
   text-decoration: none;
-  background: var(--button-bg);
-  border: 1px solid var(--button-border);
-  border-radius: 6px;
+  background: var(--pickachu-button-bg);
+  border: 1px solid var(--pickachu-button-border);
+  border-radius: var(--pickachu-border-radius-small);
   padding: 2px 6px;
-  transition: background 0.2s;
+  transition: var(--pickachu-transition);
 }
 
 .footer .icon-btn:hover {
-  background: var(--button-hover);
+  background: var(--pickachu-button-hover);
 }
 
 .version-info {
   margin-top: 6px;
   font-size: 11px;
-  color: var(--text);
+  color: var(--pickachu-text);
   opacity: 0.7;
   font-weight: 500;
 }
