@@ -93,8 +93,8 @@
     },
     "activate-imagePicker": {
       "suggested_key": {
-        "default": "Ctrl+Shift+I",
-        "mac": "Command+Shift+I"
+        "default": "Ctrl+Shift+M",
+        "mac": "Command+Shift+M"
       },
       "description": "Activate Image Picker"
     },
