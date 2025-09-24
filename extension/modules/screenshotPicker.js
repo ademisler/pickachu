@@ -101,32 +101,46 @@ function fallbackDownload(dataUrl, filename) {
 // Get page dimensions for full-page capture
 async function getPageDimensions() {
   try {
-    const dimensions = await new Promise((resolve) => {
+    const dimensions = await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Timeout getting page dimensions'));
+      }, 5000);
+      
       chrome.runtime.sendMessage({
         type: 'GET_PAGE_DIMENSIONS'
       }, (response) => {
+        clearTimeout(timeout);
+        
         if (chrome.runtime.lastError) {
           console.log('Failed to get page dimensions:', chrome.runtime.lastError);
-          resolve({ width: window.innerWidth, height: document.body.scrollHeight });
+          resolve({ 
+            width: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth, window.innerWidth),
+            height: Math.max(document.documentElement.scrollHeight, document.body.scrollHeight, window.innerHeight)
+          });
+        } else if (response && response.success && response.dimensions) {
+          resolve(response.dimensions);
         } else {
-          resolve(response || { width: window.innerWidth, height: document.body.scrollHeight });
+          resolve({ 
+            width: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth, window.innerWidth),
+            height: Math.max(document.documentElement.scrollHeight, document.body.scrollHeight, window.innerHeight)
+          });
         }
       });
     });
     
     return {
-      width: dimensions.width || window.innerWidth,
+      width: dimensions.width || Math.max(document.documentElement.scrollWidth, document.body.scrollWidth, window.innerWidth),
       height: Math.max(dimensions.height || document.body.scrollHeight, window.innerHeight),
-      scrollHeight: document.body.scrollHeight,
-      scrollWidth: document.body.scrollWidth
+      scrollHeight: document.documentElement.scrollHeight || document.body.scrollHeight,
+      scrollWidth: document.documentElement.scrollWidth || document.body.scrollWidth
     };
   } catch (error) {
     handleError(error, 'getPageDimensions');
     return {
-      width: window.innerWidth,
-      height: document.body.scrollHeight,
-      scrollHeight: document.body.scrollHeight,
-      scrollWidth: document.body.scrollWidth
+      width: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth, window.innerWidth),
+      height: Math.max(document.documentElement.scrollHeight, document.body.scrollHeight, window.innerHeight),
+      scrollHeight: document.documentElement.scrollHeight || document.body.scrollHeight,
+      scrollWidth: document.documentElement.scrollWidth || document.body.scrollWidth
     };
   }
 }
@@ -136,51 +150,34 @@ async function captureVisibleArea() {
   try {
     console.log('Capturing visible area...');
     
-    // Try direct capture first
-    let dataUrl = null;
-    
-    try {
-      if (chrome.tabs && chrome.tabs.captureVisibleTab) {
-        console.log('Using direct chrome.tabs.captureVisibleTab');
-        dataUrl = await chrome.tabs.captureVisibleTab(null, {
-          format: SCREENSHOT_CONFIG.format,
-          quality: SCREENSHOT_CONFIG.quality
-        });
-      }
-    } catch (directError) {
-      console.log('Direct capture failed, trying background script:', directError);
-    }
-    
-    // If direct capture failed, try background script
-    if (!dataUrl) {
-      console.log('Using background script for capture');
-      dataUrl = await new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new Error('Screenshot capture timeout - please try again'));
-        }, SCREENSHOT_CONFIG.timeout);
+    // Always use background script since chrome.tabs is not available in content scripts
+    console.log('Using background script for capture');
+    const dataUrl = await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Screenshot capture timeout - please try again'));
+      }, SCREENSHOT_CONFIG.timeout);
+      
+      chrome.runtime.sendMessage({
+        type: 'CAPTURE_VISIBLE_TAB',
+        format: SCREENSHOT_CONFIG.format,
+        quality: SCREENSHOT_CONFIG.quality
+      }, (response) => {
+        clearTimeout(timeout);
         
-        chrome.runtime.sendMessage({
-          type: 'CAPTURE_VISIBLE_TAB',
-          format: SCREENSHOT_CONFIG.format,
-          quality: SCREENSHOT_CONFIG.quality
-        }, (response) => {
-          clearTimeout(timeout);
-          
-          if (chrome.runtime.lastError) {
-            reject(new Error(chrome.runtime.lastError.message));
-            return;
-          }
-          
-          if (response && response.success && response.dataUrl) {
-            resolve(response.dataUrl);
-          } else if (response && response.error) {
-            reject(new Error(response.error));
-          } else {
-            reject(new Error('Failed to capture screenshot - no response'));
-          }
-        });
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
+        
+        if (response && response.success && response.dataUrl) {
+          resolve(response.dataUrl);
+        } else if (response && response.error) {
+          reject(new Error(response.error));
+        } else {
+          reject(new Error('Failed to capture screenshot - no response'));
+        }
       });
-    }
+    });
     
     return dataUrl;
   } catch (error) {
@@ -201,6 +198,12 @@ async function captureFullPage() {
     const maxHeight = 100000; // Chrome's limit
     if (dimensions.height > maxHeight) {
       throw new Error(`Page too large (${dimensions.height}px). Maximum supported height is ${maxHeight}px.`);
+    }
+    
+    // Check if page is too small (already fits in viewport)
+    if (dimensions.height <= window.innerHeight) {
+      console.log('Page fits in viewport, using visible area capture');
+      return await captureVisibleArea();
     }
     
     const chunks = [];
@@ -259,6 +262,10 @@ async function stitchChunks(chunks, dimensions) {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     
+    if (!ctx) {
+      throw new Error('Failed to get canvas context');
+    }
+    
     canvas.width = dimensions.width;
     canvas.height = dimensions.height;
     
@@ -271,12 +278,21 @@ async function stitchChunks(chunks, dimensions) {
       const img = new Image();
       
       await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error(`Timeout loading chunk ${chunk.index}`));
+        }, 10000);
+        
         img.onload = () => {
+          clearTimeout(timeout);
           try {
             const y = chunk.scrollTop;
             const chunkHeight = Math.min(SCREENSHOT_CONFIG.chunkSize, dimensions.height - y);
             
-            ctx.drawImage(img, 0, y, canvas.width, chunkHeight);
+            // Ensure we don't draw outside canvas bounds
+            const drawHeight = Math.min(chunkHeight, canvas.height - y);
+            if (drawHeight > 0) {
+              ctx.drawImage(img, 0, y, canvas.width, drawHeight);
+            }
             resolve();
           } catch (error) {
             reject(error);
@@ -284,14 +300,20 @@ async function stitchChunks(chunks, dimensions) {
         };
         
         img.onerror = () => {
+          clearTimeout(timeout);
           reject(new Error(`Failed to load chunk ${chunk.index}`));
         };
         
+        // Set crossOrigin to handle potential CORS issues
+        img.crossOrigin = 'anonymous';
         img.src = chunk.dataUrl;
       });
     }
     
-    return canvas.toDataURL(`image/${SCREENSHOT_CONFIG.format}`, SCREENSHOT_CONFIG.quality / 100);
+    const quality = SCREENSHOT_CONFIG.quality / 100;
+    const format = SCREENSHOT_CONFIG.format === 'jpeg' ? 'image/jpeg' : 'image/png';
+    
+    return canvas.toDataURL(format, quality);
   } catch (error) {
     handleError(error, 'stitchChunks');
     throw error;
@@ -443,6 +465,11 @@ async function showScreenshotPreview(dataUrl, type) {
     `;
     copyBtn.onclick = async () => {
       try {
+        // Check if clipboard API is available
+        if (!navigator.clipboard || !navigator.clipboard.write) {
+          throw new Error('Clipboard API not available');
+        }
+        
         const blob = dataUrlToBlob(dataUrl);
         await navigator.clipboard.write([
           new ClipboardItem({ [blob.type]: blob })
@@ -450,7 +477,7 @@ async function showScreenshotPreview(dataUrl, type) {
         showSuccess('Screenshot copied to clipboard!');
       } catch (error) {
         handleError(error, 'copyScreenshot');
-        showError('Failed to copy screenshot to clipboard');
+        showError('Failed to copy screenshot to clipboard. Try downloading instead.');
       }
     };
     
@@ -588,23 +615,35 @@ function showScreenshotOptions() {
     document.body.appendChild(modal);
     
     // Event listeners
-    document.getElementById('captureBtn').onclick = () => {
-      const captureType = document.querySelector('input[name="captureType"]:checked').value;
-      const format = document.getElementById('screenshotFormat').value;
-      const showPreview = document.getElementById('showPreview').checked;
-      
-      modal.remove();
-      
-      captureScreenshot({
-        type: captureType,
-        format: format,
-        showPreview: showPreview
-      });
-    };
+    const captureBtn = document.getElementById('captureBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
     
-    document.getElementById('cancelBtn').onclick = () => {
-      modal.remove();
-    };
+    if (captureBtn) {
+      captureBtn.onclick = () => {
+        const captureTypeRadio = document.querySelector('input[name="captureType"]:checked');
+        const formatSelect = document.getElementById('screenshotFormat');
+        const previewCheckbox = document.getElementById('showPreview');
+        
+        const captureType = captureTypeRadio ? captureTypeRadio.value : 'visible';
+        const format = formatSelect ? formatSelect.value : 'png';
+        const showPreview = previewCheckbox ? previewCheckbox.checked : false;
+        
+        modal.remove();
+        
+        captureScreenshot({
+          type: captureType,
+          format: format,
+          showPreview: showPreview
+        });
+      };
+    }
+    
+    if (cancelBtn) {
+      cancelBtn.onclick = () => {
+        modal.remove();
+      };
+    }
+    
     
     // Close on escape key
     const handleEscape = (e) => {

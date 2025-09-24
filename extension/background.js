@@ -113,14 +113,34 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
         const results = await chrome.scripting.executeScript({
           target: { tabId: tab.id },
           func: () => {
-            return {
-              width: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth, window.innerWidth),
-              height: Math.max(document.documentElement.scrollHeight, document.body.scrollHeight, window.innerHeight),
-              scrollWidth: document.documentElement.scrollWidth,
-              scrollHeight: document.documentElement.scrollHeight,
-              innerWidth: window.innerWidth,
-              innerHeight: window.innerHeight
-            };
+            try {
+              return {
+                width: Math.max(
+                  document.documentElement.scrollWidth || 0,
+                  document.body.scrollWidth || 0,
+                  window.innerWidth || 0
+                ),
+                height: Math.max(
+                  document.documentElement.scrollHeight || 0,
+                  document.body.scrollHeight || 0,
+                  window.innerHeight || 0
+                ),
+                scrollWidth: document.documentElement.scrollWidth || document.body.scrollWidth || 0,
+                scrollHeight: document.documentElement.scrollHeight || document.body.scrollHeight || 0,
+                innerWidth: window.innerWidth || 0,
+                innerHeight: window.innerHeight || 0
+              };
+            } catch (error) {
+              console.error('Error getting page dimensions:', error);
+              return {
+                width: window.innerWidth || 1024,
+                height: window.innerHeight || 768,
+                scrollWidth: 1024,
+                scrollHeight: 768,
+                innerWidth: window.innerWidth || 1024,
+                innerHeight: window.innerHeight || 768
+              };
+            }
           }
         });
         
