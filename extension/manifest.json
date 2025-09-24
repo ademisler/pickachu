@@ -1,13 +1,14 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extensionName__",
-  "version": "1.0",
+  "version": "1.1",
   "description": "__MSG_extensionDescription__",
   "permissions": [
     "activeTab",
     "scripting",
     "clipboardWrite",
-    "storage"
+    "storage",
+    "tabs"
   ],
   "background": {
     "service_worker": "background.js"

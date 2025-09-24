@@ -1,27 +1,88 @@
 // Helper utilities for Pickachu
 let langMap = {};
-async function loadLanguage(lang = 'en') {
-  const res = await fetch(chrome.runtime.getURL(`_locales/${lang}/messages.json`));
-  langMap = await res.json();
+let userTheme = 'system';
+
+// Performance utilities
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
 }
+
+function throttle(func, limit) {
+  let inThrottle;
+  return function(...args) {
+    if (!inThrottle) {
+      func.apply(this, args);
+      inThrottle = true;
+      setTimeout(() => inThrottle = false, limit);
+    }
+  };
+}
+
+// Cache for computed styles and DOM queries
+const styleCache = new Map();
+const queryCache = new Map();
+
+function getCachedComputedStyle(element) {
+  const key = `${element.tagName}-${element.id}-${element.className}`;
+  if (!styleCache.has(key)) {
+    styleCache.set(key, getComputedStyle(element));
+  }
+  return styleCache.get(key);
+}
+
+function clearCaches() {
+  styleCache.clear();
+  queryCache.clear();
+}
+
+async function loadLanguage(lang = 'en') {
+  try {
+    const res = await fetch(chrome.runtime.getURL(`_locales/${lang}/messages.json`));
+    langMap = await res.json();
+  } catch (error) {
+    console.error('Failed to load language:', error);
+  }
+}
+
+// Initialize language and theme with async/await
 if (typeof chrome !== 'undefined') {
-  chrome.storage.local.get('language', ({ language }) => {
-    loadLanguage(language || 'en');
-  });
-  chrome.storage.onChanged.addListener(ch => {
-    if (ch.language) {
-      loadLanguage(ch.language.newValue || 'en');
+  (async () => {
+    try {
+      const { language } = await chrome.storage.local.get('language');
+      await loadLanguage(language || 'en');
+    } catch (error) {
+      console.error('Error loading initial language:', error);
+    }
+  })();
+  
+  chrome.storage.onChanged.addListener(async (changes) => {
+    if (changes.language) {
+      await loadLanguage(changes.language.newValue || 'en');
+    }
+    if (changes.theme) {
+      userTheme = changes.theme.newValue;
     }
   });
 }
-let userTheme = 'system';
+
+// Initialize theme with async/await
 if (typeof chrome !== 'undefined') {
-  chrome.storage.local.get('theme', ({ theme }) => {
-    if (theme) userTheme = theme;
-  });
-  chrome.storage.onChanged.addListener(ch => {
-    if (ch.theme) userTheme = ch.theme.newValue;
-  });
+  (async () => {
+    try {
+      const { theme } = await chrome.storage.local.get('theme');
+      if (theme) userTheme = theme;
+    } catch (error) {
+      console.error('Error loading initial theme:', error);
+    }
+  })();
 }
 
 function applyTheme(el){
@@ -60,42 +121,139 @@ export function removeTooltip(tip) {
   if (tip && tip.parentNode) tip.parentNode.removeChild(tip);
 }
 
-export function copyText(text) {
-  navigator.clipboard.writeText(text).catch(err => console.error('Copy failed', err));
+export async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    console.log('Text copied to clipboard successfully');
+  } catch (err) {
+    console.error('Copy failed:', err);
+    // Fallback for older browsers
+    try {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      
+      if (!successful) {
+        throw new Error('Fallback copy failed');
+      }
+      console.log('Text copied using fallback method');
+    } catch (fallbackErr) {
+      console.error('All copy methods failed:', fallbackErr);
+      showToast('Copy failed. Please try manually.', 3000);
+    }
+  }
+}
+
+// Enhanced error handling
+function showError(message, duration = 3000) {
+  showToast(`❌ ${message}`, duration);
+}
+
+function showSuccess(message, duration = 2000) {
+  showToast(`✅ ${message}`, duration);
+}
+
+function showWarning(message, duration = 2500) {
+  showToast(`⚠️ ${message}`, duration);
+}
+
+function showInfo(message, duration = 2000) {
+  showToast(`ℹ️ ${message}`, duration);
 }
 
 export function showToast(message, duration = 1500) {
+  // Remove existing toasts
+  document.querySelectorAll('#pickachu-toast').forEach(toast => toast.remove());
+  
   const toast = document.createElement('div');
   toast.id = 'pickachu-toast';
   toast.textContent = message;
+  toast.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--pickachu-button-bg, rgba(0,0,0,0.9));
+    color: var(--pickachu-text, #fff);
+    padding: 12px 20px;
+    border-radius: 8px;
+    z-index: 2147483647;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    animation: pickachu-toast-slide-in 0.3s ease-out;
+    max-width: 90vw;
+    word-wrap: break-word;
+  `;
+  
+  // Add animation styles
+  if (!document.querySelector('#pickachu-toast-styles')) {
+    const style = document.createElement('style');
+    style.id = 'pickachu-toast-styles';
+    style.textContent = `
+      @keyframes pickachu-toast-slide-in {
+        from {
+          transform: translateX(-50%) translateY(100px);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(-50%) translateY(0);
+          opacity: 1;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  
   document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), duration);
+  setTimeout(() => {
+    toast.style.animation = 'pickachu-toast-slide-in 0.3s ease-out reverse';
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
 }
 
 async function getHistory() {
-  return new Promise(resolve => {
-    chrome.storage.local.get('pickachuHistory', data => {
-      resolve(data.pickachuHistory || []);
-    });
-  });
+  try {
+    const data = await chrome.storage.local.get('pickachuHistory');
+    return data.pickachuHistory || [];
+  } catch (error) {
+    console.error('Error getting history:', error);
+    return [];
+  }
 }
 
 async function saveHistory(item) {
-  const hist = await getHistory();
-  hist.unshift(item);
-  if (hist.length > 20) hist.pop();
-  chrome.storage.local.set({ pickachuHistory: hist });
+  try {
+    const hist = await getHistory();
+    hist.unshift(item);
+    if (hist.length > 20) hist.pop();
+    await chrome.storage.local.set({ pickachuHistory: hist });
+  } catch (error) {
+    console.error('Error saving history:', error);
+  }
 }
 
 async function toggleFavorite(id) {
-  const hist = await getHistory();
-  const item = hist.find(i => i.id === id);
-  if (item) {
-    item.favorite = !item.favorite;
-    chrome.storage.local.set({ pickachuHistory: hist });
-    return item.favorite;
+  try {
+    const hist = await getHistory();
+    const item = hist.find(i => i.id === id);
+    if (item) {
+      item.favorite = !item.favorite;
+      await chrome.storage.local.set({ pickachuHistory: hist });
+      return item.favorite;
+    }
+    return false;
+  } catch (error) {
+    console.error('Error toggling favorite:', error);
+    return false;
   }
-  return false;
 }
 
 export async function showHistory() {
@@ -161,60 +319,308 @@ export async function showHistory() {
 }
 
 export async function showModal(title, content, icon = '', type = '') {
+  // Remove existing modals
+  document.querySelectorAll('#pickachu-modal-overlay').forEach(modal => modal.remove());
+  
   const overlay = document.createElement('div');
   overlay.id = 'pickachu-modal-overlay';
+  overlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 2147483647;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: pickachu-fade-in 0.3s ease-out;
+  `;
+  
   const modal = document.createElement('div');
   modal.id = 'pickachu-modal-content';
+  modal.style.cssText = `
+    background: var(--pickachu-bg, #fff);
+    border: 1px solid var(--pickachu-border, #ddd);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    animation: pickachu-modal-slide-in 0.3s ease-out;
+  `;
+  
+  // Add animation styles
+  if (!document.querySelector('#pickachu-modal-styles')) {
+    const style = document.createElement('style');
+    style.id = 'pickachu-modal-styles';
+    style.textContent = `
+      @keyframes pickachu-modal-slide-in {
+        from {
+          transform: scale(0.9);
+          opacity: 0;
+        }
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+      @keyframes pickachu-fade-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  
   applyTheme(overlay);
   applyTheme(modal);
+  
+  const header = document.createElement('div');
+  header.style.cssText = `
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--pickachu-border, #eee);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--pickachu-header-bg, #f8f9fa);
+    cursor: move;
+  `;
+  
   const h3 = document.createElement('h3');
+  h3.style.cssText = `
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--pickachu-text, #333);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+  `;
   h3.textContent = `${icon} ${title}`;
-  const ta = document.createElement('textarea');
-  ta.value = content;
+  
+  const body = document.createElement('div');
+  body.style.cssText = `
+    padding: 20px;
+    max-height: 60vh;
+    overflow-y: auto;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--pickachu-text, #333);
+  `;
+  
+  // Enhanced content with preview based on type
+  if (type === 'color' && content.includes('#')) {
+    const colorMatch = content.match(/#[0-9a-fA-F]{6}/);
+    if (colorMatch) {
+      const color = colorMatch[0];
+      body.innerHTML = `
+        <div style="display: flex; gap: 16px; margin-bottom: 16px;">
+          <div style="width: 60px; height: 60px; background-color: ${color}; border-radius: 8px; border: 2px solid #ddd;"></div>
+          <div style="flex: 1;">
+            <div style="font-weight: 600; margin-bottom: 8px;">Color Preview</div>
+            <div style="font-family: monospace; background: #f5f5f5; padding: 8px; border-radius: 4px; margin-bottom: 8px;">${color}</div>
+          </div>
+        </div>
+        <textarea style="width: 100%; height: 200px; font-family: monospace; background: #f8f9fa; padding: 12px; border-radius: 6px; border: 1px solid #ddd; resize: vertical;">${content}</textarea>
+      `;
+    } else {
+      body.innerHTML = `<textarea style="width: 100%; height: 200px; font-family: monospace; background: #f8f9fa; padding: 12px; border-radius: 6px; border: 1px solid #ddd; resize: vertical;">${content}</textarea>`;
+    }
+  } else if (type === 'image' && content.includes('http')) {
+    const urlMatch = content.match(/https?:\/\/[^\s]+/);
+    if (urlMatch) {
+      const imageUrl = urlMatch[0];
+      body.innerHTML = `
+        <div style="margin-bottom: 16px;">
+          <div style="font-weight: 600; margin-bottom: 8px;">Image Preview</div>
+          <img src="${imageUrl}" style="max-width: 200px; max-height: 150px; border-radius: 6px; border: 1px solid #ddd;" onerror="this.style.display='none'">
+        </div>
+        <textarea style="width: 100%; height: 200px; font-family: monospace; background: #f8f9fa; padding: 12px; border-radius: 6px; border: 1px solid #ddd; resize: vertical;">${content}</textarea>
+      `;
+    } else {
+      body.innerHTML = `<textarea style="width: 100%; height: 200px; font-family: monospace; background: #f8f9fa; padding: 12px; border-radius: 6px; border: 1px solid #ddd; resize: vertical;">${content}</textarea>`;
+    }
+  } else if (type === 'font') {
+    body.innerHTML = `
+      <div style="margin-bottom: 16px;">
+        <div style="font-weight: 600; margin-bottom: 8px;">Font Preview</div>
+        <div style="padding: 12px; border: 1px solid #ddd; border-radius: 6px; background: #f8f9fa;">
+          <div style="font-size: 18px; margin-bottom: 8px;">The quick brown fox jumps over the lazy dog</div>
+          <div style="font-size: 14px; color: #666;">ABCDEFGHIJKLMNOPQRSTUVWXYZ</div>
+        </div>
+      </div>
+      <textarea style="width: 100%; height: 200px; font-family: monospace; background: #f8f9fa; padding: 12px; border-radius: 6px; border: 1px solid #ddd; resize: vertical;">${content}</textarea>
+    `;
+  } else {
+    body.innerHTML = `<textarea style="width: 100%; height: 200px; font-family: monospace; background: #f8f9fa; padding: 12px; border-radius: 6px; border: 1px solid #ddd; resize: vertical;">${content}</textarea>`;
+  }
+  
   const buttons = document.createElement('div');
   buttons.id = 'pickachu-modal-buttons';
+  buttons.style.cssText = `
+    padding: 16px 20px;
+    border-top: 1px solid var(--pickachu-border, #eee);
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    background: var(--pickachu-header-bg, #f8f9fa);
+  `;
+  
   const closeBtn = document.createElement('button');
   closeBtn.textContent = t('close');
   closeBtn.title = t('close');
+  closeBtn.style.cssText = `
+    padding: 8px 16px;
+    border: 1px solid var(--pickachu-border, #ddd);
+    background: var(--pickachu-button-bg, #fff);
+    color: var(--pickachu-text, #333);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+  `;
+  
   const copyBtn = document.createElement('button');
   copyBtn.textContent = t('copy');
   copyBtn.className = 'copy';
   copyBtn.title = t('copy');
+  copyBtn.style.cssText = `
+    padding: 8px 16px;
+    border: 1px solid var(--pickachu-border, #ddd);
+    background: var(--pickachu-button-bg, #007bff);
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+  `;
+  
   const exportBtn = document.createElement('button');
   exportBtn.textContent = t('export');
   exportBtn.title = t('export');
+  exportBtn.style.cssText = `
+    padding: 8px 16px;
+    border: 1px solid var(--pickachu-border, #ddd);
+    background: var(--pickachu-button-bg, #28a745);
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+  `;
+  
   const favBtn = document.createElement('button');
   favBtn.textContent = '☆';
   favBtn.title = t('favorite');
+  favBtn.style.cssText = `
+    padding: 8px 12px;
+    border: 1px solid var(--pickachu-border, #ddd);
+    background: var(--pickachu-button-bg, #ffc107);
+    color: var(--pickachu-text, #333);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+  `;
+  
   const historyBtn = document.createElement('button');
   historyBtn.textContent = t('history');
   historyBtn.title = t('history');
+  historyBtn.style.cssText = `
+    padding: 8px 16px;
+    border: 1px solid var(--pickachu-border, #ddd);
+    background: var(--pickachu-button-bg, #6c757d);
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+  `;
+  
+  // Event handlers
+  closeBtn.addEventListener('click', () => overlay.remove());
+  
+  copyBtn.addEventListener('click', async () => {
+    const textarea = body.querySelector('textarea');
+    if (textarea) {
+      await copyText(textarea.value);
+      showToast(t('copy'));
+    }
+  });
+  
+  exportBtn.addEventListener('click', () => {
+    const textarea = body.querySelector('textarea');
+    if (textarea) {
+      const blob = new Blob([textarea.value], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `pickachu-export-${Date.now()}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  });
+  
+  favBtn.addEventListener('click', async () => {
+    const textarea = body.querySelector('textarea');
+    if (textarea) {
+      const val = await toggleFavorite(content);
+      favBtn.textContent = val ? '★' : '☆';
+      showToast(val ? t('favorite') : t('unfavorite'));
+    }
+  });
+  
+  historyBtn.addEventListener('click', () => {
+    overlay.remove();
+    showHistory();
+  });
+  
+  buttons.appendChild(closeBtn);
   buttons.appendChild(copyBtn);
   buttons.appendChild(exportBtn);
   buttons.appendChild(favBtn);
   buttons.appendChild(historyBtn);
-  buttons.appendChild(closeBtn);
-  modal.appendChild(h3);
-  modal.appendChild(ta);
+  
+  modal.appendChild(header);
+  modal.appendChild(body);
   modal.appendChild(buttons);
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
-  let startX, startY;
+  let startX, startY, isDragging = false;
+  
   function onDrag(e) {
-    modal.style.left = e.clientX - startX + 'px';
-    modal.style.top = e.clientY - startY + 'px';
+    if (!isDragging) return;
+    e.preventDefault();
+    
+    const newX = e.clientX - startX;
+    const newY = e.clientY - startY;
+    
+    // Keep modal within viewport bounds
+    const maxX = window.innerWidth - modal.offsetWidth;
+    const maxY = window.innerHeight - modal.offsetHeight;
+    
+    modal.style.left = Math.max(0, Math.min(newX, maxX)) + 'px';
+    modal.style.top = Math.max(0, Math.min(newY, maxY)) + 'px';
   }
+  
   function endDrag() {
+    isDragging = false;
     document.removeEventListener('mousemove', onDrag);
     document.removeEventListener('mouseup', endDrag);
+    document.removeEventListener('mouseleave', endDrag);
   }
+  
   h3.style.cursor = 'move';
   h3.addEventListener('mousedown', e => {
+    e.preventDefault();
+    isDragging = true;
     startX = e.clientX - modal.offsetLeft;
     startY = e.clientY - modal.offsetTop;
     modal.style.transform = 'none';
+    modal.style.transition = 'none';
+    
     document.addEventListener('mousemove', onDrag);
     document.addEventListener('mouseup', endDrag);
+    document.addEventListener('mouseleave', endDrag);
   });
   closeBtn.addEventListener('click', () => overlay.remove());
   copyBtn.addEventListener('click', () => {
@@ -254,23 +660,45 @@ export async function showModal(title, content, icon = '', type = '') {
 
 export function getCssSelector(el) {
   if (!(el instanceof Element)) return '';
+  
   const path = [];
-  while (el.nodeType === Node.ELEMENT_NODE) {
-    let selector = el.nodeName.toLowerCase();
-    if (el.id) {
-      selector += '#' + el.id;
-      path.unshift(selector);
-      break;
-    } else {
-      let sib = el, nth = 1;
-      while (sib = sib.previousElementSibling) {
-        if (sib.nodeName.toLowerCase() === selector) nth++;
+  let current = el;
+  
+  while (current && current.nodeType === Node.ELEMENT_NODE) {
+    let selector = current.nodeName.toLowerCase();
+    
+    // Use ID if available and unique
+    if (current.id) {
+      const idSelector = `#${current.id}`;
+      // Check if ID is unique
+      if (document.querySelectorAll(idSelector).length === 1) {
+        selector += idSelector;
+        path.unshift(selector);
+        break;
       }
-      if (nth !== 1) selector += `:nth-of-type(${nth})`;
     }
+    
+    // Add class names if they exist
+    if (current.className && typeof current.className === 'string') {
+      const classes = current.className.trim().split(/\s+/).filter(cls => cls.length > 0);
+      if (classes.length > 0) {
+        selector += '.' + classes.join('.');
+      }
+    }
+    
+    // Add nth-of-type if there are siblings with same tag
+    const siblings = Array.from(current.parentNode?.children || [])
+      .filter(sibling => sibling.nodeName === current.nodeName);
+    
+    if (siblings.length > 1) {
+      const index = siblings.indexOf(current) + 1;
+      selector += `:nth-of-type(${index})`;
+    }
+    
     path.unshift(selector);
-    el = el.parentNode;
+    current = current.parentNode;
   }
+  
   return path.join(' > ');
 }
 

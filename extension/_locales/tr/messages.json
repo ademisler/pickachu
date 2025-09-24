@@ -62,6 +62,24 @@
   "textPicker": {
     "message": "Metin Seçici"
   },
+  "screenshot": {
+    "message": "Ekran Görüntüsü"
+  },
+  "notes": {
+    "message": "Notlar"
+  },
+  "info": {
+    "message": "Bilgi"
+  },
+  "screenshotPicker": {
+    "message": "Ekran Görüntüsü Alıcı"
+  },
+  "stickyNotesPicker": {
+    "message": "Yapışkan Notlar"
+  },
+  "siteInfoPicker": {
+    "message": "Site Bilgi Analizi"
+  },
   "colorCopied": {
     "message": "Renk kopyalandı"
   },
@@ -106,5 +124,8 @@
   },
   "exportPrompt": {
     "message": "txt/json/csv"
+  },
+  "version": {
+    "message": "Sürüm 1.1"
   }
 }

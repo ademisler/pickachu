@@ -1,15 +1,26 @@
 # Pickachu – Web Picker Tool
 
-Pickachu – Web Picker Tool is a lightweight toolbox for grabbing colors, elements, links, fonts, images
-and text from any webpage.
+Pickachu – Web Picker Tool is a lightweight toolbox for grabbing colors, elements, links, fonts, images, text, screenshots, sticky notes, and site information from any webpage.
+
+**Version 1.1**
 
 ## Features
-- Editable modal with favorites and export
-- Color picker using the EyeDropper API
-- Element, link, font, image and text pickers
-- History panel grouped by type
-- Language and theme options
-- Icons adapt to light and dark mode
+- **9 Powerful Tools**: Color, Element, Link, Font, Image, Text, Screenshot, Sticky Notes, and Site Info pickers
+- **Editable modal** with favorites and export options
+- **Color picker** using the EyeDropper API with multiple format support
+- **Element picker** with comprehensive element analysis and keyboard navigation
+- **Link picker** with area selection and link type analysis
+- **Font picker** with detailed typography information
+- **Image picker** with metadata extraction and quality analysis
+- **Text picker** with content analysis and formatting detection
+- **Screenshot picker** for full-page and visible area captures
+- **Sticky Notes** for page-specific annotations with persistence
+- **Site Info** for technology detection and performance analysis
+- **History panel** grouped by type with favorites
+- **Multi-language support** (English, Turkish, French)
+- **Theme options** (Auto, Light, Dark)
+- **Keyboard shortcuts** for all tools
+- **Icons adapt** to light and dark mode
 
 ## Installation
 1. Clone this repository.
@@ -20,7 +31,7 @@ The popup provides buttons to activate each tool. Data from the page is copied t
 clipboard and displayed in a short notification.
 
 ## Keyboard Shortcuts
-Pickachu defines a single shortcut using the Chrome `commands` API. Press `Ctrl+Shift+9` (or `Cmd+Shift+9` on macOS) to open the popup from any page.
+Pickachu defines a single shortcut using the Chrome `commands` API to open the popup:
 
 | Action | Shortcut |
 | ------ | -------- |
