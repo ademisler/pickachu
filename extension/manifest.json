@@ -61,6 +61,55 @@
         "mac": "Command+Shift+9"
       },
       "description": "__MSG_openPickachu__"
+    },
+    "activate-colorPicker": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+C",
+        "mac": "Command+Shift+C"
+      },
+      "description": "Activate Color Picker"
+    },
+    "activate-elementPicker": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+E",
+        "mac": "Command+Shift+E"
+      },
+      "description": "Activate Element Picker"
+    },
+    "activate-linkPicker": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+L",
+        "mac": "Command+Shift+L"
+      },
+      "description": "Activate Link Picker"
+    },
+    "activate-fontPicker": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+F",
+        "mac": "Command+Shift+F"
+      },
+      "description": "Activate Font Picker"
+    },
+    "activate-imagePicker": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+I",
+        "mac": "Command+Shift+I"
+      },
+      "description": "Activate Image Picker"
+    },
+    "activate-textPicker": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+T",
+        "mac": "Command+Shift+T"
+      },
+      "description": "Activate Text Picker"
+    },
+    "activate-batchPicker": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+B",
+        "mac": "Command+Shift+B"
+      },
+      "description": "Activate Batch Picker"
     }
   }
 }
