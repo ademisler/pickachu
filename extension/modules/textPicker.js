@@ -33,7 +33,7 @@ function onClick(e) {
     }
     
     // Comprehensive text analysis
-    const textInfo = {
+    const textAnalysis = {
       // Basic text content
       text: text,
       textLength: text.length,
@@ -98,7 +98,7 @@ function onClick(e) {
         plain: text,
         html: el.innerHTML,
         markdown: convertToMarkdown(el),
-        json: JSON.stringify({ text, metadata: textInfo }, null, 2),
+        json: JSON.stringify({ text, metadata: textAnalysis }, null, 2),
         csv: `"${text.replace(/"/g, '""')}"`,
         xml: `<text>${text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</text>`
       }
@@ -107,10 +107,10 @@ function onClick(e) {
     // Copy primary format (plain text)
     copyText(text);
     
-    showSuccess(`Text copied to clipboard! (${textInfo.wordCount} words)`);
+    showSuccess(`Text copied to clipboard! (${textAnalysis.wordCount} words)`);
     
     const title = chrome.i18n ? chrome.i18n.getMessage('textTitle') : 'Text Analysis';
-    const content = `Text: ${text.substring(0, 100)}${text.length > 100 ? '...' : ''}\n\nStatistics:\n- Words: ${textInfo.wordCount}\n- Characters: ${textInfo.characterCount}\n- Sentences: ${textInfo.statistics.sentences}\n- Language: ${textInfo.language.detected}\n\nFull Analysis:\n${textInfo.formats.json}`;
+    const content = `Text: ${text.substring(0, 100)}${text.length > 100 ? '...' : ''}\n\nStatistics:\n- Words: ${textAnalysis.wordCount}\n- Characters: ${textAnalysis.characterCount}\n- Sentences: ${textAnalysis.statistics.sentences}\n- Language: ${textAnalysis.language.detected}\n\nFull Analysis:\n${textAnalysis.formats.json}`;
     
     showModal(title, content, '🧾', 'text');
     deactivateCb();

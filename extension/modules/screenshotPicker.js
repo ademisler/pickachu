@@ -88,28 +88,18 @@ async function captureWithOptions() {
   try {
     showInfo('Preparing screenshot options...', 1500);
     
-    // Get current tab info
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const tab = tabs[0];
-    
-    if (!tab) {
-      showError('No active tab found');
-      return;
-    }
-    
-    // Get page information
-    const pageInfo = await chrome.tabs.sendMessage(tab.id, {
-      type: 'GET_PAGE_INFO'
-    });
-    
-    if (!pageInfo) {
-      // Fallback to basic screenshot
-      await captureFullPageScreenshot();
-      return;
-    }
+    // Get page information directly from current page
+    const pageInfo = {
+      url: window.location.href,
+      title: document.title,
+      width: document.documentElement.scrollWidth,
+      height: document.documentElement.scrollHeight,
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight
+    };
     
     // Create options modal
-    showScreenshotOptions(pageInfo, tab);
+    showScreenshotOptions(pageInfo);
     
   } catch (error) {
     console.error('Screenshot options error:', error);
@@ -119,7 +109,7 @@ async function captureWithOptions() {
 }
 
 // Show screenshot options modal
-function showScreenshotOptions(pageInfo, tab) {
+function showScreenshotOptions(pageInfo) {
   const modal = document.createElement('div');
   modal.id = 'pickachu-screenshot-modal';
   modal.style.cssText = `
@@ -154,10 +144,10 @@ function showScreenshotOptions(pageInfo, tab) {
     <div style="margin-bottom: 16px;">
       <div style="font-weight: 600; margin-bottom: 8px;">Page Information:</div>
       <div style="font-size: 14px; margin-bottom: 4px;" class="secondary-text">
-        <strong>URL:</strong> ${tab.url}
+        <strong>URL:</strong> ${pageInfo.url}
       </div>
       <div style="font-size: 14px; margin-bottom: 4px;" class="secondary-text">
-        <strong>Title:</strong> ${tab.title}
+        <strong>Title:</strong> ${pageInfo.title}
       </div>
       <div style="font-size: 14px; margin-bottom: 4px;" class="secondary-text">
         <strong>Dimensions:</strong> ${pageInfo.width} x ${pageInfo.height}px

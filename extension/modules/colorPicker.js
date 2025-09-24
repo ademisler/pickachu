@@ -79,9 +79,17 @@ export function activate(deactivate) {
   
   showInfo('Click anywhere to pick a color...', 2000);
   
-  const ed = new EyeDropper();
-  ed.open().then(async res => {
+  // Wait for user interaction before opening EyeDropper
+  const handleClick = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Remove the click listener since we only need it once
+    document.removeEventListener('click', handleClick);
+    
+    const ed = new EyeDropper();
     try {
+      const res = await ed.open();
       const color = res.sRGBHex;
       const formats = getColorFormats(color);
       
@@ -105,18 +113,17 @@ export function activate(deactivate) {
       
     } catch (error) {
       console.error('Color picker error:', error);
-      showError('Failed to process color. Please try again.');
+      if (error.name === 'AbortError') {
+        showInfo('Color picking cancelled');
+      } else {
+        showError('Failed to process color. Please try again.');
+      }
       deactivate();
     }
-  }).catch(error => {
-    console.error('EyeDropper error:', error);
-    if (error.name === 'AbortError') {
-      showInfo('Color picking cancelled');
-    } else {
-      showError('Failed to open color picker. Please try again.');
-    }
-    deactivate();
-  });
+  };
+  
+  // Add click listener to wait for user gesture
+  document.addEventListener('click', handleClick);
 }
 
 export function deactivate() {

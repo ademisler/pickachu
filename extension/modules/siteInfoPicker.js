@@ -9,7 +9,25 @@ function detectTechnologies() {
       detected: !!document.querySelector('[data-reactroot]') || 
                 !!window.React || 
                 !!document.querySelector('script[src*="react"]') ||
-                !!document.querySelector('script[src*="react-dom"]'),
+                !!document.querySelector('script[src*="react-dom"]') ||
+                !!document.querySelector('div[id*="react"]') ||
+                !!window.__REACT_DEVTOOLS_GLOBAL_HOOK__,
+      confidence: 'high'
+    },
+    nextjs: {
+      name: 'Next.js',
+      detected: !!document.querySelector('script[id="__NEXT_DATA__"]') ||
+                !!window.__NEXT_DATA__ ||
+                !!document.querySelector('meta[name="next-head-count"]') ||
+                !!document.querySelector('script[src*="next"]') ||
+                !!document.querySelector('link[rel="preload"][as="script"][href*="_next"]'),
+      confidence: 'high'
+    },
+    nuxt: {
+      name: 'Nuxt.js',
+      detected: !!window.$nuxt ||
+                !!document.querySelector('script[id="__NUXT__"]') ||
+                !!document.querySelector('meta[name="nuxt-app"]'),
       confidence: 'high'
     },
     vue: {
@@ -60,7 +78,11 @@ function detectTechnologies() {
       name: 'Shopify',
       detected: !!document.querySelector('script[src*="shopify"]') ||
                 !!window.Shopify ||
-                !!document.querySelector('link[href*="shopify"]'),
+                !!document.querySelector('link[href*="shopify"]') ||
+                !!document.querySelector('meta[name="shopify-digital-wallet"]') ||
+                !!document.querySelector('script[src*="cdn.shopify.com"]') ||
+                !!window.ShopifyAnalytics ||
+                !!document.querySelector('[data-shopify]'),
       confidence: 'high'
     },
     woocommerce: {

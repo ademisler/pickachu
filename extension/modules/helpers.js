@@ -40,10 +40,16 @@ export function getCachedComputedStyle(element) {
 
 async function loadLanguage(lang = 'en') {
   try {
-    const res = await fetch(chrome.runtime.getURL(`_locales/${lang}/messages.json`));
-    langMap = await res.json();
-  } catch (error) {
-    console.error('Failed to load language:', error);
+    // Check if chrome.runtime is available and if the file exists
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL) {
+      const res = await fetch(chrome.runtime.getURL(`_locales/${lang}/messages.json`));
+      if (res.ok) {
+        langMap = await res.json();
+      }
+    }
+  } catch {
+    // Silently fail for language loading - it's not critical
+    console.debug('Language file not found, using defaults');
   }
 }
 
