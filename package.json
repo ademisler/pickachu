@@ -4,7 +4,9 @@
   "description": "Pickachu is a lightweight toolbox for grabbing colors, elements, links, fonts, images, and text from any webpage.",
   "main": "index.js",
   "scripts": {
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest"
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
+    "lint": "eslint extension/ --ext .js",
+    "lint:fix": "eslint extension/ --ext .js --fix"
   },
   "keywords": [],
   "author": "Adem İsler",

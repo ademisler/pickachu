@@ -1,6 +1,6 @@
 // Comprehensive browser extension tests
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 describe('Pickachu Extension - Comprehensive Tests', () => {
   

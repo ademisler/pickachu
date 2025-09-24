@@ -436,20 +436,20 @@ async function getDomainAge(domain) {
   try {
     // Try multiple methods to estimate domain age
     
-    // Method 1: Check if domain is in archive.org
-    const archiveResponse = await fetch(`https://web.archive.org/cdx/search/cdx?url=${domain}&output=json&limit=1`, {
-      mode: 'no-cors'
-    }).catch(() => null);
-    
-    // Method 2: Check domain registration info
-    const whoisResponse = await fetch(`https://whoisjson.com/api/v1/whois/${domain}`, {
-      mode: 'no-cors'
-    }).catch(() => null);
-    
-    // Method 3: Use DNS records to estimate
-    const dnsResponse = await fetch(`https://dns.google/resolve?name=${domain}&type=SOA`, {
-      mode: 'no-cors'
-    }).catch(() => null);
+            // Method 1: Check if domain is in archive.org
+            await fetch(`https://web.archive.org/cdx/search/cdx?url=${domain}&output=json&limit=1`, {
+              mode: 'no-cors'
+            }).catch(() => null);
+
+            // Method 2: Check domain registration info
+            await fetch(`https://whoisjson.com/api/v1/whois/${domain}`, {
+              mode: 'no-cors'
+            }).catch(() => null);
+
+            // Method 3: Use DNS records to estimate
+            await fetch(`https://dns.google/resolve?name=${domain}&type=SOA`, {
+              mode: 'no-cors'
+            }).catch(() => null);
     
     // For now, return estimated based on domain characteristics
     const commonTLDs = ['.com', '.org', '.net', '.edu', '.gov'];
@@ -462,9 +462,9 @@ async function getDomainAge(domain) {
     } else {
       return 'Check manually with WHOIS tools';
     }
-  } catch (error) {
-    return 'Check manually';
-  }
+          } catch {
+            return 'Check manually';
+          }
 }
 
 // Get domain authority metrics
@@ -507,15 +507,15 @@ async function getDomainAuthority(domain) {
       metrics.pa = 'Likely 15-30 (good social presence)';
     }
     
-    return metrics;
-  } catch (error) {
-    return {
-      da: 'Check manually',
-      pa: 'Check manually',
-      backlinks: 'Check manually',
-      referringDomains: 'Check manually'
-    };
-  }
+            return metrics;
+          } catch {
+            return {
+              da: 'Check manually',
+              pa: 'Check manually',
+              backlinks: 'Check manually',
+              referringDomains: 'Check manually'
+            };
+          }
 }
 
 // Get accessibility information

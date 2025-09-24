@@ -376,30 +376,42 @@ function showNotesManager() {
   document.body.appendChild(manager);
   
   // Add event listeners
-  document.getElementById('close-notes-manager').addEventListener('click', () => {
-    manager.remove();
-    deactivate();
-  });
+  const closeBtn = document.getElementById('close-notes-manager');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      manager.remove();
+      deactivate();
+    });
+  }
   
-  document.getElementById('create-new-note').addEventListener('click', () => {
-    manager.remove();
-    const centerX = window.innerWidth / 2 - 125;
-    const centerY = window.innerHeight / 2 - 75;
-    createStickyNote(centerX, centerY);
-  });
+  const createBtn = document.getElementById('create-new-note');
+  if (createBtn) {
+    createBtn.addEventListener('click', () => {
+      manager.remove();
+      const centerX = window.innerWidth / 2 - 125;
+      const centerY = window.innerHeight / 2 - 75;
+      createStickyNote(centerX, centerY);
+    });
+  }
   
-  document.getElementById('clear-all-notes').addEventListener('click', () => {
-    if (confirm('Are you sure you want to delete all notes? This cannot be undone.')) {
-      notes.forEach(note => {
-        const noteElement = document.getElementById(note.id);
-        if (noteElement) noteElement.remove();
-      });
-      notes = [];
-      saveNotes();
-      document.getElementById('notes-list').innerHTML = '<div style="text-align: center; padding: 20px; color: var(--pickachu-secondary-text, #666);">No notes found</div>';
-      showSuccess('All notes cleared');
-    }
-  });
+  const clearBtn = document.getElementById('clear-all-notes');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      if (confirm('Are you sure you want to delete all notes? This cannot be undone.')) {
+        notes.forEach(note => {
+          const noteElement = document.getElementById(note.id);
+          if (noteElement) noteElement.remove();
+        });
+        notes = [];
+        saveNotes();
+        const notesList = document.getElementById('notes-list');
+        if (notesList) {
+          notesList.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--pickachu-secondary-text, #666);">No notes found</div>';
+        }
+        showSuccess('All notes cleared');
+      }
+    });
+  }
   
   // Load existing notes
   loadExistingNotes();
