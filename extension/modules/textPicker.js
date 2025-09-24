@@ -1,22 +1,27 @@
-import { createOverlay, removeOverlay, copyText, showModal, showError, showSuccess, showInfo, showWarning, throttle } from './helpers.js';
+import { createOverlay, removeOverlay, copyText, showModal, showError, showSuccess, showInfo, showWarning, throttle, handleError, safeExecute, sanitizeInput, addEventListenerWithCleanup } from './helpers.js';
 
 let overlay, deactivateCb;
 let currentElement = null;
+let cleanupFunctions = [];
 
-// Performance optimized move handler
+// Performance optimized move handler with enhanced error handling
 const throttledOnMove = throttle((e) => {
-  const el = e.target;
-  if (!el || el === overlay) return;
-  
-  currentElement = el;
-  const rect = el.getBoundingClientRect();
-  overlay.style.top = rect.top + window.scrollY + 'px';
-  overlay.style.left = rect.left + window.scrollX + 'px';
-  overlay.style.width = rect.width + 'px';
-  overlay.style.height = rect.height + 'px';
+  try {
+    const el = e.target;
+    if (!el || el === overlay) return;
+    
+    currentElement = el;
+    const rect = el.getBoundingClientRect();
+    overlay.style.top = rect.top + window.scrollY + 'px';
+    overlay.style.left = rect.left + window.scrollX + 'px';
+    overlay.style.width = rect.width + 'px';
+    overlay.style.height = rect.height + 'px';
+  } catch (error) {
+    handleError(error, 'throttledOnMove');
+  }
 }, 16);
 
-// Enhanced click handler with comprehensive text analysis
+// Enhanced click handler with comprehensive text analysis and error handling
 function onClick(e) {
   e.preventDefault();
   e.stopPropagation();
@@ -32,23 +37,28 @@ function onClick(e) {
       return;
     }
     
-    // Comprehensive text analysis
+    // Comprehensive text analysis with performance optimization
+    const words = text.split(/\s+/).filter(word => word.length > 0);
+    const wordCount = words.length;
+    const characterCount = text.length;
+    const characterCountNoSpaces = text.replace(/\s/g, '').length;
+    
     const textAnalysis = {
       // Basic text content
-      text: text,
+      text: sanitizeInput(text),
       textLength: text.length,
-      wordCount: text.split(/\s+/).filter(word => word.length > 0).length,
-      characterCount: text.length,
-      characterCountNoSpaces: text.replace(/\s/g, '').length,
+      wordCount: wordCount,
+      characterCount: characterCount,
+      characterCountNoSpaces: characterCountNoSpaces,
       
       // Text statistics
       statistics: {
         sentences: text.split(/[.!?]+/).filter(s => s.trim().length > 0).length,
         paragraphs: text.split(/\n\s*\n/).filter(p => p.trim().length > 0).length,
         lines: text.split('\n').length,
-        words: text.split(/\s+/).filter(word => word.length > 0),
-        uniqueWords: [...new Set(text.toLowerCase().split(/\s+/).filter(word => word.length > 0))].length,
-        averageWordLength: text.split(/\s+/).filter(word => word.length > 0).reduce((sum, word) => sum + word.length, 0) / text.split(/\s+/).filter(word => word.length > 0).length || 0
+        words: words,
+        uniqueWords: [...new Set(words.map(w => w.toLowerCase()))].length,
+        averageWordLength: wordCount > 0 ? Math.round(words.reduce((sum, word) => sum + word.length, 0) / wordCount * 100) / 100 : 0
       },
       
       // Text formatting
@@ -63,7 +73,7 @@ function onClick(e) {
       
       // Language detection (basic)
       language: {
-        detected: detectLanguage(text),
+        detected: safeExecute(() => detectLanguage(text), 'detectLanguage') || 'unknown',
         hasUnicode: /[\u0080-\uFFFF]/.test(text),
         hasEmojis: /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]/u.test(text),
         hasNumbers: /\d/.test(text),
@@ -97,7 +107,7 @@ function onClick(e) {
       formats: {
         plain: text,
         html: el.innerHTML,
-        markdown: convertToMarkdown(el),
+        markdown: safeExecute(() => convertToMarkdown(el), 'convertToMarkdown') || 'Failed to convert',
         csv: `"${text.replace(/"/g, '""')}"`,
         xml: `<text>${text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</text>`
       }
@@ -105,7 +115,7 @@ function onClick(e) {
     
     // Add JSON format after textAnalysis is fully defined
     textAnalysis.formats.json = JSON.stringify({ 
-      text, 
+      text: sanitizeInput(text), 
       metadata: { 
         wordCount: textAnalysis.wordCount, 
         characterCount: textAnalysis.characterCount 
@@ -124,67 +134,85 @@ function onClick(e) {
     deactivateCb();
     
   } catch (error) {
-    console.error('Text picker error:', error);
+    handleError(error, 'textPicker');
     showError('Failed to analyze text. Please try again.');
   }
 }
 
-// Basic language detection
+// Basic language detection with enhanced error handling
 function detectLanguage(text) {
-  const patterns = {
-    english: /^[a-zA-Z\s.,!?;:'"()-]+$/,
-    turkish: /[çğıöşüÇĞIİÖŞÜ]/,
-    arabic: /[\u0600-\u06FF]/,
-    chinese: /[\u4e00-\u9fff]/,
-    japanese: /[\u3040-\u309f\u30a0-\u30ff]/,
-    korean: /[\uac00-\ud7af]/,
-    cyrillic: /[\u0400-\u04ff]/,
-    hindi: /[\u0900-\u097f]/
-  };
-  
-  for (const [lang, pattern] of Object.entries(patterns)) {
-    if (pattern.test(text)) {
-      return lang;
+  try {
+    if (!text || typeof text !== 'string') return 'unknown';
+    
+    const patterns = {
+      english: /^[a-zA-Z\s.,!?;:'"()-]+$/,
+      turkish: /[çğıöşüÇĞIİÖŞÜ]/,
+      arabic: /[\u0600-\u06FF]/,
+      chinese: /[\u4e00-\u9fff]/,
+      japanese: /[\u3040-\u309f\u30a0-\u30ff]/,
+      korean: /[\uac00-\ud7af]/,
+      cyrillic: /[\u0400-\u04ff]/,
+      hindi: /[\u0900-\u097f]/
+    };
+    
+    for (const [lang, pattern] of Object.entries(patterns)) {
+      if (pattern.test(text)) {
+        return lang;
+      }
     }
+    
+    return 'unknown';
+  } catch (error) {
+    handleError(error, 'detectLanguage');
+    return 'unknown';
   }
-  
-  return 'unknown';
 }
 
-// Convert HTML to Markdown (basic)
+// Convert HTML to Markdown (basic) with enhanced error handling
 function convertToMarkdown(el) {
-  let markdown = el.innerHTML;
-  
-  // Basic conversions
-  markdown = markdown.replace(/<strong>|<b>/g, '**').replace(/<\/strong>|<\/b>/g, '**');
-  markdown = markdown.replace(/<em>|<i>/g, '*').replace(/<\/em>|<\/i>/g, '*');
-  markdown = markdown.replace(/<u>/g, '').replace(/<\/u>/g, '');
-  markdown = markdown.replace(/<br\s*\/?>/g, '\n');
-  markdown = markdown.replace(/<p>/g, '\n\n').replace(/<\/p>/g, '');
-  markdown = markdown.replace(/<h1>/g, '# ').replace(/<\/h1>/g, '\n');
-  markdown = markdown.replace(/<h2>/g, '## ').replace(/<\/h2>/g, '\n');
-  markdown = markdown.replace(/<h3>/g, '### ').replace(/<\/h3>/g, '\n');
-  markdown = markdown.replace(/<a[^>]*href="([^"]*)"[^>]*>([^<]*)<\/a>/g, '[$2]($1)');
-  
-  // Remove remaining HTML tags
-  markdown = markdown.replace(/<[^>]*>/g, '');
-  
-  return markdown.trim();
+  try {
+    if (!el || !el.innerHTML) return '';
+    
+    let markdown = el.innerHTML;
+    
+    // Basic conversions
+    markdown = markdown.replace(/<strong>|<b>/g, '**').replace(/<\/strong>|<\/b>/g, '**');
+    markdown = markdown.replace(/<em>|<i>/g, '*').replace(/<\/em>|<\/i>/g, '*');
+    markdown = markdown.replace(/<u>/g, '').replace(/<\/u>/g, '');
+    markdown = markdown.replace(/<br\s*\/?>/g, '\n');
+    markdown = markdown.replace(/<p>/g, '\n\n').replace(/<\/p>/g, '');
+    markdown = markdown.replace(/<h1>/g, '# ').replace(/<\/h1>/g, '\n');
+    markdown = markdown.replace(/<h2>/g, '## ').replace(/<\/h2>/g, '\n');
+    markdown = markdown.replace(/<h3>/g, '### ').replace(/<\/h3>/g, '\n');
+    markdown = markdown.replace(/<a[^>]*href="([^"]*)"[^>]*>([^<]*)<\/a>/g, '[$2]($1)');
+    
+    // Remove remaining HTML tags
+    markdown = markdown.replace(/<[^>]*>/g, '');
+    
+    return markdown.trim();
+  } catch (error) {
+    handleError(error, 'convertToMarkdown');
+    return '';
+  }
 }
 
-// Keyboard navigation
+// Keyboard navigation with enhanced error handling
 function onKeyDown(e) {
-  if (!overlay || !currentElement) return;
-  
-  switch (e.key) {
-    case 'Enter':
-      e.preventDefault();
-      onClick({ target: currentElement, preventDefault: () => {}, stopPropagation: () => {} });
-      break;
-    case 'Escape':
-      e.preventDefault();
-      deactivateCb();
-      break;
+  try {
+    if (!overlay || !currentElement) return;
+    
+    switch (e.key) {
+      case 'Enter':
+        e.preventDefault();
+        onClick({ target: currentElement, preventDefault: () => {}, stopPropagation: () => {} });
+        break;
+      case 'Escape':
+        e.preventDefault();
+        deactivateCb();
+        break;
+    }
+  } catch (error) {
+    handleError(error, 'onKeyDown');
   }
 }
 
@@ -209,14 +237,18 @@ export function activate(deactivate) {
     `;
     
     document.body.style.cursor = 'crosshair';
-    document.addEventListener('mousemove', throttledOnMove, true);
-    document.addEventListener('click', onClick, true);
-    document.addEventListener('keydown', onKeyDown, true);
+    
+    // Add event listeners with cleanup tracking
+    const cleanupMove = addEventListenerWithCleanup(document, 'mousemove', throttledOnMove, true);
+    const cleanupClick = addEventListenerWithCleanup(document, 'click', onClick, true);
+    const cleanupKeydown = addEventListenerWithCleanup(document, 'keydown', onKeyDown, true);
+    
+    cleanupFunctions.push(cleanupMove, cleanupClick, cleanupKeydown);
     
     showInfo('Hover over text elements to analyze • Click to select • Enter to select • Esc to cancel', 3000);
     
   } catch (error) {
-    console.error('Text picker activation error:', error);
+    handleError(error, 'textPicker activation');
     showError('Failed to activate text picker. Please try again.');
     deactivate();
   }
@@ -224,9 +256,15 @@ export function activate(deactivate) {
 
 export function deactivate() {
   try {
-    document.removeEventListener('mousemove', throttledOnMove, true);
-    document.removeEventListener('click', onClick, true);
-    document.removeEventListener('keydown', onKeyDown, true);
+    // Cleanup all event listeners
+    cleanupFunctions.forEach(cleanup => {
+      try {
+        cleanup();
+      } catch (error) {
+        handleError(error, 'event listener cleanup');
+      }
+    });
+    cleanupFunctions.length = 0;
     
     removeOverlay(overlay);
     overlay = null;
@@ -235,6 +273,6 @@ export function deactivate() {
     document.body.style.cursor = '';
     
   } catch (error) {
-    console.error('Text picker deactivation error:', error);
+    handleError(error, 'textPicker deactivation');
   }
 }

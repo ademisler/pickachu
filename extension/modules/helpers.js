@@ -2,6 +2,39 @@
 let langMap = {};
 let userTheme = 'system';
 
+// Event listener cleanup system
+const activeListeners = new Map();
+
+export function addEventListenerWithCleanup(element, event, handler, options = {}) {
+  const key = `${element.constructor.name}-${event}`;
+  if (!activeListeners.has(key)) {
+    activeListeners.set(key, []);
+  }
+  
+  element.addEventListener(event, handler, options);
+  activeListeners.get(key).push({ element, handler, options });
+  
+  return () => {
+    element.removeEventListener(event, handler, options);
+    const listeners = activeListeners.get(key);
+    const index = listeners.findIndex(l => l.element === element && l.handler === handler);
+    if (index !== -1) {
+      listeners.splice(index, 1);
+    }
+  };
+}
+
+export function cleanupAllEventListeners() {
+  for (const [key, listeners] of activeListeners) {
+    for (const { element, handler, options } of listeners) {
+      element.removeEventListener(key.split('-')[1], handler, options);
+    }
+    listeners.length = 0;
+  }
+  activeListeners.clear();
+  console.debug('All event listeners cleaned up');
+}
+
 // Convert emoji to icon
 export function getIcon(icon) {
   const iconMap = {
@@ -18,39 +51,107 @@ export function getIcon(icon) {
   return iconMap[icon] || icon;
 }
 
-// Performance utilities
-export function debounce(func, wait) {
+// Performance utilities with enhanced error handling
+export function debounce(func, wait, immediate = false) {
   let timeout;
   return function executedFunction(...args) {
     const later = () => {
-      clearTimeout(timeout);
-      func(...args);
+      timeout = null;
+      if (!immediate) func.apply(this, args);
     };
+    const callNow = immediate && !timeout;
     clearTimeout(timeout);
     timeout = setTimeout(later, wait);
+    if (callNow) func.apply(this, args);
   };
 }
 
-export function throttle(func, limit) {
+export function throttle(func, limit, options = {}) {
   let inThrottle;
+  let lastFunc;
+  let lastRan;
+  
   return function(...args) {
     if (!inThrottle) {
       func.apply(this, args);
+      lastRan = Date.now();
       inThrottle = true;
-      setTimeout(() => inThrottle = false, limit);
+    } else {
+      clearTimeout(lastFunc);
+      lastFunc = setTimeout(() => {
+        if ((Date.now() - lastRan) >= limit) {
+          func.apply(this, args);
+          lastRan = Date.now();
+        }
+      }, limit - (Date.now() - lastRan));
     }
   };
 }
 
+// Optimized DOM query caching
+const queryCache = new Map();
+const QUERY_CACHE_SIZE = 50;
+
+export function cachedQuerySelector(selector, context = document) {
+  const key = `${context.constructor.name}-${selector}`;
+  
+  if (queryCache.has(key)) {
+    return queryCache.get(key);
+  }
+  
+  if (queryCache.size >= QUERY_CACHE_SIZE) {
+    queryCache.clear();
+  }
+  
+  const result = context.querySelector(selector);
+  queryCache.set(key, result);
+  return result;
+}
+
+export function cachedQuerySelectorAll(selector, context = document) {
+  const key = `${context.constructor.name}-${selector}-all`;
+  
+  if (queryCache.has(key)) {
+    return queryCache.get(key);
+  }
+  
+  if (queryCache.size >= QUERY_CACHE_SIZE) {
+    queryCache.clear();
+  }
+  
+  const result = Array.from(context.querySelectorAll(selector));
+  queryCache.set(key, result);
+  return result;
+}
+
 // Cache for computed styles and DOM queries
 const styleCache = new Map();
+const MAX_CACHE_SIZE = 100;
+const CACHE_CLEANUP_THRESHOLD = 80;
 
 export function getCachedComputedStyle(element) {
   const key = `${element.tagName}-${element.id}-${element.className}`;
   if (!styleCache.has(key)) {
+    // Check cache size and cleanup if needed
+    if (styleCache.size >= MAX_CACHE_SIZE) {
+      clearStyleCache();
+    }
     styleCache.set(key, getComputedStyle(element));
   }
   return styleCache.get(key);
+}
+
+export function clearStyleCache() {
+  styleCache.clear();
+  console.debug('Style cache cleared');
+}
+
+export function getCacheStats() {
+  return {
+    size: styleCache.size,
+    maxSize: MAX_CACHE_SIZE,
+    usage: Math.round((styleCache.size / MAX_CACHE_SIZE) * 100)
+  };
 }
 
 
@@ -76,7 +177,7 @@ if (typeof chrome !== 'undefined') {
       const { language } = await chrome.storage.local.get('language');
       await loadLanguage(language || 'en');
     } catch (error) {
-      console.error('Error loading initial language:', error);
+      handleError(error, 'loadInitialLanguage');
     }
   })();
   
@@ -96,9 +197,9 @@ if (typeof chrome !== 'undefined') {
     try {
       const { theme } = await chrome.storage.local.get('theme');
       if (theme) userTheme = theme;
-    } catch (error) {
-      console.error('Error loading initial theme:', error);
-    }
+      } catch (error) {
+        handleError(error, 'loadInitialTheme');
+      }
   })();
 }
 
@@ -110,8 +211,12 @@ function applyTheme(el){
 function t(id) {
   if (langMap[id]) return langMap[id].message;
   if (chrome && chrome.i18n) {
-    const msg = chrome.i18n.getMessage(id);
-    if (msg) return msg;
+    try {
+      const msg = chrome.i18n.getMessage(id);
+      if (msg) return msg;
+    } catch (error) {
+      // Message not found - using fallback
+    }
   }
   return id;
 }
@@ -124,7 +229,9 @@ export function createOverlay() {
 }
 
 export function removeOverlay(box) {
-  if (box && box.parentNode) box.parentNode.removeChild(box);
+  if (box && box.parentNode) {
+    box.remove(); // Modern approach
+  }
 }
 
 export function createTooltip() {
@@ -135,69 +242,183 @@ export function createTooltip() {
 }
 
 export function removeTooltip(tip) {
-  if (tip && tip.parentNode) tip.parentNode.removeChild(tip);
+  if (tip && tip.parentNode) {
+    tip.remove(); // Modern approach
+  }
 }
 
 export async function copyText(text) {
   try {
     await navigator.clipboard.writeText(text);
-    console.log('Text copied to clipboard successfully');
+    // Text copied successfully
   } catch (err) {
-    console.error('Copy failed:', err);
-    // Fallback for older browsers
+    handleError(err, 'copyText primary method');
+    // Modern fallback approach
     try {
-      const textArea = document.createElement('textarea');
-      textArea.value = text;
-      textArea.style.position = 'fixed';
-      textArea.style.left = '-999999px';
-      textArea.style.top = '-999999px';
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
-      const successful = document.execCommand('copy');
-      document.body.removeChild(textArea);
-      
-      if (!successful) {
-        throw new Error('Fallback copy failed');
-      }
-      console.log('Text copied using fallback method');
+      const data = new ClipboardItem({
+        'text/plain': new Blob([text], { type: 'text/plain' })
+      });
+      await navigator.clipboard.write([data]);
+      // Text copied using modern fallback method
     } catch (fallbackErr) {
-      console.error('All copy methods failed:', fallbackErr);
+      handleError(fallbackErr, 'copyText fallback method');
       showToast('Copy failed. Please try manually.', 3000);
+      throw new Error('Copy operation failed');
     }
   }
 }
 
-// Enhanced error handling
+// Enhanced error handling system
+export class PickachuError extends Error {
+  constructor(message, type = 'UNKNOWN', context = {}) {
+    super(message);
+    this.name = 'PickachuError';
+    this.type = type;
+    this.context = context;
+    this.timestamp = Date.now();
+  }
+}
+
+export function handleError(error, context = '') {
+  const errorInfo = {
+    message: error.message,
+    type: error.type || 'UNKNOWN',
+    context: context,
+    timestamp: Date.now(),
+    stack: error.stack
+  };
+  
+  console.error(`[Pickachu Error] ${context}:`, errorInfo);
+  
+  // Send to error reporting service if available
+  if (typeof chrome !== 'undefined' && chrome.runtime) {
+    chrome.runtime.sendMessage({
+      type: 'ERROR_REPORT',
+      error: errorInfo
+    }).catch(() => {
+      // Ignore if background script is not available
+    });
+  }
+  
+  return errorInfo;
+}
+
+export function safeExecute(fn, context = '', fallback = null) {
+  try {
+    return fn();
+  } catch (error) {
+    handleError(error, context);
+    return fallback;
+  }
+}
+
+export async function safeExecuteAsync(fn, context = '', fallback = null) {
+  try {
+    return await fn();
+  } catch (error) {
+    handleError(error, context);
+    return fallback;
+  }
+}
+
+// Security utilities
+export function sanitizeInput(input) {
+  if (typeof input !== 'string') return '';
+  
+  return input
+    .replace(/[<>]/g, '') // Remove potential HTML tags
+    .replace(/javascript:/gi, '') // Remove javascript: protocol
+    .replace(/on\w+=/gi, '') // Remove event handlers
+    .trim();
+}
+
+export function escapeHtml(text) {
+  if (typeof text !== 'string') return '';
+  
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+export function safeSetInnerHTML(element, content) {
+  if (!element || typeof content !== 'string') return;
+  
+  // Use textContent instead of innerHTML for security
+  element.textContent = content;
+}
+
+// Safe function to create textarea with content
+export function createSafeTextarea(content, styles = 'width: 100%; height: 200px;') {
+  const textarea = document.createElement('textarea');
+  textarea.style.cssText = styles;
+  textarea.textContent = content; // Safe: using textContent instead of innerHTML
+  return textarea;
+}
+
+export function validateUrl(url) {
+  try {
+    const urlObj = new URL(url);
+    // Only allow http and https protocols
+    return ['http:', 'https:'].includes(urlObj.protocol);
+  } catch {
+    return false;
+  }
+}
+
+export function validateSelector(selector) {
+  if (typeof selector !== 'string') return false;
+  
+  // Basic validation for CSS selectors
+  const dangerousPatterns = [
+    /javascript:/i,
+    /on\w+=/i,
+    /<script/i,
+    /<iframe/i,
+    /<object/i,
+    /<embed/i
+  ];
+  
+  return !dangerousPatterns.some(pattern => pattern.test(selector));
+}
+
 export function showError(message, duration = 3000) {
-  showToast(`❌ ${message}`, duration);
+  showToast(`❌ ${message}`, duration, 'error');
 }
 
 export function showSuccess(message, duration = 2000) {
-  showToast(`✅ ${message}`, duration);
+  showToast(`✅ ${message}`, duration, 'success');
 }
 
 export function showWarning(message, duration = 2500) {
-  showToast(`⚠️ ${message}`, duration);
+  showToast(`⚠️ ${message}`, duration, 'warning');
 }
 
 export function showInfo(message, duration = 2000) {
-  showToast(`ℹ️ ${message}`, duration);
+  showToast(`ℹ️ ${message}`, duration, 'info');
 }
 
-export function showToast(message, duration = 1500) {
+export function showToast(message, duration = 1500, type = 'info') {
   // Remove existing toasts
   document.querySelectorAll('#pickachu-toast').forEach(toast => toast.remove());
   
   const toast = document.createElement('div');
   toast.id = 'pickachu-toast';
   toast.textContent = message;
+  
+  // Type-specific styling
+  const typeStyles = {
+    error: 'background: var(--pickachu-error-color, #dc3545);',
+    success: 'background: var(--pickachu-success-color, #28a745);',
+    warning: 'background: var(--pickachu-warning-color, #ffc107); color: var(--pickachu-text, #333);',
+    info: 'background: var(--pickachu-button-bg, rgba(0,0,0,0.9));'
+  };
+  
   toast.style.cssText = `
     position: fixed;
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
-    background: var(--pickachu-button-bg, rgba(0,0,0,0.9));
+    ${typeStyles[type] || typeStyles.info}
     color: var(--pickachu-text, #fff);
     padding: 12px 20px;
     border-radius: 8px;
@@ -208,6 +429,7 @@ export function showToast(message, duration = 1500) {
     animation: pickachu-toast-slide-in 0.3s ease-out;
     max-width: 90vw;
     word-wrap: break-word;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   `;
   
   // Add animation styles
@@ -241,7 +463,7 @@ async function getHistory() {
     const data = await chrome.storage.local.get('pickachuHistory');
     return data.pickachuHistory || [];
   } catch (error) {
-    console.error('Error getting history:', error);
+    handleError(error, 'getHistory');
     return [];
   }
 }
@@ -253,7 +475,7 @@ export async function saveHistory(item) {
     if (hist.length > 20) hist.pop();
     await chrome.storage.local.set({ pickachuHistory: hist });
   } catch (error) {
-    console.error('Error saving history:', error);
+    handleError(error, 'saveHistory');
   }
 }
 
@@ -268,7 +490,7 @@ async function toggleFavorite(id) {
     }
     return false;
   } catch (error) {
-    console.error('Error toggling favorite:', error);
+    handleError(error, 'toggleFavorite');
     return false;
   }
 }
@@ -568,7 +790,7 @@ export async function showHistory() {
     document.body.appendChild(overlay);
 
   } catch (error) {
-    console.error('Error showing history:', error);
+    handleError(error, 'showHistory');
     showError('Failed to load history');
   }
 }
@@ -666,11 +888,11 @@ export async function showModal(title, content, icon = '', type = '') {
     color: var(--pickachu-text, #333);
   `;
   
-  // Enhanced content with preview based on type
+  // Enhanced content with preview based on type - SECURITY FIX: Use safe textarea creation
   if (type === 'color' && content.includes('#')) {
     const colorMatch = content.match(/#[0-9a-fA-F]{6}/);
     if (colorMatch) {
-      const color = colorMatch[0];
+      const color = escapeHtml(colorMatch[0]);
       body.innerHTML = `
         <div style="display: flex; gap: 16px; margin-bottom: 16px;">
           <div style="width: 60px; height: 60px; background-color: ${color}; border-radius: 8px; border: 2px solid var(--pickachu-border, #ddd);"></div>
@@ -679,24 +901,24 @@ export async function showModal(title, content, icon = '', type = '') {
             <div class="code-preview">${color}</div>
           </div>
         </div>
-        <textarea style="width: 100%; height: 200px;">${content}</textarea>
       `;
+      body.appendChild(createSafeTextarea(content));
     } else {
-      body.innerHTML = `<textarea style="width: 100%; height: 200px;">${content}</textarea>`;
+      body.appendChild(createSafeTextarea(content));
     }
   } else if (type === 'image' && content.includes('http')) {
     const urlMatch = content.match(/https?:\/\/[^\s]+/);
     if (urlMatch) {
-      const imageUrl = urlMatch[0];
+      const imageUrl = escapeHtml(urlMatch[0]);
       body.innerHTML = `
         <div style="margin-bottom: 16px;">
           <div style="font-weight: 600; margin-bottom: 8px;">Image Preview</div>
           <img src="${imageUrl}" style="max-width: 200px; max-height: 150px; border-radius: 6px; border: 1px solid var(--pickachu-border, #ddd);" onerror="this.style.display='none'">
         </div>
-        <textarea style="width: 100%; height: 200px;">${content}</textarea>
       `;
+      body.appendChild(createSafeTextarea(content));
     } else {
-      body.innerHTML = `<textarea style="width: 100%; height: 200px;">${content}</textarea>`;
+      body.appendChild(createSafeTextarea(content));
     }
   } else if (type === 'font') {
     body.innerHTML = `
@@ -707,10 +929,10 @@ export async function showModal(title, content, icon = '', type = '') {
           <div style="font-size: 14px;" class="secondary-text">ABCDEFGHIJKLMNOPQRSTUVWXYZ</div>
         </div>
       </div>
-      <textarea style="width: 100%; height: 200px;">${content}</textarea>
     `;
+    body.appendChild(createSafeTextarea(content));
   } else {
-    body.innerHTML = `<textarea style="width: 100%; height: 200px;">${content}</textarea>`;
+    body.appendChild(createSafeTextarea(content));
   }
   
   const buttons = document.createElement('div');
