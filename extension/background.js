@@ -58,36 +58,6 @@ chrome.commands.onCommand.addListener(async (command) => {
     chrome.action.openPopup();
     return;
   }
-  
-  const tool = command.replace(/^activate-/, '');
-  try {
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const tab = tabs[0];
-    
-    if (!tab) {
-      console.error('No active tab found');
-      return;
-    }
-
-    const injected = await ensureContentScriptInjected(tab.id);
-    if (!injected) {
-      console.error('Failed to inject content script');
-      return;
-    }
-
-    // Wait a bit for content script to be ready
-    setTimeout(() => {
-      chrome.tabs.sendMessage(tab.id, {
-        type: 'ACTIVATE_TOOL_ON_PAGE',
-        tool
-      }).catch(error => {
-        console.error('Failed to send message to content script:', error);
-      });
-    }, 100);
-    
-  } catch (error) {
-    console.error('Error in command handler:', error);
-  }
 });
 
 // Clean up cache when tab is closed

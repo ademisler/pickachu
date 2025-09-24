@@ -31,20 +31,11 @@ The popup provides buttons to activate each tool. Data from the page is copied t
 clipboard and displayed in a short notification.
 
 ## Keyboard Shortcuts
-Pickachu defines shortcuts using the Chrome `commands` API. All tools can be activated directly with keyboard shortcuts:
+Pickachu defines a single shortcut using the Chrome `commands` API to open the popup:
 
 | Action | Shortcut |
 | ------ | -------- |
 | Open popup | `Ctrl+Shift+9` / `Cmd+Shift+9` (macOS) |
-| Color Picker | `Ctrl+Shift+C` / `Cmd+Shift+C` (macOS) |
-| Element Picker | `Ctrl+Shift+E` / `Cmd+Shift+E` (macOS) |
-| Link Picker | `Ctrl+Shift+L` / `Cmd+Shift+L` (macOS) |
-| Font Picker | `Ctrl+Shift+F` / `Cmd+Shift+F` (macOS) |
-| Image Picker | `Ctrl+Shift+M` / `Cmd+Shift+M` (macOS) |
-| Text Picker | `Ctrl+Shift+T` / `Cmd+Shift+T` (macOS) |
-| Screenshot Picker | `Ctrl+Shift+S` / `Cmd+Shift+S` (macOS) |
-| Sticky Notes | `Ctrl+Shift+N` / `Cmd+Shift+N` (macOS) |
-| Site Info | `Ctrl+Shift+D` / `Cmd+Shift+D` (macOS) |
 
 ## Repository Structure
 ```

@@ -62,69 +62,6 @@
         "mac": "Command+Shift+9"
       },
       "description": "__MSG_openPickachu__"
-    },
-    "activate-colorPicker": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+C",
-        "mac": "Command+Shift+C"
-      },
-      "description": "Activate Color Picker"
-    },
-    "activate-elementPicker": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+E",
-        "mac": "Command+Shift+E"
-      },
-      "description": "Activate Element Picker"
-    },
-    "activate-linkPicker": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+L",
-        "mac": "Command+Shift+L"
-      },
-      "description": "Activate Link Picker"
-    },
-    "activate-fontPicker": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+F",
-        "mac": "Command+Shift+F"
-      },
-      "description": "Activate Font Picker"
-    },
-    "activate-imagePicker": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+M",
-        "mac": "Command+Shift+M"
-      },
-      "description": "Activate Image Picker"
-    },
-    "activate-textPicker": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+T",
-        "mac": "Command+Shift+T"
-      },
-      "description": "Activate Text Picker"
-    },
-    "activate-screenshotPicker": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+S",
-        "mac": "Command+Shift+S"
-      },
-      "description": "Activate Screenshot Picker"
-    },
-    "activate-stickyNotesPicker": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+N",
-        "mac": "Command+Shift+N"
-      },
-      "description": "Activate Sticky Notes Picker"
-    },
-    "activate-siteInfoPicker": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+D",
-        "mac": "Command+Shift+D"
-      },
-      "description": "Activate Site Info Picker"
     }
   }
 }
