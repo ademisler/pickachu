@@ -455,15 +455,25 @@ async function getDomainMetrics() {
     const domain = safeExecute(() => new URL(window.location.href).hostname, 'get domain') || 'unknown';
     
     // Try to get domain age from WHOIS-like services
-    const domainAge = await safeExecuteAsync(() => getDomainAge(domain), 'get domain age') || 'Check manually';
+    let domainAge = 'Check manually';
+    try {
+      domainAge = await getDomainAge(domain);
+    } catch (error) {
+      console.log('Domain age check failed:', error);
+    }
     
     // Try to get DA/PA from various sources
-    const authority = await safeExecuteAsync(() => getDomainAuthority(domain), 'get domain authority') || {
+    let authority = {
       da: 'Check manually',
       pa: 'Check manually',
       backlinks: 'Check manually',
       referringDomains: 'Check manually'
     };
+    try {
+      authority = await getDomainAuthority(domain);
+    } catch (error) {
+      console.log('Domain authority check failed:', error);
+    }
     
     return {
       domain: domain,
@@ -546,8 +556,21 @@ async function getDomainAuthority(domain) {
     
     // Method 3: Estimate based on site characteristics
     const linkCount = safeExecute(() => document.querySelectorAll('a[href*="http"]').length, 'count links') || 0;
-    const externalLinks = safeExecute(() => Array.from(document.querySelectorAll('a[href*="http"]'))
-      .filter(link => !link.href.includes(domain)).length, 'count external links') || 0;
+    const externalLinks = safeExecute(() => {
+      const links = document.querySelectorAll('a[href*="http"]');
+      let count = 0;
+      for (let i = 0; i < links.length; i++) {
+        try {
+          if (links[i] && links[i].href && !links[i].href.includes(domain)) {
+            count++;
+          }
+        } catch (e) {
+          // Skip problematic links
+          continue;
+        }
+      }
+      return count;
+    }, 'count external links') || 0;
     
     if (linkCount > 100 && externalLinks > 20) {
       metrics.backlinks = `Estimated ${Math.floor(linkCount * 0.1)}-${Math.floor(linkCount * 0.3)}`;
@@ -684,7 +707,21 @@ async function generateSiteReport() {
     const accessibility = safeExecute(() => getAccessibilityInfo(), 'get accessibility info') || {};
     const social = safeExecute(() => getSocialMediaInfo(), 'get social media info') || {};
     const structure = safeExecute(() => analyzeSiteStructure(), 'analyze site structure') || {};
-    const domainMetrics = await safeExecuteAsync(() => getDomainMetrics(), 'get domain metrics') || {};
+    let domainMetrics = {};
+    try {
+      domainMetrics = await getDomainMetrics();
+    } catch (error) {
+      console.log('Domain metrics check failed:', error);
+      domainMetrics = {
+        domain: 'unknown',
+        age: 'Check manually',
+        da: 'Check manually',
+        pa: 'Check manually',
+        backlinks: 'Check manually',
+        referringDomains: 'Check manually',
+        lastChecked: new Date().toLocaleDateString()
+      };
+    }
     
     // Calculate scores with enhanced error handling
     const techScore = safeExecute(() => technologies.length, 'calculate tech score') || 0;
@@ -763,7 +800,20 @@ async function generateSiteReport() {
     };
     
     // Generate report text with enhanced error handling
-    const reportText = safeExecute(() => generateReportText(report), 'generate report text') || 'Failed to generate report text';
+    let reportText = 'Failed to generate report text';
+    try {
+      reportText = generateReportText(report);
+    } catch (error) {
+      console.log('Report text generation failed:', error);
+      reportText = `🌐 WEBSITE ANALYSIS REPORT
+
+📊 BASIC INFORMATION
+URL: ${report.basic?.url || 'Unknown'}
+Domain: ${report.basic?.domain || 'Unknown'}
+Title: ${report.basic?.title || 'Unknown'}
+
+⚠️ Some data could not be processed. Please try again.`;
+    }
     
     showSuccess('Site analysis completed!');
     showModal('🔍 Site Analysis Report', reportText, '🔍', 'site-info');
@@ -777,63 +827,73 @@ async function generateSiteReport() {
 // Generate human-readable report text with enhanced error handling
 function generateReportText(report) {
   try {
-    const techList = safeExecute(() => report.technologies.map(t => t.name).join(', '), 'join technologies') || 'None detected';
-    const socialList = safeExecute(() => report.social.join(', '), 'join social media') || 'None detected';
+    let techList = 'None detected';
+    try {
+      techList = report.technologies?.map(t => t.name).join(', ') || 'None detected';
+    } catch (error) {
+      console.log('Tech list generation failed:', error);
+    }
     
-    return safeExecute(() => `🌐 WEBSITE ANALYSIS REPORT
+    let socialList = 'None detected';
+    try {
+      socialList = report.social?.join(', ') || 'None detected';
+    } catch (error) {
+      console.log('Social list generation failed:', error);
+    }
+    
+    return `🌐 WEBSITE ANALYSIS REPORT
 
 📊 BASIC INFORMATION
-URL: ${report.basic.url}
-Domain: ${report.basic.domain}
-Title: ${report.basic.title}
-Language: ${report.basic.language}
-Charset: ${report.basic.charset}
+URL: ${report.basic?.url || 'Unknown'}
+Domain: ${report.basic?.domain || 'Unknown'}
+Title: ${report.basic?.title || 'Unknown'}
+Language: ${report.basic?.language || 'Unknown'}
+Charset: ${report.basic?.charset || 'Unknown'}
 
-🔧 TECHNOLOGIES DETECTED (${report.technologies.length})
+🔧 TECHNOLOGIES DETECTED (${report.technologies?.length || 0})
 ${techList}
 
 ⚡ PERFORMANCE METRICS
-Load Time: ${report.performance.loadTime}ms
-DOM Ready: ${report.performance.domContentLoaded}ms
-First Paint: ${report.performance.firstPaint}ms
-Transfer Size: ${report.performance.transferSize}KB
-Score: ${report.performance.score}
+Load Time: ${report.performance?.loadTime || 'N/A'}ms
+DOM Ready: ${report.performance?.domContentLoaded || 'N/A'}ms
+First Paint: ${report.performance?.firstPaint || 'N/A'}ms
+Transfer Size: ${report.performance?.transferSize || 'N/A'}KB
+Score: ${report.performance?.score || 'Unknown'}
 
 🔒 SECURITY ANALYSIS
-HTTPS: ${report.security.https ? '✅' : '❌'}
-CSP: ${report.security.hasCSP ? '✅' : '❌'}
-HSTS: ${report.security.hasHSTS ? '✅' : '❌'}
-Score: ${report.security.score}
+HTTPS: ${report.security?.https ? '✅' : '❌'}
+CSP: ${report.security?.hasCSP ? '✅' : '❌'}
+HSTS: ${report.security?.hasHSTS ? '✅' : '❌'}
+Score: ${report.security?.score || 'Unknown'}
 
 🔍 SEO ANALYSIS
-Title: ${report.seo.title.length > 50 ? report.seo.title.substring(0, 50) + '...' : report.seo.title}
-Description: ${report.seo.description.length > 100 ? report.seo.description.substring(0, 100) + '...' : report.seo.description}
-Canonical: ${report.seo.canonical !== 'Not set' ? '✅' : '❌'}
-Open Graph: ${report.seo.ogTitle !== 'Not set' ? '✅' : '❌'}
-Schema: ${report.seo.hasSchema ? '✅' : '❌'}
-Score: ${report.seo.score}
+Title: ${report.seo?.title?.length > 50 ? report.seo.title.substring(0, 50) + '...' : report.seo?.title || 'Unknown'}
+Description: ${report.seo?.description?.length > 100 ? report.seo.description.substring(0, 100) + '...' : report.seo?.description || 'Unknown'}
+Canonical: ${report.seo?.canonical !== 'Not set' ? '✅' : '❌'}
+Open Graph: ${report.seo?.ogTitle !== 'Not set' ? '✅' : '❌'}
+Schema: ${report.seo?.hasSchema ? '✅' : '❌'}
+Score: ${report.seo?.score || 'Unknown'}
 
 ♿ ACCESSIBILITY
-Language: ${report.accessibility.hasLang ? '✅' : '❌'}
-Alt Text: ${report.accessibility.hasAltText ? '✅' : '❌'}
-Form Labels: ${report.accessibility.hasFormLabels ? '✅' : '❌'}
-Headings: ${report.accessibility.hasHeadings ? '✅' : '❌'}
-Landmarks: ${report.accessibility.hasLandmarks ? '✅' : '❌'}
-Score: ${report.accessibility.score}
+Language: ${report.accessibility?.hasLang ? '✅' : '❌'}
+Alt Text: ${report.accessibility?.hasAltText ? '✅' : '❌'}
+Form Labels: ${report.accessibility?.hasFormLabels ? '✅' : '❌'}
+Headings: ${report.accessibility?.hasHeadings ? '✅' : '❌'}
+Landmarks: ${report.accessibility?.hasLandmarks ? '✅' : '❌'}
+Score: ${report.accessibility?.score || 'Unknown'}
 
 📱 SOCIAL MEDIA
 Platforms: ${socialList}
 
 🏗️ SITE STRUCTURE
-Type: ${report.structure.type}
-Has Header: ${report.structure.hasHeader ? '✅' : '❌'}
-Has Footer: ${report.structure.hasFooter ? '✅' : '❌'}
-Has Navigation: ${report.structure.hasNavigation ? '✅' : '❌'}
-Has Search: ${report.structure.hasSearch ? '✅' : '❌'}
-Page Depth: ${report.structure.pageDepth}
+Type: ${report.structure?.type || 'Unknown'}
+Has Header: ${report.structure?.hasHeader ? '✅' : '❌'}
+Has Footer: ${report.structure?.hasFooter ? '✅' : '❌'}
+Has Navigation: ${report.structure?.hasNavigation ? '✅' : '❌'}
+Has Search: ${report.structure?.hasSearch ? '✅' : '❌'}
+Page Depth: ${report.structure?.pageDepth || 0}
 
-
-`, 'generate report text') || 'Failed to generate report text';
+`;
   } catch (error) {
     handleError(error, 'generateReportText');
     return 'Failed to generate report text';
