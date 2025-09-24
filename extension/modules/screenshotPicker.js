@@ -93,59 +93,54 @@ function fallbackDownload(dataUrl, filename) {
   }
 }
 
-// Get page dimensions
-async function getPageDimensions() {
+// Get page dimensions - simplified approach
+function getPageDimensions() {
   try {
-    const dimensions = await new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Timeout getting page dimensions'));
-      }, 5000);
-      
-      chrome.runtime.sendMessage({
-        type: 'GET_PAGE_DIMENSIONS'
-      }, (response) => {
-        clearTimeout(timeout);
-        
-        if (chrome.runtime.lastError) {
-          console.log('Failed to get page dimensions:', chrome.runtime.lastError);
-          resolve({ 
-            width: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth, window.innerWidth),
-            height: Math.max(document.documentElement.scrollHeight, document.body.scrollHeight, window.innerHeight)
-          });
-        } else if (response && response.success && response.dimensions) {
-          resolve(response.dimensions);
-        } else {
-          resolve({ 
-            width: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth, window.innerWidth),
-            height: Math.max(document.documentElement.scrollHeight, document.body.scrollHeight, window.innerHeight)
-          });
-        }
-      });
-    });
-    
-    return {
-      width: dimensions.width || Math.max(document.documentElement.scrollWidth, document.body.scrollWidth, window.innerWidth),
-      height: Math.max(dimensions.height || document.body.scrollHeight, window.innerHeight),
-      scrollHeight: document.documentElement.scrollHeight || document.body.scrollHeight,
-      scrollWidth: document.documentElement.scrollWidth || document.body.scrollWidth
+    const dimensions = {
+      width: Math.max(
+        document.documentElement.scrollWidth || 0,
+        document.body.scrollWidth || 0,
+        window.innerWidth || 0
+      ),
+      height: Math.max(
+        document.documentElement.scrollHeight || 0,
+        document.body.scrollHeight || 0,
+        window.innerHeight || 0
+      ),
+      scrollHeight: document.documentElement.scrollHeight || document.body.scrollHeight || 0,
+      scrollWidth: document.documentElement.scrollWidth || document.body.scrollWidth || 0
     };
+    
+    console.log('Page dimensions calculated:', dimensions);
+    return dimensions;
   } catch (error) {
     handleError(error, 'getPageDimensions');
     return {
-      width: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth, window.innerWidth),
-      height: Math.max(document.documentElement.scrollHeight, document.body.scrollHeight, window.innerHeight),
-      scrollHeight: document.documentElement.scrollHeight || document.body.scrollHeight,
-      scrollWidth: document.documentElement.scrollWidth || document.body.scrollWidth
+      width: window.innerWidth || 1024,
+      height: window.innerHeight || 768,
+      scrollHeight: window.innerHeight || 768,
+      scrollWidth: window.innerWidth || 1024
     };
   }
 }
 
-// Capture visible area screenshot
+// Capture visible area screenshot - using direct approach
 async function captureVisibleArea() {
   try {
     console.log('Capturing visible area...');
     
-    const dataUrl = await new Promise((resolve, reject) => {
+    // Try to use chrome.tabs.captureVisibleTab directly if available
+    if (chrome.tabs && chrome.tabs.captureVisibleTab) {
+      console.log('Using direct chrome.tabs.captureVisibleTab');
+      return await chrome.tabs.captureVisibleTab(null, {
+        format: SCREENSHOT_CONFIG.format,
+        quality: SCREENSHOT_CONFIG.quality
+      });
+    }
+    
+    // Fallback: use background script
+    console.log('Using background script for capture');
+    return await new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error('Screenshot capture timeout - please try again'));
       }, SCREENSHOT_CONFIG.timeout);
@@ -172,7 +167,6 @@ async function captureVisibleArea() {
       });
     });
     
-    return dataUrl;
   } catch (error) {
     handleError(error, 'captureVisibleArea');
     throw error;
@@ -184,7 +178,7 @@ async function captureFullPage() {
   try {
     console.log('Starting full page capture...');
     
-    const dimensions = await getPageDimensions();
+    const dimensions = getPageDimensions();
     console.log('Page dimensions:', dimensions);
     
     // Check if page is too large for full capture
@@ -345,7 +339,7 @@ async function captureScreenshot(options = {}) {
   
   try {
     const { 
-      type = 'visible', // 'visible' or 'fullpage'
+      type = 'fullpage', // Default to fullpage
       format = SCREENSHOT_CONFIG.format,
       quality = SCREENSHOT_CONFIG.quality
     } = options;
@@ -397,7 +391,6 @@ async function captureScreenshot(options = {}) {
     screenshotState.currentChunk = 0;
   }
 }
-
 
 // Main activation function
 export function activate(deactivate) {
