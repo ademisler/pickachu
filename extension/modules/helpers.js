@@ -1,6 +1,14 @@
+import { createIconElement, getIconDefinition } from './icons.js';
+
 // Helper utilities for Pickachu
+const SUPPORTED_LANGUAGES = ['en', 'tr', 'fr'];
 let langMap = {};
 let userTheme = 'system';
+const themedElements = new Set();
+const HISTORY_LIMIT = 40;
+const themeMediaQuery = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+  ? window.matchMedia('(prefers-color-scheme: dark)')
+  : null;
 
 // Event listener cleanup system
 const activeListeners = new Map();
@@ -35,20 +43,40 @@ export function cleanupAllEventListeners() {
   console.debug('All event listeners cleaned up');
 }
 
-// Convert emoji to icon
-export function getIcon(icon) {
-  const iconMap = {
-    '🎨': '🎨', // Keep color picker as is
-    '🧾': '📄', // Text picker
-    '🧱': '🔍', // Element picker
-    '📸': '📷', // Screenshot
-    '🔗': '🔗', // Link picker
-    '🔤': '🔤', // Font picker
-    '🖼️': '🖼️', // Image picker
-    '🔍': 'ℹ️', // Site info
-    '📝': '📝', // Sticky notes
-  };
-  return iconMap[icon] || icon;
+const TYPE_ICON_MAP = {
+  color: 'color',
+  text: 'text',
+  element: 'element',
+  link: 'link',
+  font: 'font',
+  image: 'image',
+  screenshot: 'screenshot',
+  'site-info': 'site',
+  media: 'media',
+  notes: 'note',
+  sticky: 'note'
+};
+
+export function getIconName(type, fallback = 'info') {
+  if (!type) return fallback;
+  if (TYPE_ICON_MAP[type]) return TYPE_ICON_MAP[type];
+  if (getIconDefinition(type)) return type;
+  return fallback;
+}
+
+export function renderIcon(name, options = {}) {
+  return createIconElement(getIconName(name, name), options);
+}
+
+function generateId(prefix = 'id') {
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return `${prefix}-${crypto.randomUUID()}`;
+    }
+  } catch (error) {
+    console.debug('generateId randomUUID failed', error);
+  }
+  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
 }
 
 // Performance utilities with enhanced error handling
@@ -155,62 +183,146 @@ export function getCacheStats() {
 }
 
 
+function normalizeLanguageCode(code = 'en') {
+  const normalized = String(code || 'en').trim().toLowerCase();
+  if (!normalized) {
+    return { full: 'en', base: 'en' };
+  }
+  const [base] = normalized.split('-');
+  return { full: normalized, base: base || normalized };
+}
+
+function resolveLanguageCode(preferred = 'en') {
+  const { full, base } = normalizeLanguageCode(preferred);
+  if (SUPPORTED_LANGUAGES.includes(full)) return full;
+  if (SUPPORTED_LANGUAGES.includes(base)) return base;
+  return 'en';
+}
+
 async function loadLanguage(lang = 'en') {
-  try {
-    // Check if chrome.runtime is available and if the file exists
-    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL) {
-      const res = await fetch(chrome.runtime.getURL(`_locales/${lang}/messages.json`));
-      if (res.ok) {
-        langMap = await res.json();
+  const resolved = resolveLanguageCode(lang);
+  const baseCandidate = resolveLanguageCode(normalizeLanguageCode(resolved).base);
+  const candidates = [...new Set([resolved, baseCandidate, 'en'])];
+
+  if (typeof fetch !== 'function') {
+    console.debug('Language file loading skipped: fetch is not available in this context');
+    return;
+  }
+
+  for (const candidate of candidates) {
+    try {
+      if (typeof chrome !== 'undefined' && chrome.runtime?.getURL) {
+        const res = await fetch(chrome.runtime.getURL(`_locales/${candidate}/messages.json`));
+        if (res.ok) {
+          langMap = await res.json();
+          langMap.__current = candidate;
+          return;
+        }
       }
+    } catch (error) {
+      console.debug(`Language file not found for ${candidate}`, error);
     }
-  } catch {
-    // Silently fail for language loading - it's not critical
-    console.debug('Language file not found, using defaults');
+  }
+
+  langMap = {};
+}
+
+function getEffectiveTheme() {
+  if (userTheme === 'light' || userTheme === 'dark') {
+    return userTheme;
+  }
+  return themeMediaQuery?.matches ? 'dark' : 'light';
+}
+
+function applyTheme(el) {
+  if (!el) return;
+  const theme = getEffectiveTheme();
+  el.classList.remove('light-theme', 'dark-theme');
+  el.classList.add(theme === 'dark' ? 'dark-theme' : 'light-theme');
+  themedElements.add(el);
+}
+
+function refreshThemedElements() {
+  themedElements.forEach(element => {
+    if (element.isConnected) {
+      element.classList.remove('light-theme', 'dark-theme');
+      element.classList.add(getEffectiveTheme() === 'dark' ? 'dark-theme' : 'light-theme');
+    } else {
+      themedElements.delete(element);
+    }
+  });
+}
+
+if (themeMediaQuery) {
+  const handleSystemThemeChange = () => {
+    if (userTheme === 'system') {
+      refreshThemedElements();
+    }
+  };
+  if (typeof themeMediaQuery.addEventListener === 'function') {
+    themeMediaQuery.addEventListener('change', handleSystemThemeChange);
+  } else if (typeof themeMediaQuery.addListener === 'function') {
+    themeMediaQuery.addListener(handleSystemThemeChange);
   }
 }
 
-// Initialize language and theme with async/await
-if (typeof chrome !== 'undefined') {
-  (async () => {
-    try {
-      const { language } = await chrome.storage.local.get('language');
-      await loadLanguage(language || 'en');
-    } catch (error) {
-      handleError(error, 'loadInitialLanguage');
+async function initializePreferences() {
+  if (typeof chrome === 'undefined') {
+    await loadLanguage('en');
+    userTheme = 'system';
+    return;
+  }
+
+  try {
+    const stored = await chrome.storage.local.get(['language', 'theme']);
+
+    let language = stored.language;
+    if (!language) {
+      const browserLang = (chrome.i18n?.getUILanguage?.() || navigator.language || 'en');
+      language = resolveLanguageCode(browserLang);
+      await chrome.storage.local.set({ language });
     }
-  })();
-  
+    await loadLanguage(language);
+
+    const storedTheme = stored.theme;
+    if (storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system') {
+      userTheme = storedTheme;
+    } else {
+      userTheme = 'system';
+      await chrome.storage.local.set({ theme: 'system' });
+    }
+  } catch (error) {
+    handleError(error, 'initializePreferences');
+    await loadLanguage('en');
+    userTheme = 'system';
+  }
+}
+
+if (typeof chrome !== 'undefined') {
+  initializePreferences();
+
   chrome.storage.onChanged.addListener(async (changes) => {
     if (changes.language) {
       await loadLanguage(changes.language.newValue || 'en');
     }
     if (changes.theme) {
-      userTheme = changes.theme.newValue;
+      const next = changes.theme.newValue;
+      userTheme = next === 'light' || next === 'dark' ? next : 'system';
+      if (userTheme === 'system') {
+        refreshThemedElements();
+      }
+      if (userTheme !== 'system') {
+        refreshThemedElements();
+      }
     }
   });
-}
-
-// Initialize theme with async/await
-if (typeof chrome !== 'undefined') {
-  (async () => {
-    try {
-      const { theme } = await chrome.storage.local.get('theme');
-      if (theme) userTheme = theme;
-      } catch (error) {
-        handleError(error, 'loadInitialTheme');
-      }
-  })();
-}
-
-function applyTheme(el){
-  if(userTheme==='light') el.classList.add('light-theme');
-  if(userTheme==='dark') el.classList.add('dark-theme');
+} else {
+  loadLanguage('en');
 }
 
 function t(id) {
   if (langMap[id]) return langMap[id].message;
-  if (chrome && chrome.i18n) {
+  if (typeof chrome !== 'undefined' && chrome.i18n) {
     try {
       const msg = chrome.i18n.getMessage(id);
       if (msg) return msg;
@@ -229,8 +341,15 @@ export function createOverlay() {
 }
 
 export function removeOverlay(box) {
-  if (box && box.parentNode) {
-    box.remove(); // Modern approach
+  if (!box) return;
+
+  if (typeof box.remove === 'function') {
+    box.remove();
+    return;
+  }
+
+  if (box.parentNode && typeof box.parentNode.removeChild === 'function') {
+    box.parentNode.removeChild(box);
   }
 }
 
@@ -242,8 +361,15 @@ export function createTooltip() {
 }
 
 export function removeTooltip(tip) {
-  if (tip && tip.parentNode) {
-    tip.remove(); // Modern approach
+  if (!tip) return;
+
+  if (typeof tip.remove === 'function') {
+    tip.remove();
+    return;
+  }
+
+  if (tip.parentNode && typeof tip.parentNode.removeChild === 'function') {
+    tip.parentNode.removeChild(tip);
   }
 }
 
@@ -382,19 +508,19 @@ export function validateSelector(selector) {
 }
 
 export function showError(message, duration = 3000) {
-  showToast(`❌ ${message}`, duration, 'error');
+  showToast(message, duration, 'error');
 }
 
 export function showSuccess(message, duration = 2000) {
-  showToast(`✅ ${message}`, duration, 'success');
+  showToast(message, duration, 'success');
 }
 
 export function showWarning(message, duration = 2500) {
-  showToast(`⚠️ ${message}`, duration, 'warning');
+  showToast(message, duration, 'warning');
 }
 
 export function showInfo(message, duration = 2000) {
-  showToast(`ℹ️ ${message}`, duration, 'info');
+  showToast(message, duration, 'info');
 }
 
 export function showToast(message, duration = 1500, type = 'info') {
@@ -403,7 +529,6 @@ export function showToast(message, duration = 1500, type = 'info') {
   
   const toast = document.createElement('div');
   toast.id = 'pickachu-toast';
-  toast.textContent = message;
   
   // Type-specific styling
   const typeStyles = {
@@ -430,8 +555,28 @@ export function showToast(message, duration = 1500, type = 'info') {
     max-width: 90vw;
     word-wrap: break-word;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    display: flex;
+    align-items: center;
+    gap: 12px;
   `;
-  
+
+  const iconName = {
+    error: 'alert',
+    success: 'success',
+    warning: 'alert',
+    info: 'info'
+  }[type] || 'info';
+
+  const icon = renderIcon(iconName, { size: 18, decorative: true });
+  icon.style.flexShrink = '0';
+
+  const messageSpan = document.createElement('span');
+  messageSpan.textContent = message;
+  messageSpan.style.flex = '1';
+
+  toast.appendChild(icon);
+  toast.appendChild(messageSpan);
+
   // Add animation styles
   if (!document.querySelector('#pickachu-toast-styles')) {
     const style = document.createElement('style');
@@ -470,28 +615,126 @@ async function getHistory() {
 
 export async function saveHistory(item) {
   try {
+    const normalizedItem = { ...item };
+    if (!normalizedItem.id) {
+      normalizedItem.id = generateId('history');
+    }
+    if (typeof normalizedItem.favorite !== 'boolean') {
+      normalizedItem.favorite = false;
+    }
+    normalizedItem.type = normalizedItem.type || 'generic';
+    normalizedItem.timestamp = normalizedItem.timestamp || Date.now();
+    normalizedItem.content = typeof normalizedItem.content === 'string'
+      ? normalizedItem.content
+      : JSON.stringify(normalizedItem.content ?? '');
+    normalizedItem.title = normalizedItem.title || '';
+    normalizedItem.url = normalizedItem.url || '';
+    normalizedItem.pageTitle = normalizedItem.pageTitle || '';
+
     const hist = await getHistory();
-    hist.unshift(item);
-    if (hist.length > 20) hist.pop();
+    const existingIndex = hist.findIndex(entry => entry.id === normalizedItem.id);
+    if (existingIndex !== -1) {
+      hist.splice(existingIndex, 1);
+    }
+    hist.unshift(normalizedItem);
+    if (hist.length > HISTORY_LIMIT) {
+      hist.length = HISTORY_LIMIT;
+    }
     await chrome.storage.local.set({ pickachuHistory: hist });
+    return normalizedItem;
   } catch (error) {
     handleError(error, 'saveHistory');
+    return item;
   }
 }
 
-async function toggleFavorite(id) {
+async function updateFavoriteStatus(id, desiredState = null) {
   try {
     const hist = await getHistory();
-    const item = hist.find(i => i.id === id);
-    if (item) {
-      item.favorite = !item.favorite;
-      await chrome.storage.local.set({ pickachuHistory: hist });
-      return item.favorite;
+    const entry = hist.find(i => i.id === id);
+    if (!entry) return null;
+    entry.favorite = desiredState === null ? !entry.favorite : Boolean(desiredState);
+    await chrome.storage.local.set({ pickachuHistory: hist });
+    return entry;
+  } catch (error) {
+    handleError(error, 'updateFavoriteStatus');
+    return null;
+  }
+}
+
+async function toggleFavorite(payload) {
+  try {
+    const history = await getHistory();
+    const defaultUrl = typeof window !== 'undefined' ? window.location?.href ?? '' : '';
+    const defaultPageTitle = typeof document !== 'undefined' ? document.title ?? '' : '';
+
+    let entry = null;
+    let context = null;
+
+    if (typeof payload === 'string') {
+      entry = history.find(item => item.id === payload);
+      if (!entry) {
+        const content = payload.trim();
+        if (!content) {
+          return null;
+        }
+        context = {
+          id: null,
+          content,
+          type: 'generic',
+          title: '',
+          url: defaultUrl,
+          pageTitle: defaultPageTitle,
+          timestamp: Date.now()
+        };
+      }
+    } else if (payload && typeof payload === 'object') {
+      const baseContent = typeof payload.content === 'string'
+        ? payload.content
+        : payload.content != null
+          ? JSON.stringify(payload.content)
+          : '';
+
+      context = {
+        id: payload.id || null,
+        content: baseContent,
+        type: payload.type || 'generic',
+        title: payload.title || '',
+        url: payload.url || defaultUrl,
+        pageTitle: payload.pageTitle || defaultPageTitle,
+        timestamp: payload.timestamp || Date.now()
+      };
+
+      if (context.id) {
+        entry = history.find(item => item.id === context.id);
+      }
+
+      if (!entry && context.content) {
+        entry = history.find(item => item.content === context.content && (item.type || 'generic') === context.type && (item.url || '') === context.url);
+      }
+    } else {
+      return null;
     }
-    return false;
+
+    if (entry) {
+      const updated = await updateFavoriteStatus(entry.id);
+      return updated ? { favorite: !!updated.favorite, id: updated.id, entry: updated } : null;
+    }
+
+    if (!context || !context.content || (typeof context.content === 'string' && context.content.trim() === '')) {
+      return null;
+    }
+
+    const created = await saveHistory({
+      ...context,
+      favorite: true
+    });
+
+    return created ? { favorite: !!created.favorite, id: created.id, entry: created } : null;
   } catch (error) {
     handleError(error, 'toggleFavorite');
-    return false;
+    showError('Failed to update favorites');
+    return null;
   }
 }
 
@@ -545,29 +788,49 @@ export async function showFavorites() {
       background: var(--pickachu-header-bg, #f8f9fa);
     `;
 
-    header.innerHTML = `
-      <h3 style="
-        margin: 0;
-        font-size: 16px;
-        font-weight: 600;
-        color: var(--pickachu-text, #333);
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex: 1;
-      ">
-        ⭐ Favorites
-      </h3>
-      <button id="close-favorites-modal" style="
-        background: none;
-        border: none;
-        font-size: 20px;
-        cursor: pointer;
-        color: var(--pickachu-secondary-text, #666);
-        padding: 4px 8px;
-        border-radius: 4px;
-      ">×</button>
+    const headerTitle = document.createElement('h3');
+    headerTitle.style.cssText = `
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--pickachu-text, #333);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
     `;
+
+    const favIcon = renderIcon('favorite', { size: 20, decorative: true });
+    headerTitle.appendChild(favIcon);
+    const headerText = document.createElement('span');
+    headerText.textContent = 'Favorites';
+    headerTitle.appendChild(headerText);
+
+    const closeFavoritesBtn = document.createElement('button');
+    closeFavoritesBtn.id = 'close-favorites-modal';
+    closeFavoritesBtn.type = 'button';
+    closeFavoritesBtn.style.cssText = `
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 6px;
+      color: var(--pickachu-secondary-text, #666);
+      transition: background 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    `;
+    closeFavoritesBtn.appendChild(renderIcon('close', { size: 18, decorative: true }));
+    closeFavoritesBtn.addEventListener('mouseenter', () => {
+      closeFavoritesBtn.style.background = 'rgba(0,0,0,0.08)';
+    });
+    closeFavoritesBtn.addEventListener('mouseleave', () => {
+      closeFavoritesBtn.style.background = 'transparent';
+    });
+
+    header.appendChild(headerTitle);
+    header.appendChild(closeFavoritesBtn);
 
     // Content area
     const content = document.createElement('div');
@@ -600,113 +863,155 @@ export async function showFavorites() {
       }
 
       favorites.forEach((item) => {
-        const itemDiv = document.createElement('div');
-        itemDiv.style.cssText = `
+        const row = document.createElement('div');
+        row.style.cssText = `
           padding: 16px 20px;
           border-bottom: 1px solid var(--pickachu-border, #eee);
           cursor: pointer;
           transition: background-color 0.2s ease;
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 16px;
         `;
 
-        const icon = getIcon(getTypeIcon(item.type));
-        
-        itemDiv.innerHTML = `
-          <div style="
-            width: 32px;
-            height: 32px;
-            background: var(--pickachu-code-bg, #f8f9fa);
-            border: 1px solid var(--pickachu-border, #ddd);
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            flex-shrink: 0;
-          ">${icon}</div>
-          <div style="flex: 1; min-width: 0;">
-            <div style="
-              font-weight: 600;
-              color: var(--pickachu-text, #333);
-              margin-bottom: 4px;
-              display: flex;
-              align-items: center;
-              gap: 8px;
-            ">
-              <span style="
-                background: var(--pickachu-primary-color, #007bff);
-                color: white;
-                padding: 2px 6px;
-                border-radius: 4px;
-                font-size: 10px;
-                font-weight: 500;
-                text-transform: uppercase;
-              ">${item.type}</span>
-              <span>${formatTimestamp(item.timestamp)}</span>
-              <span style="color: var(--pickachu-warning-color, #ffc107);">⭐</span>
-            </div>
-            <div style="
-              font-size: 13px;
-              color: var(--pickachu-secondary-text, #666);
-              word-break: break-all;
-              line-height: 1.4;
-            ">
-              ${item.content.length > 120 ? item.content.substring(0, 120) + '...' : item.content}
-            </div>
-          </div>
-          <div style="display: flex; gap: 8px; flex-shrink: 0;">
-            <button style="
-              background: var(--pickachu-primary-color, #007bff);
-              color: white;
-              border: none;
-              padding: 6px 12px;
-              border-radius: 4px;
-              font-size: 12px;
-              cursor: pointer;
-            ">Copy</button>
-            <button style="
-              background: var(--pickachu-warning-color, #ffc107);
-              color: var(--pickachu-text, #333);
-              border: none;
-              padding: 6px 12px;
-              border-radius: 4px;
-              font-size: 12px;
-              cursor: pointer;
-            ">★</button>
-          </div>
+        const iconWrapper = document.createElement('div');
+        iconWrapper.style.cssText = `
+          width: 36px;
+          height: 36px;
+          background: var(--pickachu-code-bg, #f8f9fa);
+          border: 1px solid var(--pickachu-border, #ddd);
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        `;
+        iconWrapper.appendChild(renderIcon(getIconName(item.type), { size: 18, decorative: true }));
+
+        const body = document.createElement('div');
+        body.style.cssText = 'flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px;';
+
+        const meta = document.createElement('div');
+        meta.style.cssText = 'display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--pickachu-secondary-text, #666);';
+
+        const badge = document.createElement('span');
+        badge.textContent = item.type;
+        badge.style.cssText = `
+          background: var(--pickachu-primary-color, #007bff);
+          color: #fff;
+          padding: 2px 8px;
+          border-radius: 12px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
         `;
 
-        itemDiv.addEventListener('click', () => {
+        const timestamp = document.createElement('span');
+        timestamp.textContent = formatTimestamp(item.timestamp);
+
+        const starIcon = renderIcon('star', { size: 14, decorative: true });
+        starIcon.style.color = 'var(--pickachu-warning-color, #ffc107)';
+
+        meta.appendChild(badge);
+        meta.appendChild(timestamp);
+        meta.appendChild(starIcon);
+
+        const preview = document.createElement('div');
+        preview.style.cssText = 'font-size: 13px; color: var(--pickachu-secondary-text, #666); line-height: 1.5; word-break: break-word;';
+        const truncated = item.content.length > 160 ? `${item.content.substring(0, 160)}…` : item.content;
+        preview.textContent = truncated;
+
+        body.appendChild(meta);
+        body.appendChild(preview);
+
+        const actions = document.createElement('div');
+        actions.style.cssText = 'display: flex; gap: 8px; flex-shrink: 0;';
+
+        const copyButton = document.createElement('button');
+        copyButton.type = 'button';
+        copyButton.style.cssText = `
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: var(--pickachu-primary-color, #007bff);
+          color: #fff;
+          border: none;
+          padding: 6px 12px;
+          border-radius: 8px;
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: transform 0.15s ease;
+        `;
+        const copyIcon = renderIcon('copy', { size: 14, decorative: true });
+        copyIcon.style.color = '#3a2900';
+        copyButton.appendChild(copyIcon);
+        const copyTextLabel = document.createElement('span');
+        copyTextLabel.textContent = 'Copy';
+        copyTextLabel.style.color = '#3a2900';
+        copyButton.appendChild(copyTextLabel);
+
+        copyButton.addEventListener('click', (event) => {
+          event.stopPropagation();
           copyText(item.content);
           showSuccess('Copied to clipboard!');
         });
 
-        itemDiv.addEventListener('mouseenter', () => {
-          itemDiv.style.backgroundColor = 'var(--pickachu-hover, #f0f0f0)';
+        const removeButton = document.createElement('button');
+        removeButton.type = 'button';
+        removeButton.style.cssText = `
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: var(--pickachu-button-bg, #f0f0f0);
+          color: var(--pickachu-text, #333);
+          border: 1px solid var(--pickachu-border, #ddd);
+          padding: 6px 12px;
+          border-radius: 8px;
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background 0.15s ease;
+        `;
+        removeButton.appendChild(renderIcon('trash', { size: 14, decorative: true }));
+        const removeText = document.createElement('span');
+        removeText.textContent = 'Remove';
+        removeButton.appendChild(removeText);
+
+        removeButton.addEventListener('click', async (event) => {
+          event.stopPropagation();
+          const result = await toggleFavorite(item.id);
+          const stillFavorite = result?.favorite ?? false;
+          if (!stillFavorite) {
+            const index = favorites.indexOf(item);
+            if (index > -1) favorites.splice(index, 1);
+            renderFavorites();
+            showInfo('Removed from favorites');
+          }
         });
 
-        itemDiv.addEventListener('mouseleave', () => {
-          itemDiv.style.backgroundColor = '';
+        actions.appendChild(copyButton);
+        actions.appendChild(removeButton);
+
+        row.appendChild(iconWrapper);
+        row.appendChild(body);
+        row.appendChild(actions);
+
+        row.addEventListener('click', () => {
+          copyText(item.content);
+          showSuccess('Copied to clipboard!');
         });
 
-        list.appendChild(itemDiv);
+        row.addEventListener('mouseenter', () => {
+          row.style.backgroundColor = 'rgba(0,0,0,0.04)';
+        });
+
+        row.addEventListener('mouseleave', () => {
+          row.style.backgroundColor = '';
+        });
+
+        list.appendChild(row);
       });
-    }
-
-    function getTypeIcon(type) {
-      const iconMap = {
-        'color': '🎨',
-        'text': '📄',
-        'element': '🔍',
-        'link': '🔗',
-        'font': '🔤',
-        'image': '🖼️',
-        'screenshot': '📷',
-        'site-info': 'ℹ️'
-      };
-      return iconMap[type] || '📄';
     }
 
     function formatTimestamp(timestamp) {
@@ -730,7 +1035,7 @@ export async function showFavorites() {
     renderFavorites();
 
     // Event listeners
-    document.getElementById('close-favorites-modal').addEventListener('click', () => {
+    closeFavoritesBtn.addEventListener('click', () => {
       overlay.remove();
     });
 
@@ -820,7 +1125,87 @@ export async function showModal(title, content, icon = '', type = '') {
   
   applyTheme(overlay);
   applyTheme(modal);
-  
+
+  const normalizedType = type || icon || 'generic';
+  const defaultUrl = typeof window !== 'undefined' ? window.location?.href ?? '' : '';
+  const defaultPageTitle = typeof document !== 'undefined' ? document.title ?? '' : '';
+
+  const historyContent = typeof content === 'string'
+    ? content
+    : typeof content === 'number' || typeof content === 'boolean'
+      ? String(content)
+      : typeof content === 'object' && content !== null
+        ? JSON.stringify(content, null, 2)
+        : '';
+
+  const shouldPersistHistory = historyContent.trim().length > 0;
+  let historyEntry = null;
+  const historyPayload = {
+    id: null,
+    type: normalizedType,
+    title: title || '',
+    content: historyContent,
+    url: defaultUrl,
+    pageTitle: defaultPageTitle
+  };
+
+  if (shouldPersistHistory) {
+    historyEntry = await saveHistory(historyPayload);
+    if (historyEntry?.id) {
+      historyPayload.id = historyEntry.id;
+      historyPayload.content = historyEntry.content;
+      historyPayload.favorite = !!historyEntry.favorite;
+    }
+  }
+
+  const header = document.createElement('div');
+  header.style.cssText = `
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--pickachu-border, #eee);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--pickachu-header-bg, #f8f9fa);
+  `;
+
+  const headerContent = document.createElement('div');
+  headerContent.style.cssText = 'display: flex; align-items: center; gap: 10px; flex: 1;';
+
+  const headerIcon = renderIcon(icon || type || 'info', { size: 20, decorative: true });
+  headerContent.appendChild(headerIcon);
+
+  const heading = document.createElement('span');
+  heading.style.cssText = 'font-size: 16px; font-weight: 600; color: var(--pickachu-text, #333);';
+  heading.textContent = title;
+  headerContent.appendChild(heading);
+
+  const dismissBtn = document.createElement('button');
+  dismissBtn.type = 'button';
+  dismissBtn.style.cssText = `
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+    color: var(--pickachu-secondary-text, #666);
+    transition: background 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  `;
+  dismissBtn.appendChild(renderIcon('close', { size: 18, decorative: true }));
+  dismissBtn.addEventListener('mouseenter', () => {
+    dismissBtn.style.background = 'rgba(0,0,0,0.08)';
+  });
+  dismissBtn.addEventListener('mouseleave', () => {
+    dismissBtn.style.background = 'transparent';
+  });
+
+  dismissBtn.addEventListener('click', () => overlay.remove());
+
+  header.appendChild(headerContent);
+  header.appendChild(dismissBtn);
+
   const body = document.createElement('div');
   body.style.cssText = `
     padding: 20px;
@@ -874,6 +1259,9 @@ export async function showModal(title, content, icon = '', type = '') {
       </div>
     `;
     body.appendChild(createSafeTextarea(content));
+  } else if (type === 'font-simple') {
+    body.style.whiteSpace = 'pre-line';
+    body.textContent = content;
   } else {
     body.appendChild(createSafeTextarea(content));
   }
@@ -881,79 +1269,107 @@ export async function showModal(title, content, icon = '', type = '') {
   const buttons = document.createElement('div');
   buttons.id = 'pickachu-modal-buttons';
   buttons.style.cssText = `
-    padding: 16px 20px;
+    padding: 18px 22px;
     border-top: 1px solid var(--pickachu-border, #eee);
     display: flex;
-    gap: 8px;
-    justify-content: center;
+    gap: 10px;
+    justify-content: flex-end;
     background: var(--pickachu-header-bg, #f8f9fa);
   `;
-  
+
+  const styleActionButton = (button, variant = 'ghost') => {
+    const base = `
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+      border: none;
+    `;
+    button.style.cssText = base;
+    if (variant === 'primary') {
+      button.style.background = 'var(--pickachu-primary-color, #007bff)';
+      button.style.color = '#3a2900';
+      button.style.boxShadow = '0 8px 16px rgba(0,0,0,0.08)';
+    } else if (variant === 'success') {
+      button.style.background = 'var(--pickachu-success-color, #28a745)';
+      button.style.color = '#3a2900';
+    } else if (variant === 'accent') {
+      button.style.background = 'var(--pickachu-warning-color, #f4b022)';
+      button.style.color = '#3a2900';
+      button.style.boxShadow = '0 8px 16px rgba(0,0,0,0.08)';
+    } else if (variant === 'secondary') {
+      button.style.background = 'var(--pickachu-button-bg, #f0f0f0)';
+      button.style.color = 'var(--pickachu-text, #333)';
+      button.style.border = '1px solid var(--pickachu-border, #ddd)';
+    } else {
+      button.style.background = 'transparent';
+      button.style.color = 'var(--pickachu-text, #333)';
+      button.style.border = '1px solid var(--pickachu-border, #ddd)';
+    }
+
+    const baseShadow = button.style.boxShadow;
+
+    button.addEventListener('mouseenter', () => {
+      button.style.transform = 'translateY(-1px)';
+      button.style.boxShadow = '0 10px 20px rgba(0,0,0,0.08)';
+    });
+    button.addEventListener('mouseleave', () => {
+      button.style.transform = 'translateY(0)';
+      button.style.boxShadow = baseShadow;
+    });
+  };
+
   const closeBtn = document.createElement('button');
-  closeBtn.textContent = t('close');
   closeBtn.title = t('close');
-  closeBtn.style.cssText = `
-    padding: 8px 16px;
-    border: 1px solid var(--pickachu-border, #ddd);
-    background: var(--pickachu-button-bg, #fff);
-    color: var(--pickachu-text, #333);
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-  `;
-  
+  closeBtn.appendChild(renderIcon('close', { size: 14, decorative: true }));
+  closeBtn.appendChild(Object.assign(document.createElement('span'), { textContent: t('close') }));
+  styleActionButton(closeBtn, 'secondary');
+
   const copyBtn = document.createElement('button');
-  copyBtn.textContent = t('copy');
   copyBtn.className = 'copy';
   copyBtn.title = t('copy');
-  copyBtn.style.cssText = `
-    padding: 8px 16px;
-    border: 1px solid var(--pickachu-border, #ddd);
-    background: var(--pickachu-primary-color, #007bff);
-    color: white;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-  `;
-  
+  const copyIcon = renderIcon('copy', { size: 16, decorative: true });
+  copyIcon.style.color = '#3a2900';
+  copyBtn.appendChild(copyIcon);
+  copyBtn.appendChild(Object.assign(document.createElement('span'), { textContent: t('copy') }));
+  styleActionButton(copyBtn, 'primary');
+
   const exportBtn = document.createElement('button');
-  exportBtn.textContent = t('export');
   exportBtn.title = t('export');
-  exportBtn.style.cssText = `
-    padding: 8px 16px;
-    border: 1px solid var(--pickachu-border, #ddd);
-    background: var(--pickachu-success-color, #28a745);
-    color: white;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-  `;
-  
+  const exportIcon = renderIcon('export', { size: 16, decorative: true });
+  exportIcon.style.color = '#3a2900';
+  exportBtn.appendChild(exportIcon);
+  exportBtn.appendChild(Object.assign(document.createElement('span'), { textContent: t('export') }));
+  styleActionButton(exportBtn, 'success');
+
   const favBtn = document.createElement('button');
-  favBtn.textContent = '☆';
   favBtn.title = t('favorite');
-  favBtn.style.cssText = `
-    padding: 8px 12px;
-    border: 1px solid var(--pickachu-border, #ddd);
-    background: var(--pickachu-warning-color, #ffc107);
-    color: var(--pickachu-text, #333);
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-  `;
-  
+  const favIcon = renderIcon('star', { size: 16, decorative: true });
+  favIcon.style.color = '#3a2900';
+  favIcon.style.opacity = '0.7';
+  favIcon.style.filter = 'none';
+  favBtn.appendChild(favIcon);
+  favBtn.appendChild(Object.assign(document.createElement('span'), { textContent: t('favorite') }));
+  styleActionButton(favBtn, 'accent');
+
+  let isFavorite = historyEntry?.favorite ?? false;
+  if (isFavorite) {
+    favIcon.style.opacity = '1';
+    favBtn.style.background = 'var(--pickachu-success-color, #28a745)';
+    favBtn.style.color = '#3a2900';
+  }
+  favBtn.setAttribute('aria-pressed', isFavorite ? 'true' : 'false');
+
   const favoritesBtn = document.createElement('button');
-  favoritesBtn.textContent = t('favorites');
   favoritesBtn.title = t('favorites');
-  favoritesBtn.style.cssText = `
-    padding: 8px 16px;
-    border: 1px solid var(--pickachu-border, #ddd);
-    background: var(--pickachu-secondary-color, #6c757d);
-    color: white;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-  `;
+  favoritesBtn.appendChild(renderIcon('favorite', { size: 16, decorative: true }));
+  favoritesBtn.appendChild(Object.assign(document.createElement('span'), { textContent: t('favorites') }));
+  styleActionButton(favoritesBtn, 'secondary');
   
   // Event handlers
   closeBtn.addEventListener('click', () => overlay.remove());
@@ -982,10 +1398,34 @@ export async function showModal(title, content, icon = '', type = '') {
   favBtn.addEventListener('click', async () => {
     const textarea = body.querySelector('textarea');
     if (textarea) {
-      const val = await toggleFavorite(content);
-      favBtn.textContent = val ? '★' : '☆';
-      showToast(val ? t('favorite') : t('unfavorite'));
+      historyPayload.content = textarea.value;
     }
+
+    const result = await toggleFavorite(historyPayload);
+    if (!result) {
+      return;
+    }
+
+    if (result.id) {
+      historyPayload.id = result.id;
+    }
+    if (result.entry?.content) {
+      historyPayload.content = result.entry.content;
+    }
+
+    isFavorite = !!result.favorite;
+    favIcon.style.opacity = isFavorite ? '1' : '0.7';
+    favIcon.style.color = '#3a2900';
+    favIcon.style.filter = 'none';
+    if (isFavorite) {
+      favBtn.style.background = 'var(--pickachu-success-color, #28a745)';
+      favBtn.style.color = '#3a2900';
+    } else {
+      favBtn.style.background = 'var(--pickachu-warning-color, #f4b022)';
+      favBtn.style.color = '#3a2900';
+    }
+    favBtn.setAttribute('aria-pressed', isFavorite ? 'true' : 'false');
+    (isFavorite ? showSuccess : showInfo)(isFavorite ? t('favorite') : t('unfavorite'));
   });
   
   favoritesBtn.addEventListener('click', () => {
@@ -999,6 +1439,7 @@ export async function showModal(title, content, icon = '', type = '') {
   buttons.appendChild(favBtn);
   buttons.appendChild(favoritesBtn);
   
+  modal.appendChild(header);
   modal.appendChild(body);
   modal.appendChild(buttons);
   overlay.appendChild(modal);

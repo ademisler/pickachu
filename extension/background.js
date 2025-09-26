@@ -20,71 +20,113 @@ async function ensureContentScriptInjected(tabId) {
   }
 }
 
-chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
-  if (request.type === 'ACTIVATE_TOOL') {
-    try {
-      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-      const tab = tabs[0];
-      
-      if (!tab) {
-        console.error('No active tab found');
-        sendResponse({ success: false, error: 'No active tab found' });
-        return;
-      }
-
-      const injected = await ensureContentScriptInjected(tab.id);
-      if (!injected) {
-        console.error('Failed to inject content script');
-        sendResponse({ success: false, error: 'Failed to inject content script' });
-        return;
-      }
-
-      // Wait a bit for content script to be ready
-      setTimeout(() => {
-        chrome.tabs.sendMessage(tab.id, {
-          type: 'ACTIVATE_TOOL_ON_PAGE',
-          tool: request.tool
-        }).catch(error => {
-          console.error('Failed to send message to content script:', error);
-        });
-      }, 100);
-      
-      sendResponse({ success: true });
-      
-    } catch (error) {
-      console.error('Error in ACTIVATE_TOOL:', error);
-      sendResponse({ success: false, error: error.message });
-    }
-    return true; // Keep message channel open for async response
+async function dispatchToolToActiveTab(toolId) {
+  if (!toolId) {
+    throw new Error('Missing tool identifier');
   }
-  
-  if (request.action === "captureVisibleTab") {
-    const { pixelRatio } = request;
-    chrome.tabs.captureVisibleTab({ format: "png", quality: 100 }, (dataUrl) => {
-      if (chrome.runtime.lastError) {
-        console.error('Error capturing visible tab:', chrome.runtime.lastError);
-        sendResponse(null);
-        return;
+
+  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+  const tab = tabs[0];
+
+  if (!tab) {
+    throw new Error('No active tab found');
+  }
+
+  const injected = await ensureContentScriptInjected(tab.id);
+  if (!injected) {
+    throw new Error('Unable to inject content script');
+  }
+
+  await new Promise(resolve => setTimeout(resolve, 80));
+
+  await chrome.tabs.sendMessage(tab.id, {
+    type: 'ACTIVATE_TOOL_ON_PAGE',
+    tool: toolId
+  });
+
+  return true;
+}
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.type === 'ACTIVATE_TOOL') {
+    (async () => {
+      try {
+        await dispatchToolToActiveTab(request.tool);
+        sendResponse({ success: true });
+      } catch (error) {
+        console.error('Error in ACTIVATE_TOOL:', error);
+        sendResponse({ success: false, error: error.message });
       }
-      console.log('Screenshot captured successfully, data URL length:', dataUrl ? dataUrl.length : 0);
-      sendResponse(dataUrl);
-    });
+    })();
     return true;
   }
-  
+
+  if (request.type === 'CAPTURE_VISIBLE_TAB') {
+    const windowId = typeof sender.tab?.windowId === 'number' ? sender.tab.windowId : undefined;
+
+    const handleResult = (dataUrl) => {
+      if (chrome.runtime.lastError) {
+        console.error('Error capturing visible tab:', chrome.runtime.lastError);
+        sendResponse({ success: false, error: chrome.runtime.lastError.message });
+        return;
+      }
+      if (!dataUrl) {
+        console.error('captureVisibleTab returned empty data');
+        sendResponse({ success: false, error: 'No image data received.' });
+        return;
+      }
+      console.log('Screenshot captured successfully, data URL length:', dataUrl.length);
+      sendResponse({ success: true, dataUrl });
+    };
+
+    try {
+      if (windowId !== undefined) {
+        chrome.tabs.captureVisibleTab(windowId, { format: 'png', quality: 100 }, handleResult);
+      } else {
+        chrome.tabs.captureVisibleTab({ format: 'png', quality: 100 }, handleResult);
+      }
+    } catch (error) {
+      console.error('captureVisibleTab threw synchronously', error);
+      sendResponse({ success: false, error: error.message });
+    }
+    return true;
+  }
+
+  if (request.type === 'DOWNLOAD_MEDIA') {
+    try {
+      const { url, filename } = request;
+      if (!url) {
+        sendResponse({ success: false, error: 'Missing media URL.' });
+        return true;
+      }
+
+      chrome.downloads.download({ url, filename }, (downloadId) => {
+        if (chrome.runtime.lastError) {
+          console.error('Download failed:', chrome.runtime.lastError);
+          sendResponse({ success: false, error: chrome.runtime.lastError.message });
+          return;
+        }
+        sendResponse({ success: true, downloadId });
+      });
+    } catch (error) {
+      console.error('Failed to initiate download:', error);
+      sendResponse({ success: false, error: error.message });
+    }
+    return true;
+  }
+
   if (request.type === 'GET_PAGE_DIMENSIONS') {
     (async () => {
       try {
         const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
         const tab = tabs[0];
-        
+
         if (!tab) {
           console.error('No active tab found');
           sendResponse({ success: false, error: 'No active tab found' });
           return;
         }
-        
-        // Execute script to get page dimensions
+
         const results = await chrome.scripting.executeScript({
           target: { tabId: tab.id },
           func: () => {
@@ -118,23 +160,43 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
             }
           }
         });
-        
+
         if (results && results[0] && results[0].result) {
           sendResponse({ success: true, dimensions: results[0].result });
         } else {
           throw new Error('Failed to get page dimensions');
         }
-        
       } catch (error) {
         console.error('Error getting page dimensions:', error);
         sendResponse({ success: false, error: error.message || 'Unknown error occurred' });
       }
     })();
-    return true; // Keep message channel open for async response
+    return true;
   }
 });
 
+const COMMAND_TOOL_MAP = {
+  'activate-color-picker': 'color-picker',
+  'activate-element-picker': 'element-picker',
+  'activate-link-picker': 'link-picker',
+  'activate-font-picker': 'font-picker',
+  'activate-media-picker': 'media-picker',
+  'activate-text-picker': 'text-picker',
+  'activate-screenshot-picker': 'screenshot-picker',
+  'activate-sticky-notes-picker': 'sticky-notes-picker',
+  'activate-site-info-picker': 'site-info-picker'
+};
+
 chrome.commands.onCommand.addListener(async (command) => {
+  if (COMMAND_TOOL_MAP[command]) {
+    try {
+      await dispatchToolToActiveTab(COMMAND_TOOL_MAP[command]);
+    } catch (error) {
+      console.error(`Failed to run command ${command}:`, error);
+    }
+    return;
+  }
+
   if (command === 'open-popup' || command === 'toggle-popup') {
     try {
       // Try to open popup first

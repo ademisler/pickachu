@@ -1,4 +1,4 @@
-import { showSuccess, showError, handleError, safeExecute, sanitizeInput, addEventListenerWithCleanup } from './helpers.js';
+import { showSuccess, showError, handleError, safeExecute, sanitizeInput, addEventListenerWithCleanup, renderIcon } from './helpers.js';
 
 let deactivateCb;
 let notes = [];
@@ -16,15 +16,44 @@ const NOTE_COLORS = [
   { name: 'Gray', value: '#f8f9fa' }
 ];
 
+function getSiteStorageKey(url) {
+  // Use full URL instead of origin for more specific note isolation
+  return `stickyNotes_${sanitizeInput(url)}`;
+}
+
+function getLegacyStorageKey(url) {
+  return `stickyNotes_${sanitizeInput(url)}`;
+}
+
 export function activate(deactivate) {
   try {
     deactivateCb = deactivate;
     
-    // Load existing notes
-    loadNotes().then(() => {
+    // Get current site URL (not just origin)
+    const currentUrl = safeExecute(() => window.location.href, 'get location href') || '';
+    
+    console.log('Sticky notes activated for URL:', currentUrl);
+    
+    // Load existing notes for current site only
+    loadNotes().then(async () => {
       // Auto-open existing notes for this site
-      loadExistingNotesForCurrentSite();
-      showNotesManager();
+      await loadExistingNotesForCurrentSite();
+      
+      // Only show manager if there are notes for this site
+      const currentSiteNotes = notes.filter(note => {
+        return note.siteUrl === currentUrl;
+      });
+      
+      console.log(`Found ${currentSiteNotes.length} notes for current URL`);
+      
+      if (currentSiteNotes.length > 0) {
+        showNotesManager();
+      } else {
+        // No notes for this site, show manager anyway so user can create new notes
+        showNotesManager();
+        // Show a helpful message
+        showSuccess('No existing notes found for this page. You can create new notes by clicking on the page.');
+      }
     }).catch(error => {
       handleError(error, 'stickyNotesPicker activation loadNotes');
       showError('Failed to load existing notes. Please try again.');
@@ -55,6 +84,14 @@ export function deactivate() {
       existingManager.remove();
     }
     
+    // Clean up global window pollution
+    if (typeof window !== 'undefined') {
+      delete window.deleteIndividualNote;
+      delete window.deleteAllNotes;
+      delete window.createStickyNote;
+      delete window.showNotesManager;
+    }
+    
     // Don't remove sticky notes from page - they should persist
     // Only call deactivateCb if it exists and we haven't called it yet
     if (deactivateCb && !deactivateCb.called) {
@@ -78,7 +115,7 @@ function createStickyNote(x, y, color = NOTE_COLORS[0].value) {
       content: '',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      siteUrl: sanitizeInput(safeExecute(() => window.location.href, 'get location href') || ''),
+      siteUrl: sanitizeInput(safeExecute(() => window.location.href, 'get current url') || ''),
       siteTitle: sanitizeInput(safeExecute(() => document.title, 'get title') || '')
     };
     
@@ -95,7 +132,7 @@ function createStickyNote(x, y, color = NOTE_COLORS[0].value) {
 }
 
 // Render a sticky note on the page
-function renderStickyNote(note) {
+export function renderStickyNote(note) {
   const noteElement = document.createElement('div');
   noteElement.className = 'pickachu-sticky-note';
   noteElement.id = note.id;
@@ -147,7 +184,7 @@ function renderStickyNote(note) {
   
   // Color picker button
   const colorBtn = document.createElement('button');
-  colorBtn.innerHTML = '🎨';
+  colorBtn.appendChild(renderIcon('color', { size: 14, decorative: true }));
   colorBtn.title = 'Change color';
   colorBtn.style.cssText = `
     background: none;
@@ -397,139 +434,224 @@ function showNotesManager() {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   `;
   
-  manager.innerHTML = `
-    <div class="modal-header">
-      <h3 class="modal-title" style="
-        margin: 0;
-        font-size: 16px;
-        font-weight: 600;
-        color: var(--pickachu-text, #333);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        flex: 1;
-      ">
-        📝 Sticky Notes Manager
-      </h3>
-      <button id="close-notes-manager" style="
-        position: absolute;
-        top: 12px;
-        right: 12px;
-        background: none;
-        border: none;
-        font-size: 20px;
-        cursor: pointer;
-        color: var(--pickachu-secondary-text, #666);
-        padding: 4px 8px;
-        border-radius: 4px;
-      ">×</button>
-    </div>
-    
-    <div style="padding: 20px;">
-      <div style="margin-bottom: 20px; text-align: center;">
-        <button id="create-new-note" style="
-          background: var(--pickachu-primary-color, #007bff);
-          color: white;
-          border: none;
-          padding: 12px 24px;
-          border-radius: 8px;
-          cursor: pointer;
-          font-size: 14px;
-          font-weight: 600;
-          margin-right: 12px;
-        ">+ Add New Note</button>
-        <button id="clear-all-notes" style="
-          background: var(--pickachu-danger-color, #dc3545);
-          color: white;
-          border: none;
-          padding: 12px 24px;
-          border-radius: 8px;
-          cursor: pointer;
-          font-size: 14px;
-          font-weight: 600;
-        ">🗑️ Clear All</button>
-      </div>
-      
-      <div style="margin-bottom: 16px;">
-        <div style="font-weight: 600; margin-bottom: 12px; color: var(--pickachu-text, #333); text-align: center;">All Notes from All Sites</div>
-        <div id="all-notes-list" style="
-          max-height: 400px;
-          overflow-y: auto;
-          border: 1px solid var(--pickachu-border, #ddd);
-          border-radius: 8px;
-          padding: 16px;
-          background: var(--pickachu-code-bg, #f8f9fa);
-        "></div>
-      </div>
-    </div>
+  const header = document.createElement('div');
+  header.style.cssText = `
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--pickachu-border, #eee);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--pickachu-header-bg, #f8f9fa);
+    position: relative;
   `;
-  
-  document.body.appendChild(manager);
-  
-  // Add event listeners
-  const closeBtn = document.getElementById('close-notes-manager');
-  if (closeBtn) {
-    closeBtn.addEventListener('click', () => {
-      manager.remove();
-      // Don't deactivate - just hide the manager, notes stay on page
-    });
-  }
-  
-  const createBtn = document.getElementById('create-new-note');
-  if (createBtn) {
-    createBtn.addEventListener('click', () => {
-      manager.remove();
-      const centerX = window.innerWidth / 2 - 125;
-      const centerY = window.innerHeight / 2 - 75;
-      createStickyNote(centerX, centerY);
-    });
-  }
-  
 
-  const clearBtn = document.getElementById('clear-all-notes');
-  if (clearBtn) {
-    clearBtn.addEventListener('click', () => {
-      if (window.confirm('Are you sure you want to delete all notes? This action cannot be undone.')) {
-        notes.forEach(note => {
-          const noteElement = document.getElementById(note.id);
-          if (noteElement) noteElement.remove();
-        });
-        notes = [];
-        saveNotes();
-        showSuccess('All notes cleared');
-        // Refresh the all notes list
-        const allNotesList = document.getElementById('all-notes-list');
-        if (allNotesList) {
-          renderAllNotesList().then(html => {
-            allNotesList.innerHTML = html;
-          });
-        }
+  const title = document.createElement('h3');
+  title.style.cssText = `
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--pickachu-text, #333);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  `;
+  title.appendChild(renderIcon('note', { size: 20, decorative: true }));
+  title.appendChild(Object.assign(document.createElement('span'), { textContent: 'Sticky Notes Manager' }));
+  header.appendChild(title);
+
+  const closeBtn = document.createElement('button');
+  closeBtn.type = 'button';
+  closeBtn.style.cssText = `
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+    color: var(--pickachu-secondary-text, #666);
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    transition: background 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  `;
+  closeBtn.appendChild(renderIcon('close', { size: 18, decorative: true }));
+  closeBtn.addEventListener('mouseenter', () => {
+    closeBtn.style.background = 'rgba(0,0,0,0.08)';
+  });
+  closeBtn.addEventListener('mouseleave', () => {
+    closeBtn.style.background = 'transparent';
+  });
+  closeBtn.addEventListener('click', () => manager.remove());
+  header.appendChild(closeBtn);
+
+  const body = document.createElement('div');
+  body.style.cssText = 'padding: 22px; display: flex; flex-direction: column; gap: 18px;';
+
+  const actions = document.createElement('div');
+  actions.style.cssText = 'display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;';
+
+  const createBtn = document.createElement('button');
+  createBtn.id = 'create-new-note';
+  createBtn.type = 'button';
+  createBtn.style.cssText = `
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-radius: 999px;
+    background: var(--pickachu-primary-color, #007bff);
+    color: #fff;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 16px 32px rgba(0,0,0,0.12);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  `;
+  createBtn.appendChild(renderIcon('plus', { size: 18, decorative: true }));
+  createBtn.appendChild(Object.assign(document.createElement('span'), { textContent: 'Add New Note' }));
+  createBtn.addEventListener('mouseenter', () => {
+    createBtn.style.transform = 'translateY(-2px)';
+    createBtn.style.boxShadow = '0 20px 40px rgba(0,0,0,0.16)';
+  });
+  createBtn.addEventListener('mouseleave', () => {
+    createBtn.style.transform = 'translateY(0)';
+    createBtn.style.boxShadow = '0 16px 32px rgba(0,0,0,0.12)';
+  });
+
+  const clearBtn = document.createElement('button');
+  clearBtn.id = 'clear-all-notes';
+  clearBtn.type = 'button';
+  clearBtn.style.cssText = `
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-radius: 999px;
+    background: var(--pickachu-danger-color, #dc3545);
+    color: #fff;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  `;
+  clearBtn.appendChild(renderIcon('trash', { size: 18, decorative: true }));
+  clearBtn.appendChild(Object.assign(document.createElement('span'), { textContent: 'Clear All' }));
+  clearBtn.addEventListener('mouseenter', () => {
+    clearBtn.style.transform = 'translateY(-2px)';
+    clearBtn.style.boxShadow = '0 16px 32px rgba(220,53,69,0.35)';
+  });
+  clearBtn.addEventListener('mouseleave', () => {
+    clearBtn.style.transform = 'translateY(0)';
+    clearBtn.style.boxShadow = 'none';
+  });
+
+  actions.appendChild(createBtn);
+  actions.appendChild(clearBtn);
+
+  const listContainer = document.createElement('div');
+  listContainer.style.cssText = 'display: flex; flex-direction: column; gap: 12px;';
+
+  const listHeading = document.createElement('div');
+  listHeading.style.cssText = 'font-weight: 600; color: var(--pickachu-text, #333); text-align: center;';
+  listHeading.textContent = 'All Notes from All Sites';
+
+  const list = document.createElement('div');
+  list.id = 'all-notes-list';
+  list.style.cssText = `
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid var(--pickachu-border, #ddd);
+    border-radius: 12px;
+    padding: 16px;
+    background: var(--pickachu-code-bg, #f8f9fa);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  `;
+
+  listContainer.appendChild(listHeading);
+  listContainer.appendChild(list);
+
+  body.appendChild(actions);
+  body.appendChild(listContainer);
+
+  manager.appendChild(header);
+  manager.appendChild(body);
+
+  document.body.appendChild(manager);
+
+  createBtn.addEventListener('click', () => {
+    manager.remove();
+    const centerX = window.innerWidth / 2 - 125;
+    const centerY = window.innerHeight / 2 - 75;
+    createStickyNote(centerX, centerY);
+  });
+
+  const refreshManagerList = async () => {
+    try {
+      const allNotes = await loadAllNotes();
+      renderAllNotesList(list, allNotes);
+    } catch (error) {
+      handleError(error, 'load all notes for manager');
+      list.innerHTML = '<div style="text-align: center; color: var(--pickachu-error-color, #dc3545); padding: 20px;">Failed to load notes</div>';
+    }
+  };
+
+  clearBtn.addEventListener('click', async () => {
+    if (!window.confirm('This will remove sticky notes from every site. Continue?')) {
+      return;
+    }
+
+    try {
+      const storage = await chrome.storage.local.get();
+      const noteKeys = Object.keys(storage).filter(key => key.startsWith('stickyNotes_'));
+      if (noteKeys.length) {
+        await chrome.storage.local.remove(noteKeys);
       }
-    });
-  }
-  
-  // Load and display all notes from all sites
-  const allNotesList = document.getElementById('all-notes-list');
-  if (allNotesList) {
-    renderAllNotesList().then(html => {
-      allNotesList.innerHTML = html;
-    });
-  }
+
+      document.querySelectorAll('.pickachu-sticky-note').forEach(el => el.remove());
+      notes = [];
+      noteCounter = 0;
+      showSuccess('All sticky notes removed');
+      await refreshManagerList();
+    } catch (error) {
+      handleError(error, 'clear all notes');
+      showError('Failed to clear notes. Please try again.');
+    }
+  });
+
+  refreshManagerList();
   
 }
 
 // Load existing notes for current site and display them
-export function loadExistingNotesForCurrentSite() {
+export async function loadExistingNotesForCurrentSite() {
   try {
-    // Get notes from window data if available, otherwise use current notes
-    const notesToLoad = window.stickyNotesData || notes;
+    // Get current site URL if not already set
+    const currentUrl = safeExecute(() => window.location.href, 'get location href') || '';
     
-    notesToLoad.forEach(note => {
+    if (!currentUrl || currentUrl.trim() === '') {
+      console.log('No current URL available for loading notes');
+      return;
+    }
+    
+    // Filter notes to only include current site
+    const currentSiteNotes = notes.filter(note => {
+      return note.siteUrl === currentUrl;
+    });
+
+    console.log(`Loading ${currentSiteNotes.length} notes for URL: ${currentUrl}`);
+
+    currentSiteNotes.forEach(note => {
       // Check if note is already rendered on the page
       const existingNote = document.getElementById(note.id);
       if (!existingNote) {
         renderStickyNote(note);
+        console.log(`Rendered note: ${note.id}`);
       }
     });
   } catch (error) {
@@ -541,13 +663,18 @@ export function loadExistingNotesForCurrentSite() {
 async function saveNotes() {
   try {
     const currentUrl = safeExecute(() => window.location.href, 'get current url') || '';
-    if (!currentUrl) {
-      throw new Error('Unable to get current URL');
+    if (!currentUrl || currentUrl.trim() === '') {
+      throw new Error('No current URL available');
     }
-    
-    const siteKey = `stickyNotes_${sanitizeInput(currentUrl)}`;
-    await safeExecute(async () => 
-      await chrome.storage.local.set({ [siteKey]: notes }), 'save notes to storage');
+
+    const siteKey = getSiteStorageKey(currentUrl);
+    const notesToPersist = notes.filter(note => {
+      return note.siteUrl === currentUrl;
+    });
+
+    await safeExecute(async () =>
+      await chrome.storage.local.set({ [siteKey]: notesToPersist }), 'save notes to storage');
+
     showSuccess('Notes saved successfully!');
   } catch (error) {
     handleError(error, 'saveNotes');
@@ -559,17 +686,48 @@ async function saveNotes() {
 async function loadNotes() {
   try {
     const currentUrl = safeExecute(() => window.location.href, 'get current url') || '';
-    if (!currentUrl) {
-      throw new Error('Unable to get current URL');
+    if (!currentUrl || currentUrl.trim() === '') {
+      throw new Error('No current URL available');
     }
-    
-    const siteKey = `stickyNotes_${sanitizeInput(currentUrl)}`;
-    const result = await safeExecute(async () => 
+
+    const siteKey = getSiteStorageKey(currentUrl);
+
+    const siteData = await safeExecute(async () =>
       await chrome.storage.local.get([siteKey]), 'load notes from storage') || {};
-    notes = result[siteKey] || [];
+
+    let loadedNotes = siteData[siteKey] || [];
+
+    // Migration: Check for old URL-based keys and migrate them
+    if (loadedNotes.length === 0) {
+      const currentUrl = safeExecute(() => window.location.href, 'get current url') || '';
+      const legacyKey = getLegacyStorageKey(currentUrl);
+      const legacyData = await safeExecute(async () =>
+        await chrome.storage.local.get([legacyKey]), 'load legacy notes') || {};
+      
+      if (legacyData[legacyKey] && legacyData[legacyKey].length > 0) {
+        loadedNotes = legacyData[legacyKey];
+        // Migrate to new format
+        await chrome.storage.local.set({ [siteKey]: loadedNotes });
+        // Remove old key
+        await chrome.storage.local.remove([legacyKey]);
+      }
+    }
+
+    // Update note counter based on loaded notes
+    noteCounter = loadedNotes.reduce((max, note) => {
+      const numericId = parseInt((note.id || '').split('-')[1], 10);
+      return Number.isFinite(numericId) ? Math.max(max, numericId) : max;
+    }, 0);
+
+    // Only keep notes for current site
+    notes = loadedNotes.filter(note => {
+      return note.siteUrl === currentUrl;
+    });
+
   } catch (error) {
     handleError(error, 'loadNotes');
     notes = [];
+    noteCounter = 0;
   }
 }
 
@@ -583,7 +741,12 @@ async function loadAllNotes() {
     for (const [key, value] of Object.entries(result)) {
       try {
         if (key.startsWith('stickyNotes_') && Array.isArray(value)) {
-          allNotes.push(...value);
+          value.forEach(note => {
+            allNotes.push({
+              ...note,
+              siteUrl: sanitizeInput(note.siteUrl || '')
+            });
+          });
         }
       } catch (error) {
         handleError(error, `process storage key ${key}`);
@@ -742,64 +905,145 @@ function focusNoteById(noteId) {
 }
 
 // Render all notes from all sites with enhanced error handling
-async function renderAllNotesList() {
+function renderAllNotesList(targetElement, allNotes) {
   try {
-    const allNotes = await loadAllNotes();
-    
-    if (allNotes.length === 0) {
-      return '<div style="text-align: center; color: var(--pickachu-secondary-text, #666); padding: 20px;">No notes found</div>';
+    targetElement.innerHTML = '';
+
+    if (!allNotes || allNotes.length === 0) {
+      const emptyState = document.createElement('div');
+      emptyState.style.cssText = 'text-align: center; padding: 40px 20px; color: var(--pickachu-secondary-text, #666); display: flex; flex-direction: column; align-items: center; gap: 16px;';
+
+      const iconWrap = document.createElement('div');
+      iconWrap.style.cssText = 'width: 56px; height: 56px; border-radius: 18px; background: rgba(0,123,255,0.1); display: flex; align-items: center; justify-content: center;';
+      iconWrap.appendChild(renderIcon('note', { size: 28, decorative: true }));
+
+      const heading = document.createElement('h3');
+      heading.style.cssText = 'margin: 0; color: var(--pickachu-text, #333);';
+      heading.textContent = 'No sticky notes yet';
+
+      const description = document.createElement('p');
+      description.style.cssText = 'margin: 0; line-height: 1.6; font-size: 13px; max-width: 320px;';
+      description.textContent = 'Click anywhere on the page to create your first sticky note. Each note stays pinned to its site.';
+
+      emptyState.appendChild(iconWrap);
+      emptyState.appendChild(heading);
+      emptyState.appendChild(description);
+      targetElement.appendChild(emptyState);
+      return;
     }
-    
-    return allNotes.map(note => {
+
+    allNotes.forEach(note => {
       try {
-        const siteName = sanitizeInput(note.siteTitle || safeExecute(() => new URL(note.siteUrl).hostname, 'get hostname') || 'Unknown Site');
-        const shortContent = sanitizeInput(note.content.length > 50 ? note.content.substring(0, 50) + '...' : note.content);
-        const createdAt = safeExecute(() => new Date(note.createdAt).toLocaleDateString(), 'format date') || 'Unknown';
-        const sanitizedUrl = sanitizeInput(note.siteUrl);
-        
-        return `
-          <div style="
-            padding: 16px;
-            border: 1px solid var(--pickachu-border, #ddd);
-            border-radius: 8px;
-            margin-bottom: 12px;
-            background: var(--pickachu-bg, #fff);
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-          " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.05)'">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
-              <div style="font-weight: 600; color: var(--pickachu-text, #333); font-size: 14px; cursor: pointer;" onclick="window.open('${sanitizedUrl}', '_blank')">
-                ${siteName}
-              </div>
-              <div style="display: flex; gap: 8px; align-items: center;">
-                <div style="font-size: 11px; color: var(--pickachu-secondary-text, #666); background: var(--pickachu-code-bg, #f8f9fa); padding: 2px 6px; border-radius: 4px;">
-                  ${createdAt}
-                </div>
-                <button onclick="window.stickyNotesModule.deleteIndividualNote('${note.id}', '${sanitizedUrl}')" style="
-                  background: var(--pickachu-danger-color, #dc3545);
-                  color: white;
-                  border: none;
-                  padding: 4px 8px;
-                  border-radius: 4px;
-                  cursor: pointer;
-                  font-size: 10px;
-                  font-weight: 500;
-                " title="Delete this note">🗑️</button>
-              </div>
-            </div>
-            <div style="font-size: 13px; color: var(--pickachu-text, #333); line-height: 1.4;">
-              ${shortContent || 'Empty note'}
-            </div>
-          </div>
+        const card = document.createElement('div');
+        card.style.cssText = `
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          padding: 16px;
+          border-radius: 12px;
+          border: 1px solid var(--pickachu-border, #ddd);
+          background: var(--pickachu-bg, #fff);
+          box-shadow: 0 8px 16px rgba(0,0,0,0.05);
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
         `;
+
+        card.addEventListener('mouseenter', () => {
+          card.style.transform = 'translateY(-2px)';
+          card.style.boxShadow = '0 16px 32px rgba(0,0,0,0.08)';
+        });
+        card.addEventListener('mouseleave', () => {
+          card.style.transform = 'translateY(0)';
+          card.style.boxShadow = '0 8px 16px rgba(0,0,0,0.05)';
+        });
+
+        const headerRow = document.createElement('div');
+        headerRow.style.cssText = 'display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;';
+
+        const siteInfo = document.createElement('div');
+        siteInfo.style.cssText = 'display: flex; flex-direction: column; gap: 4px;';
+
+        const siteTitle = document.createElement('button');
+        siteTitle.type = 'button';
+        siteTitle.style.cssText = 'background: none; border: none; padding: 0; text-align: left; font-weight: 600; color: var(--pickachu-text, #333); font-size: 14px; cursor: pointer;';
+        const hostname = safeExecute(() => new URL(note.siteUrl).hostname, 'get hostname') || 'Unknown site';
+        siteTitle.textContent = sanitizeInput(note.siteTitle || hostname);
+        siteTitle.addEventListener('click', (event) => {
+          event.stopPropagation();
+          window.open(note.siteUrl, '_blank', 'noopener');
+        });
+
+        const meta = document.createElement('span');
+        meta.style.cssText = 'font-size: 12px; color: var(--pickachu-secondary-text, #666);';
+        meta.textContent = safeExecute(() => new Date(note.createdAt).toLocaleString(), 'format note timestamp') || 'Unknown date';
+
+        siteInfo.appendChild(siteTitle);
+        siteInfo.appendChild(meta);
+
+        const actions = document.createElement('div');
+        actions.style.cssText = 'display: flex; gap: 8px;';
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.style.cssText = `
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: var(--pickachu-danger-color, #dc3545);
+          color: #fff;
+          border: none;
+          padding: 6px 12px;
+          border-radius: 8px;
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: transform 0.15s ease;
+        `;
+        deleteBtn.appendChild(renderIcon('trash', { size: 14, decorative: true }));
+        deleteBtn.appendChild(Object.assign(document.createElement('span'), { textContent: 'Delete' }));
+        deleteBtn.addEventListener('mouseenter', () => {
+          deleteBtn.style.transform = 'translateY(-1px)';
+        });
+        deleteBtn.addEventListener('mouseleave', () => {
+          deleteBtn.style.transform = 'translateY(0)';
+        });
+        deleteBtn.addEventListener('click', async (event) => {
+          event.stopPropagation();
+          await deleteIndividualNote(note.id);
+          const refreshedNotes = await loadAllNotes();
+          renderAllNotesList(targetElement, refreshedNotes);
+        });
+
+        actions.appendChild(deleteBtn);
+
+        headerRow.appendChild(siteInfo);
+        headerRow.appendChild(actions);
+        card.appendChild(headerRow);
+
+        const preview = document.createElement('p');
+        preview.style.cssText = 'margin: 0; font-size: 13px; line-height: 1.6; color: var(--pickachu-text, #333);';
+        const summary = (note.content || '').trim();
+        preview.textContent = summary ? `${summary.slice(0, 160)}${summary.length > 160 ? '…' : ''}` : 'Empty note';
+        card.appendChild(preview);
+
+        card.addEventListener('click', () => {
+          const noteElement = document.getElementById(note.id);
+          if (noteElement) {
+            noteElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            noteElement.classList.add('pickachu-note-highlight');
+            setTimeout(() => noteElement.classList.remove('pickachu-note-highlight'), 1200);
+          } else {
+            window.open(note.siteUrl, '_blank', 'noopener');
+          }
+        });
+
+        targetElement.appendChild(card);
       } catch (error) {
-        handleError(error, 'render note item');
-        return '';
+        handleError(error, 'render note card');
       }
-    }).join('');
+    });
   } catch (error) {
     handleError(error, 'renderAllNotesList');
-    return '<div style="text-align: center; color: var(--pickachu-error-color, #dc3545); padding: 20px;">Failed to load notes</div>';
+    targetElement.innerHTML = '<div style="text-align: center; color: var(--pickachu-error-color, #dc3545); padding: 20px;">Failed to load notes</div>';
   }
 }
 
@@ -838,62 +1082,108 @@ function focusNote(noteElement) {
   }
 }
 
-// Delete individual note from all notes list
-async function deleteIndividualNote(noteId, noteUrl) {
+// Delete all notes for current site with enhanced error handling
+function deleteAllNotes() {
   try {
-    if (!noteId || !noteUrl) {
-      throw new Error('Invalid note ID or URL');
+    const currentUrl = safeExecute(() => window.location.href, 'get current url') || '';
+    if (!currentUrl || currentUrl.trim() === '') {
+      throw new Error('No current URL available');
+    }
+
+    // Filter notes to only include current site
+    const currentSiteNotes = notes.filter(note => {
+      return note.siteUrl === currentUrl;
+    });
+
+    if (currentSiteNotes.length === 0) {
+      showSuccess('No notes to delete for this site.');
+      return;
+    }
+
+    // Remove all notes for current site from array
+    notes = notes.filter(note => {
+      return note.siteUrl !== currentUrl;
+    });
+
+    // Remove all note elements from DOM
+    currentSiteNotes.forEach(note => {
+      const noteElement = document.getElementById(note.id);
+      if (noteElement) {
+        noteElement.remove();
+      }
+    });
+
+    // Save changes
+    saveNotes();
+
+    showSuccess(`Deleted ${currentSiteNotes.length} notes successfully!`);
+  } catch (error) {
+    handleError(error, 'deleteAllNotes');
+    showError('Failed to delete all notes. Please try again.');
+  }
+}
+
+// Delete individual note from all notes list (works for any site)
+async function deleteIndividualNote(noteId) {
+  try {
+    const noteIdSanitized = sanitizeInput(noteId);
+    if (!noteIdSanitized) {
+      throw new Error('Invalid note ID');
+    }
+
+    // Get all storage data to find the note
+    const allStorageData = await chrome.storage.local.get();
+    let noteToDelete = null;
+    let siteKeyToUpdate = null;
+    
+    // Find the note in all storage keys
+    for (const [key, value] of Object.entries(allStorageData)) {
+      if (key.startsWith('stickyNotes_') && Array.isArray(value)) {
+        const foundNote = value.find(note => note.id === noteIdSanitized);
+        if (foundNote) {
+          noteToDelete = foundNote;
+          siteKeyToUpdate = key;
+          break;
+        }
+      }
     }
     
-    if (window.confirm('Are you sure you want to delete this note? This action cannot be undone.')) {
-      // Remove from current site notes if it exists
-      const currentUrl = safeExecute(() => window.location.href, 'get current url') || '';
-      const currentSiteKey = `stickyNotes_${currentUrl}`;
-      
-      if (currentUrl === noteUrl) {
-        // Remove from current site notes
-        const noteIndex = notes.findIndex(note => note.id === noteId);
-        if (noteIndex !== -1) {
-          notes.splice(noteIndex, 1);
-          saveNotes();
-        }
-        
-        // Remove from DOM if it's currently visible
-        const noteElement = document.getElementById(noteId);
-        if (noteElement) {
-          noteElement.remove();
-        }
-      }
-      
-      // Remove from the specific site's storage
-      const siteKey = `stickyNotes_${noteUrl}`;
-      const result = await chrome.storage.local.get([siteKey]);
-      const siteNotes = result[siteKey] || [];
-      const updatedSiteNotes = siteNotes.filter(note => note.id !== noteId);
-      
-      await chrome.storage.local.set({ [siteKey]: updatedSiteNotes });
-      
-      // Refresh the all notes list
-      const allNotesList = document.getElementById('all-notes-list');
-      if (allNotesList) {
-        renderAllNotesList().then(html => {
-          allNotesList.innerHTML = html;
-        });
-      }
-      
-      showSuccess('Note deleted successfully');
+    if (!noteToDelete || !siteKeyToUpdate) {
+      throw new Error('Note not found in storage');
     }
+
+    // Remove from DOM
+    const noteElement = document.getElementById(noteIdSanitized);
+    if (noteElement) {
+      noteElement.remove();
+    }
+
+    // Remove from storage
+    const siteNotes = allStorageData[siteKeyToUpdate] || [];
+    const updatedSiteNotes = siteNotes.filter(note => note.id !== noteIdSanitized);
+    
+    // Save updated notes back to storage
+    await chrome.storage.local.set({ [siteKeyToUpdate]: updatedSiteNotes });
+
+    // If the deleted note is from current site, update local notes array
+    const currentUrl = safeExecute(() => window.location.href, 'get current url') || '';
+    if (noteToDelete.siteUrl === currentUrl) {
+      const localNoteIndex = notes.findIndex(note => note.id === noteIdSanitized);
+      if (localNoteIndex !== -1) {
+        notes.splice(localNoteIndex, 1);
+        saveNotes();
+      }
+    }
+
+    showSuccess('Note deleted successfully!');
   } catch (error) {
     handleError(error, 'deleteIndividualNote');
-    showError('Failed to delete note');
+    showError('Failed to delete note. Please try again.');
   }
 }
 
 // Expose functions globally in a controlled way to avoid pollution
 if (typeof window !== 'undefined') {
-  window.stickyNotesModule = {
-    deleteNote: deleteNote,
-    focusNote: focusNoteById,
-    deleteIndividualNote: deleteIndividualNote
-  };
+  // Functions are now exposed in showNotesManager() when needed
+  // This prevents global pollution when module is loaded but not activated
 }

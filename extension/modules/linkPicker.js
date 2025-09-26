@@ -1,4 +1,8 @@
-import { copyText, showModal, showError, showSuccess, showInfo, showWarning, throttle, handleError, safeExecute, sanitizeInput, addEventListenerWithCleanup, validateUrl } from './helpers.js';
+import { copyText, showModal, showError, showSuccess, showInfo, showWarning, throttle, handleError, safeExecute, sanitizeInput, addEventListenerWithCleanup } from './helpers.js';
+
+const DATA_ATTRIBUTE_KEYS = ['url', 'href', 'link', 'target', 'route', 'path', 'navigate', 'slug'];
+const JS_URL_REGEX = /(https?:\/\/[^'"\s]+)/i;
+const RELATIVE_URL_REGEX = /['"](\/[^'"\s]*)['"]/i;
 
 let startX, startY, box, deactivateCb;
 let isSelecting = false;
@@ -35,7 +39,7 @@ function onMouseDown(e) {
     
     cleanupFunctions.push(cleanupMove, cleanupUp);
     
-    showInfo('Drag to select area • Release to extract links', 2000);
+    showInfo('Drag to select links • Release to extract • Ctrl/Cmd+A for all links • Esc to cancel', 2000);
     
   } catch (error) {
     handleError(error, 'onMouseDown');
@@ -58,130 +62,262 @@ const throttledOnMove = throttle((e) => {
     box.style.width = w + 'px';
     box.style.height = h + 'px';
   } catch (error) {
-    handleError(error, 'throttledOnMove');
+    console.debug('Link picker move handler error:', error);
   }
 }, 16);
 
+function finalizeSelection() {
+  cleanupFunctions.forEach(cleanup => {
+    try {
+      cleanup();
+    } catch (error) {
+      handleError(error, 'event listener cleanup');
+    }
+  });
+  cleanupFunctions.length = 0;
+  if (box) {
+    box.remove();
+  }
+  box = null;
+  isSelecting = false;
+}
+
+function showProgressOverlay(total) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 2147483646;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+  `;
+
+  const container = document.createElement('div');
+  container.style.cssText = `
+    background: rgba(18, 18, 20, 0.92);
+    padding: 24px 32px;
+    border-radius: 12px;
+    width: min(420px, 90vw);
+    color: #ffffff;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+  `;
+
+  const title = document.createElement('div');
+  title.textContent = 'Scanning links…';
+  title.style.cssText = 'font-size: 16px; font-weight: 600; margin-bottom: 14px;';
+
+  const barOuter = document.createElement('div');
+  barOuter.style.cssText = 'height: 8px; border-radius: 999px; background: rgba(255,255,255,0.25); overflow: hidden;';
+
+  const barInner = document.createElement('div');
+  barInner.style.cssText = 'height: 100%; width: 0%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); transition: width 140ms ease-out;';
+
+  const subtitle = document.createElement('div');
+  subtitle.textContent = `Processing 0 of ${total}`;
+  subtitle.style.cssText = 'margin-top: 12px; font-size: 13px; opacity: 0.85;';
+
+  barOuter.appendChild(barInner);
+  container.appendChild(title);
+  container.appendChild(barOuter);
+  container.appendChild(subtitle);
+  overlay.appendChild(container);
+  document.body.appendChild(overlay);
+
+  return {
+    update(current) {
+      const percent = Math.min(100, Math.round((current / total) * 100));
+      barInner.style.width = `${percent}%`;
+      subtitle.textContent = `Processing ${current} of ${total}`;
+    },
+    complete() {
+      title.textContent = 'Finalising…';
+    },
+    destroy() {
+      overlay.remove();
+    }
+  };
+}
+
+function normalizeUrl(candidate) {
+  if (!candidate || typeof candidate !== 'string') {
+    return null;
+  }
+
+  const trimmed = candidate.trim();
+  if (!trimmed || trimmed === '#' || /^javascript:/i.test(trimmed)) return null;
+
+  if (/^(mailto:|tel:|sms:|http:|https:)/i.test(trimmed)) {
+    try {
+      return new URL(trimmed, window.location.href).href;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  if (trimmed.startsWith('//')) {
+    return `${window.location.protocol}${trimmed}`;
+  }
+
+  if (trimmed.startsWith('/')) {
+    return `${window.location.origin}${trimmed}`;
+  }
+
+  if (!trimmed.includes(' ') && /^[a-z0-9]/i.test(trimmed)) {
+    try {
+      return new URL(trimmed, window.location.href).href;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  return null;
+}
+
+function extractCandidatesFromElement(link) {
+  const candidates = [];
+
+  DATA_ATTRIBUTE_KEYS.forEach((key) => {
+    const attrValue = link.getAttribute(`data-${key}`);
+    if (attrValue) candidates.push(attrValue);
+    const datasetValue = link.dataset?.[key];
+    if (datasetValue) candidates.push(datasetValue);
+  });
+
+  const ariaLabel = link.getAttribute('aria-label');
+  if (ariaLabel) {
+    const httpMatch = JS_URL_REGEX.exec(ariaLabel);
+    if (httpMatch) candidates.push(httpMatch[0]);
+  }
+
+  const onclickAttr = link.getAttribute('onclick');
+  if (onclickAttr) {
+    const httpMatch = JS_URL_REGEX.exec(onclickAttr);
+    if (httpMatch) candidates.push(httpMatch[0]);
+    const relativeMatch = RELATIVE_URL_REGEX.exec(onclickAttr);
+    if (relativeMatch) candidates.push(relativeMatch[1]);
+  }
+
+  if (typeof link.onclick === 'function') {
+    const fnString = link.onclick.toString();
+    const httpMatch = JS_URL_REGEX.exec(fnString);
+    if (httpMatch) candidates.push(httpMatch[0]);
+    const relativeMatch = RELATIVE_URL_REGEX.exec(fnString);
+    if (relativeMatch) candidates.push(relativeMatch[1]);
+  }
+
+  return candidates.filter(Boolean);
+}
+
+function resolveLinkUrl(link) {
+  const hrefAttr = link.getAttribute('href');
+  if (hrefAttr && !/^javascript:/i.test(hrefAttr) && hrefAttr !== '#') {
+    try {
+      return new URL(hrefAttr, window.location.href).href;
+    } catch (error) {
+      // fall through to candidate extraction
+    }
+  }
+
+  const candidates = extractCandidatesFromElement(link);
+  for (const candidate of candidates) {
+    const normalized = normalizeUrl(candidate);
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  return null;
+}
+
+function requiresAdvancedMode(links) {
+  return links.some((link) => {
+    const hrefAttr = link.getAttribute('href');
+    return !hrefAttr || hrefAttr === '#' || /^javascript:/i.test(hrefAttr);
+  });
+}
+
+async function analyzeLinks(links, sourceLabel = 'selected area') {
+  if (!links || links.length === 0) {
+    showWarning(`No links found in ${sourceLabel}.`);
+    deactivateCb();
+    return false;
+  }
+
+  const useAdvanced = requiresAdvancedMode(links);
+  const progress = useAdvanced ? showProgressOverlay(links.length) : null;
+  const analyzed = [];
+
+  for (let index = 0; index < links.length; index += 1) {
+    const link = links[index];
+    const resolvedUrl = resolveLinkUrl(link);
+    if (resolvedUrl) {
+      analyzed.push({
+        url: sanitizeInput(resolvedUrl),
+        text: sanitizeInput(link.textContent.trim()),
+        title: sanitizeInput(link.title || ''),
+        target: sanitizeInput(link.target || '_self'),
+        rel: sanitizeInput(link.rel || '')
+      });
+    }
+
+    if (progress) {
+      progress.update(index + 1);
+      await new Promise(requestAnimationFrame);
+    }
+  }
+
+  if (progress) {
+    progress.complete();
+    setTimeout(() => progress.destroy(), 200);
+  }
+
+  const uniqueLinks = analyzed.filter((link, index, self) =>
+    index === self.findIndex(l => l.url === link.url)
+  );
+
+  if (!uniqueLinks.length) {
+    showWarning('No valid links were detected.');
+    deactivateCb();
+    return false;
+  }
+
+  const urlsList = uniqueLinks.map(link => link.url).join('\n');
+  copyText(urlsList);
+
+  showSuccess(`${uniqueLinks.length} links extracted from ${sourceLabel}!`);
+
+  const title = `${uniqueLinks.length} ${uniqueLinks.length === 1 ? 'Link' : 'Links'}`;
+  showModal(title, urlsList, 'link', 'links');
+  deactivateCb();
+  return true;
+}
+
 // Enhanced mouse up handler with comprehensive link analysis and error handling
-function onUp() {
+async function onUp() {
   try {
     if (!isSelecting) return;
-    
-    isSelecting = false;
-    
-    // Cleanup event listeners
-    cleanupFunctions.forEach(cleanup => {
-      try {
-        cleanup();
-      } catch (error) {
-        handleError(error, 'event listener cleanup');
-      }
-    });
-    cleanupFunctions.length = 0;
-    
-    const rect = box.getBoundingClientRect();
-    box.remove();
-    
-    // Find all links in the selected area with enhanced error handling
+
+    const rect = box ? box.getBoundingClientRect() : null;
+    finalizeSelection();
     const allLinks = safeExecute(() => [...document.querySelectorAll('a')], 'querySelectorAll links') || [];
-    const selectedLinks = allLinks.filter(link => {
+    const selectedLinks = rect ? allLinks.filter(link => {
       try {
         const linkRect = link.getBoundingClientRect();
-        return linkRect.left < rect.right && 
-               linkRect.right > rect.left && 
-               linkRect.top < rect.bottom && 
+        return linkRect.left < rect.right &&
+               linkRect.right > rect.left &&
+               linkRect.top < rect.bottom &&
                linkRect.bottom > rect.top;
       } catch (error) {
         handleError(error, 'link rect calculation');
         return false;
       }
-    });
-    
-    if (selectedLinks.length === 0) {
-      showWarning('No links found in the selected area.');
-      deactivateCb();
-      return;
-    }
-    
-    // Analyze each link with enhanced validation and sanitization
-    const linkAnalysis = selectedLinks.map(link => {
-      try {
-        const href = sanitizeInput(link.href);
-        const text = sanitizeInput(link.textContent.trim());
-        const title = sanitizeInput(link.title || '');
-        const target = sanitizeInput(link.target || '_self');
-        const rel = sanitizeInput(link.rel || '');
-        
-        // Determine link type with enhanced validation
-        const isExternal = safeExecute(() => !href.includes(window.location.hostname), 'check external') || false;
-        const isEmail = safeExecute(() => href.startsWith('mailto:'), 'check email') || false;
-        const isPhone = safeExecute(() => href.startsWith('tel:'), 'check phone') || false;
-        const isAnchor = safeExecute(() => href.startsWith('#'), 'check anchor') || false;
-        const isDownload = link.hasAttribute('download');
-        
-        // Check if link is broken (basic check) with enhanced validation
-        const isBroken = safeExecute(() => {
-          return href === '' || href === '#' || href.includes('javascript:') || !validateUrl(href);
-        }, 'check broken') || false;
-        
-        return {
-          url: href,
-          text: text,
-          title: title,
-          target: target,
-          rel: rel,
-          type: {
-            external: isExternal,
-            internal: !isExternal,
-            email: isEmail,
-            phone: isPhone,
-            anchor: isAnchor,
-            download: isDownload,
-            broken: isBroken
-          },
-          context: {
-            tagName: link.tagName.toLowerCase(),
-            className: sanitizeInput(link.className),
-            id: sanitizeInput(link.id),
-            parentElement: link.parentElement?.tagName.toLowerCase()
-          },
-          accessibility: {
-            ariaLabel: sanitizeInput(link.getAttribute('aria-label')),
-            ariaDescribedBy: sanitizeInput(link.getAttribute('aria-describedby')),
-            role: sanitizeInput(link.getAttribute('role'))
-          }
-        };
-      } catch (error) {
-        handleError(error, 'link analysis');
-        return null;
-      }
-    }).filter(link => link !== null);
-    
-    // Remove duplicates based on URL
-    const uniqueLinks = linkAnalysis.filter((link, index, self) => 
-      index === self.findIndex(l => l.url === link.url)
-    );
-    
-    // Generate different output formats with enhanced error handling
-    const formats = {
-      urls: uniqueLinks.map(link => link.url).join('\n'),
-      markdown: uniqueLinks.map(link => `[${link.text || link.url}](${link.url})`).join('\n'),
-      html: uniqueLinks.map(link => `<a href="${link.url}"${link.target !== '_self' ? ` target="${link.target}"` : ''}${link.title ? ` title="${link.title}"` : ''}>${link.text || link.url}</a>`).join('\n'),
-      json: safeExecute(() => JSON.stringify(uniqueLinks, null, 2), 'stringify json') || '{}',
-      csv: 'URL,Text,Title,Type\n' + uniqueLinks.map(link => `"${link.url}","${link.text}","${link.title}","${link.type.external ? 'external' : 'internal'}"`).join('\n')
-    };
-    
-    // Copy primary format (URLs)
-    copyText(formats.urls);
-    
-    showSuccess(`${uniqueLinks.length} links extracted and copied!`);
-    
-    const title = chrome.i18n ? chrome.i18n.getMessage('links') : 'Link Analysis';
-    const content = `Found ${uniqueLinks.length} unique links:\n\n${formats.urls}\n\nAnalysis:\n- External: ${uniqueLinks.filter(l => l.type.external).length}\n- Internal: ${uniqueLinks.filter(l => l.type.internal).length}\n- Broken: ${uniqueLinks.filter(l => l.type.broken).length}\n\nFull Analysis:\n${formats.json}`;
-    
-    showModal(title, content, '🔗', 'links');
-    deactivateCb();
-    
+    }) : [];
+
+    await analyzeLinks(selectedLinks, 'the selected area');
+
   } catch (error) {
     handleError(error, 'linkPicker onUp');
     showError('Failed to extract links. Please try again.');
@@ -190,25 +326,27 @@ function onUp() {
 }
 
 // Keyboard navigation with enhanced error handling
-function onKeyDown(e) {
+async function onKeyDown(e) {
   try {
+    const isSelectAll = (e.key === 'a' || e.key === 'A') && (e.ctrlKey || e.metaKey);
+
+    if (isSelectAll) {
+      e.preventDefault();
+      try {
+        document.execCommand('selectAll');
+      } catch (_) {
+        // ignore if execCommand fails
+      }
+
+      finalizeSelection();
+      const allLinks = safeExecute(() => [...document.querySelectorAll('a')], 'querySelectorAll links') || [];
+      await analyzeLinks(allLinks, 'the entire page');
+      return;
+    }
+
     if (e.key === 'Escape') {
       e.preventDefault();
-      if (isSelecting) {
-        isSelecting = false;
-        
-        // Cleanup event listeners
-        cleanupFunctions.forEach(cleanup => {
-          try {
-            cleanup();
-          } catch (error) {
-            handleError(error, 'event listener cleanup');
-          }
-        });
-        cleanupFunctions.length = 0;
-        
-        if (box) box.remove();
-      }
+      finalizeSelection();
       deactivateCb();
     }
   } catch (error) {
@@ -228,7 +366,7 @@ export function activate(deactivate) {
     
     cleanupFunctions.push(cleanupMouseDown, cleanupKeydown);
     
-    showInfo('Click and drag to select an area • Release to extract all links • Esc to cancel', 3000);
+    showInfo('Drag to select links • Release to extract • Ctrl/Cmd+A for all links • Esc to cancel', 3000);
     
   } catch (error) {
     handleError(error, 'linkPicker activation');
@@ -239,25 +377,7 @@ export function activate(deactivate) {
 
 export function deactivate() {
   try {
-    // Cleanup all event listeners
-    cleanupFunctions.forEach(cleanup => {
-      try {
-        cleanup();
-      } catch (error) {
-        handleError(error, 'event listener cleanup');
-      }
-    });
-    cleanupFunctions.length = 0;
-    
-    if (isSelecting) {
-      isSelecting = false;
-    }
-    
-    if (box) {
-      box.remove();
-      box = null;
-    }
-    
+    finalizeSelection();
     document.body.style.cursor = '';
     
   } catch (error) {

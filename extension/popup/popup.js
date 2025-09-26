@@ -1,21 +1,30 @@
+const SUPPORTED_LANGUAGES = ['en', 'tr', 'fr'];
+const themeMediaQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+
 async function loadLang(lang){
-  try {
-    const res = await fetch(chrome.runtime.getURL(`_locales/${lang}/messages.json`));
-    if (!res.ok) {
-      throw new Error(`Failed to load language: ${res.status}`);
-    }
-    return res.json();
-  } catch (error) {
-    console.error('Error loading language:', error);
-    // Fallback to English
+  const resolved = resolveLanguage(lang);
+  const candidates = [...new Set([resolved, resolveLanguage(resolved), 'en'])];
+
+  for (const candidate of candidates) {
     try {
-      const res = await fetch(chrome.runtime.getURL(`_locales/en/messages.json`));
-      return res.json();
-    } catch (fallbackError) {
-      console.error('Error loading fallback language:', fallbackError);
-      return {};
+      const res = await fetch(chrome.runtime.getURL(`_locales/${candidate}/messages.json`));
+      if (res.ok) {
+        return res.json();
+      }
+    } catch (error) {
+      console.error(`Error loading language ${candidate}:`, error);
     }
   }
+
+  return {};
+}
+
+function resolveLanguage(code = 'en') {
+  const normalized = String(code || 'en').trim().toLowerCase();
+  if (!normalized) return 'en';
+  if (SUPPORTED_LANGUAGES.includes(normalized)) return normalized;
+  const base = normalized.split('-')[0];
+  return SUPPORTED_LANGUAGES.includes(base) ? base : 'en';
 }
 
 function applyLang(map){
@@ -27,10 +36,32 @@ function applyLang(map){
   });
 }
 
+function getEffectiveTheme(theme){
+  if (theme === 'light' || theme === 'dark') return theme;
+  return themeMediaQuery && themeMediaQuery.matches ? 'dark' : 'light';
+}
+
+let currentThemeSetting = 'system';
+
 function applyTheme(theme){
+  currentThemeSetting = theme;
+  const effective = getEffectiveTheme(theme);
   document.body.classList.remove('light','dark');
-  if(theme==='light') document.body.classList.add('light');
-  if(theme==='dark') document.body.classList.add('dark');
+  document.body.classList.add(effective === 'dark' ? 'dark' : 'light');
+}
+
+if (themeMediaQuery) {
+  const handleThemeChange = () => {
+    if (currentThemeSetting === 'system') {
+      applyTheme('system');
+    }
+  };
+
+  if (typeof themeMediaQuery.addEventListener === 'function') {
+    themeMediaQuery.addEventListener('change', handleThemeChange);
+  } else if (typeof themeMediaQuery.addListener === 'function') {
+    themeMediaQuery.addListener(handleThemeChange);
+  }
 }
 
 // Performance optimization: debounce function
@@ -63,6 +94,20 @@ function throttle(func, limit) {
 // Global variables to prevent duplicate listeners
 let isInitialized = false;
 let buttonListenersAdded = false;
+let shortcutsOverlay = null;
+let currentLangMap = null;
+
+const toolShortcutDefaults = {
+  'color-picker': { default: 'Alt+Shift+1', mac: 'Option+Shift+1', messageKey: 'shortcutColor' },
+  'element-picker': { default: 'Alt+Shift+2', mac: 'Option+Shift+2', messageKey: 'shortcutElement' },
+  'link-picker': { default: 'Alt+Shift+3', mac: 'Option+Shift+3', messageKey: 'shortcutLink' },
+  'font-picker': { default: 'Alt+Shift+4', mac: 'Option+Shift+4', messageKey: 'shortcutFont' },
+  'media-picker': { default: 'Alt+Shift+5', mac: 'Option+Shift+5', messageKey: 'shortcutMedia' },
+  'text-picker': { default: 'Alt+Shift+6', mac: 'Option+Shift+6', messageKey: 'shortcutText' },
+  'screenshot-picker': { default: 'Alt+Shift+7', mac: 'Option+Shift+7', messageKey: 'shortcutScreenshot' },
+  'sticky-notes-picker': { default: 'Alt+Shift+8', mac: 'Option+Shift+8', messageKey: 'shortcutNotes' },
+  'site-info-picker': { default: 'Alt+Shift+9', mac: 'Option+Shift+9', messageKey: 'shortcutInfo' }
+};
 
 // Keyboard shortcuts mapping
 const keyboardShortcuts = {
@@ -70,33 +115,37 @@ const keyboardShortcuts = {
   '2': 'element-picker', 
   '3': 'link-picker',
   '4': 'font-picker',
-  '5': 'image-picker',
+  '5': 'media-picker',
   '6': 'text-picker',
   '7': 'screenshot-picker',
   '8': 'sticky-notes-picker',
   '9': 'site-info-picker'
 };
 
-function addButtonListeners(map) {
-  if (buttonListenersAdded) return;
-  
+function updateToolButtonTooltips(map) {
   document.querySelectorAll('.tool-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      chrome.runtime.sendMessage({ type: 'ACTIVATE_TOOL', tool: btn.id });
-      // Delay closing to ensure message is sent
-      setTimeout(() => window.close(), 50);
-    });
-    
-    // Add keyboard shortcuts to tooltips
     const shortcut = Object.keys(keyboardShortcuts).find(key => keyboardShortcuts[key] === btn.id);
-    if (shortcut && map) {
+    if (shortcut) {
       const titleId = btn.dataset.i18nTitle;
-      const base = map[titleId]?.message || btn.title;
+      const base = map?.[titleId]?.message || btn.title.replace(/\s*\([^)]*\)$/, '');
       btn.title = `${base} (${shortcut})`;
     }
   });
-  
-  buttonListenersAdded = true;
+}
+
+function addButtonListeners(map) {
+  if (!buttonListenersAdded) {
+    document.querySelectorAll('.tool-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        chrome.runtime.sendMessage({ type: 'ACTIVATE_TOOL', tool: btn.id });
+        // Delay closing to ensure message is sent
+        setTimeout(() => window.close(), 50);
+      });
+    });
+    buttonListenersAdded = true;
+  }
+
+  updateToolButtonTooltips(map);
 }
 
 // Add keyboard shortcut support
@@ -104,6 +153,7 @@ function addKeyboardShortcuts() {
   document.addEventListener('keydown', (e) => {
     // Don't trigger if user is typing in inputs
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+    if (shortcutsOverlay) return;
     
     const shortcut = keyboardShortcuts[e.key];
     if (shortcut) {
@@ -121,17 +171,248 @@ function addKeyboardShortcuts() {
   });
 }
 
+function parseShortcutString(shortcut) {
+  if (!shortcut || typeof shortcut !== 'string') return [];
+  return shortcut.split('+').map(part => part.trim()).filter(Boolean);
+}
+
+function createKeyChip(label) {
+  const span = document.createElement('span');
+  span.className = 'key-chip';
+  span.textContent = label;
+  return span;
+}
+
+function createSeparator(symbol) {
+  const span = document.createElement('span');
+  span.className = 'key-separator';
+  span.textContent = symbol;
+  return span;
+}
+
+function renderShortcutKeys(container, combos) {
+  combos.forEach((combo, comboIndex, combosArray) => {
+    const normalizedCombo = Array.isArray(combo) ? combo : parseShortcutString(combo);
+    normalizedCombo.forEach((key, keyIndex, keyArray) => {
+      container.appendChild(createKeyChip(key));
+      if (keyIndex < keyArray.length - 1) {
+        container.appendChild(createSeparator('+'));
+      }
+    });
+
+    if (comboIndex < combosArray.length - 1) {
+      container.appendChild(createSeparator('/'));
+    }
+  });
+}
+
+function buildShortcutsSection(title, items) {
+  if (!items || items.length === 0) return null;
+
+  const section = document.createElement('section');
+  section.className = 'modal-section';
+
+  const heading = document.createElement('div');
+  heading.className = 'modal-section-title';
+  heading.textContent = title;
+  section.appendChild(heading);
+
+  items.forEach(({ label, combos }) => {
+    if (!label || !combos || combos.length === 0) return;
+
+    const row = document.createElement('div');
+    row.className = 'shortcut-row';
+
+    const labelEl = document.createElement('div');
+    labelEl.className = 'shortcut-label';
+    labelEl.textContent = label;
+
+    const keysEl = document.createElement('div');
+    keysEl.className = 'shortcut-keys';
+    renderShortcutKeys(keysEl, combos);
+
+    row.appendChild(labelEl);
+    row.appendChild(keysEl);
+    section.appendChild(row);
+  });
+
+  return section;
+}
+
+function updateFooterButtons(map) {
+  const favoritesBtn = document.getElementById('favorites-btn');
+  if (favoritesBtn) {
+    const label = map?.favorites?.message || 'Favorites';
+    favoritesBtn.setAttribute('aria-label', label);
+    const textSpan = favoritesBtn.querySelector('.footer-btn-text');
+    if (textSpan) {
+      textSpan.textContent = label;
+    }
+  }
+
+  const shortcutsBtn = document.getElementById('shortcuts-btn');
+  if (shortcutsBtn) {
+    const label = map?.shortcuts?.message || 'Shortcuts';
+    shortcutsBtn.setAttribute('aria-label', label);
+    const textSpan = shortcutsBtn.querySelector('.footer-btn-text');
+    if (textSpan) {
+      textSpan.textContent = label;
+    }
+  }
+
+  // Update developer and support buttons
+  const developerBtn = document.querySelector('a[href*="ademisler.com"]');
+  if (developerBtn) {
+    const label = map?.developer?.message || 'Developer';
+    developerBtn.setAttribute('aria-label', label);
+    const textSpan = developerBtn.querySelector('.footer-btn-text');
+    if (textSpan) {
+      textSpan.textContent = label;
+    }
+  }
+
+  const supportBtn = document.querySelector('a[href*="buymeacoffee.com"]');
+  if (supportBtn) {
+    const label = map?.support?.message || 'Support';
+    supportBtn.setAttribute('aria-label', label);
+    const textSpan = supportBtn.querySelector('.footer-btn-text');
+    if (textSpan) {
+      textSpan.textContent = label;
+    }
+  }
+}
+
+function closeShortcutsModal() {
+  if (shortcutsOverlay) {
+    shortcutsOverlay.remove();
+    shortcutsOverlay = null;
+  }
+}
+
+function showShortcutsModal(map) {
+  closeShortcutsModal();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'popup-shortcuts-overlay';
+  overlay.className = 'modal-overlay';
+
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+
+  const header = document.createElement('div');
+  header.className = 'modal-header';
+
+  const title = document.createElement('div');
+  title.className = 'modal-title';
+  title.textContent = map?.shortcutsTitle?.message || 'Keyboard shortcuts';
+
+  const closeBtn = document.createElement('button');
+  closeBtn.type = 'button';
+  closeBtn.className = 'modal-close';
+  closeBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>';
+
+  header.appendChild(title);
+  header.appendChild(closeBtn);
+
+  const body = document.createElement('div');
+  body.className = 'modal-body';
+
+  const descriptionText = map?.shortcutsDescription?.message || 'Trigger Pickachu faster with these shortcuts.';
+  const description = document.createElement('p');
+  description.className = 'modal-description';
+  description.textContent = descriptionText;
+  body.appendChild(description);
+
+  const openDefault = parseShortcutString(map?.openShortcut?.message || 'Ctrl+Shift+9');
+  const openMac = parseShortcutString(map?.openShortcutMac?.message || 'Cmd+Shift+9');
+  const toggleDefault = parseShortcutString(map?.toggleShortcut?.message || 'Ctrl+Shift+P');
+  const toggleMac = parseShortcutString(map?.toggleShortcutMac?.message || 'Cmd+Shift+P');
+
+  // Simplified shortcuts display
+  const shortcutsList = [
+    { label: map?.shortcutOpen?.message || map?.openPickachu?.message || 'Open Pickachu', key: 'Ctrl+Shift+9' },
+    { label: map?.shortcutToggle?.message || 'Toggle popup', key: 'Ctrl+Shift+P' },
+    { label: map?.color?.message || 'Color Picker', key: 'Alt+Shift+1' },
+    { label: map?.element?.message || 'Element Picker', key: 'Alt+Shift+2' },
+    { label: map?.shortcutClose?.message || 'Close popup', key: 'Esc' }
+  ];
+
+  const shortcutsSection = document.createElement('div');
+  shortcutsSection.style.cssText = `
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  `;
+
+  shortcutsList.forEach(({ label, key }) => {
+    const row = document.createElement('div');
+    row.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background: rgba(0,0,0,0.03);
+      border-radius: 8px;
+      font-size: 13px;
+    `;
+
+    const labelEl = document.createElement('span');
+    labelEl.textContent = label;
+    labelEl.style.cssText = 'color: var(--pickachu-text); font-weight: 500;';
+
+    const keyEl = document.createElement('span');
+    keyEl.textContent = key;
+    keyEl.style.cssText = `
+      background: var(--pickachu-button-bg);
+      border: 1px solid var(--pickachu-border);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--pickachu-text);
+      font-family: monospace;
+    `;
+
+    row.appendChild(labelEl);
+    row.appendChild(keyEl);
+    shortcutsSection.appendChild(row);
+  });
+
+  body.appendChild(shortcutsSection);
+
+  modal.appendChild(header);
+  modal.appendChild(body);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  const handleOverlayClick = (event) => {
+    if (event.target === overlay) {
+      closeShortcutsModal();
+    }
+  };
+
+  closeBtn.addEventListener('click', closeShortcutsModal);
+  overlay.addEventListener('click', handleOverlayClick);
+
+  shortcutsOverlay = overlay;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   if (isInitialized) return;
   isInitialized = true;
   
   const langSelect = document.getElementById('lang-select');
   const themeSelect = document.getElementById('theme-select');
-  const shortcutsEl = document.getElementById('shortcuts');
+  const versionInfoEl = document.getElementById('version-info');
 
   // Add escape key support
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
+      if (shortcutsOverlay) {
+        e.preventDefault();
+        closeShortcutsModal();
+        return;
+      }
       window.close();
     }
   });
@@ -139,12 +420,27 @@ document.addEventListener('DOMContentLoaded', () => {
   (async () => {
     try {
       const stored = await chrome.storage.local.get(['language', 'theme']);
-      const lang = stored?.language || 'en';
-      const theme = stored?.theme || 'system';
+      let lang = stored?.language ? resolveLanguage(stored.language) : null;
+      if (!lang) {
+        const autoLang = resolveLanguage(chrome.i18n?.getUILanguage?.() || navigator.language || 'en');
+        lang = autoLang;
+        await chrome.storage.local.set({ language: lang });
+      }
+
+      let theme = stored?.theme;
+      if (!['light', 'dark', 'system'].includes(theme)) {
+        theme = 'system';
+        await chrome.storage.local.set({ theme });
+      }
+
       const map = await loadLang(lang);
 
       applyLang(map);
-      langSelect.value = lang;
+      currentLangMap = map;
+      updateFooterButtons(map);
+      updateToolButtonTooltips(map);
+
+      langSelect.value = SUPPORTED_LANGUAGES.includes(lang) ? lang : 'en';
       themeSelect.value = theme;
       applyTheme(theme);
 
@@ -154,46 +450,30 @@ document.addEventListener('DOMContentLoaded', () => {
       // Add keyboard shortcuts
       addKeyboardShortcuts();
 
-      if (shortcutsEl) {
-        const base = map.openShortcut?.message || 'Ctrl+Shift+9';
-        const combos = [base, base.replace('Ctrl', 'Cmd')];
-        shortcutsEl.innerHTML = '';
-
-        combos.forEach((combo, idx) => {
-          combo.split('+').forEach((k, i, arr) => {
-            const span = document.createElement('span');
-            span.className = 'key';
-            span.textContent = k;
-            shortcutsEl.appendChild(span);
-            if (i < arr.length - 1) {
-              const sep = document.createTextNode('+');
-              shortcutsEl.appendChild(sep);
-            }
-          });
-
-          if (idx === 0) {
-            const sep = document.createTextNode(' / ');
-            shortcutsEl.appendChild(sep);
-          }
-        });
-      }
-
       langSelect.addEventListener('change', async e => {
-        const newLang = e.target.value;
+        const newLang = resolveLanguage(e.target.value);
+        e.target.value = newLang;
         await chrome.storage.local.set({ language: newLang });
         const m = await loadLang(newLang);
         applyLang(m);
+        currentLangMap = m;
+        updateFooterButtons(m);
+        updateToolButtonTooltips(m);
       });
 
-      themeSelect.addEventListener('change', e => {
-        const t = e.target.value;
-        chrome.storage.local.set({ theme: t });
-        applyTheme(t);
+      themeSelect.addEventListener('change', async e => {
+        const requested = e.target.value;
+        const normalized = ['light', 'dark', 'system'].includes(requested) ? requested : 'system';
+        e.target.value = normalized;
+        await chrome.storage.local.set({ theme: normalized });
+        applyTheme(normalized);
       });
 
       // Add favorites button event listener
       const favoritesBtn = document.getElementById('favorites-btn');
       if (favoritesBtn) {
+        const favLabel = map?.favorites?.message || 'Favorites';
+        favoritesBtn.setAttribute('aria-label', favLabel);
         favoritesBtn.addEventListener('click', async () => {
           try {
             // Send message to content script to show favorites
@@ -207,6 +487,19 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error opening favorites:', error);
           }
         });
+      }
+
+      const shortcutsBtn = document.getElementById('shortcuts-btn');
+      if (shortcutsBtn) {
+        const label = map?.shortcuts?.message || 'Shortcuts';
+        shortcutsBtn.setAttribute('aria-label', label);
+        shortcutsBtn.addEventListener('click', () => showShortcutsModal(currentLangMap || map));
+      }
+
+      const versionBadge = document.getElementById('version-badge');
+      if (versionBadge) {
+        const { version } = chrome.runtime.getManifest();
+        versionBadge.textContent = `v${version}`;
       }
       
     } catch (error) {

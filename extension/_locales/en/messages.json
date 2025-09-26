@@ -20,8 +20,8 @@
   "font": {
     "message": "Font"
   },
-  "image": {
-    "message": "Image"
+  "media": {
+    "message": "Media"
   },
   "text": {
     "message": "Text"
@@ -59,8 +59,8 @@
   "fontPicker": {
     "message": "Font Picker"
   },
-  "imagePicker": {
-    "message": "Image Picker"
+  "mediaPicker": {
+    "message": "Media Picker"
   },
   "textPicker": {
     "message": "Text Picker"
@@ -104,11 +104,134 @@
   "openShortcut": {
     "message": "Ctrl+Shift+9"
   },
+  "openShortcutMac": {
+    "message": "Cmd+Shift+9"
+  },
+  "toggleShortcut": {
+    "message": "Ctrl+Shift+P"
+  },
+  "toggleShortcutMac": {
+    "message": "Cmd+Shift+P"
+  },
+  "shortcuts": {
+    "message": "Shortcuts"
+  },
+  "shortcutsTitle": {
+    "message": "Keyboard shortcuts"
+  },
+  "shortcutsDescription": {
+    "message": "Trigger Pickachu faster with these shortcuts."
+  },
+  "shortcutsGlobal": {
+    "message": "Global"
+  },
+  "shortcutsTools": {
+    "message": "Tools (global)"
+  },
+  "shortcutsPopup": {
+    "message": "Inside the popup"
+  },
+  "shortcutOpen": {
+    "message": "Open Pickachu"
+  },
+  "shortcutToggle": {
+    "message": "Toggle popup"
+  },
+  "shortcutClose": {
+    "message": "Close popup"
+  },
+  "shortcutColor": {
+    "message": "Alt+Shift+1"
+  },
+  "shortcutColorMac": {
+    "message": "Option+Shift+1"
+  },
+  "shortcutElement": {
+    "message": "Alt+Shift+2"
+  },
+  "shortcutElementMac": {
+    "message": "Option+Shift+2"
+  },
+  "shortcutLink": {
+    "message": "Alt+Shift+3"
+  },
+  "shortcutLinkMac": {
+    "message": "Option+Shift+3"
+  },
+  "shortcutFont": {
+    "message": "Alt+Shift+4"
+  },
+  "shortcutFontMac": {
+    "message": "Option+Shift+4"
+  },
+  "shortcutMedia": {
+    "message": "Alt+Shift+5"
+  },
+  "shortcutMediaMac": {
+    "message": "Option+Shift+5"
+  },
+  "shortcutText": {
+    "message": "Alt+Shift+6"
+  },
+  "shortcutTextMac": {
+    "message": "Option+Shift+6"
+  },
+  "shortcutScreenshot": {
+    "message": "Alt+Shift+7"
+  },
+  "shortcutScreenshotMac": {
+    "message": "Option+Shift+7"
+  },
+  "shortcutNotes": {
+    "message": "Alt+Shift+8"
+  },
+  "shortcutNotesMac": {
+    "message": "Option+Shift+8"
+  },
+  "shortcutInfo": {
+    "message": "Alt+Shift+9"
+  },
+  "shortcutInfoMac": {
+    "message": "Option+Shift+9"
+  },
   "createdBy": {
-    "message": "Created by Adem İsler"
+    "message": "Adem İsler"
+  },
+  "creatorRole": {
+    "message": "Creator of Pickachu"
   },
   "buyCoffee": {
     "message": "Buy me a coffee"
+  },
+  "cmdTogglePopup": {
+    "message": "Toggle the Pickachu popup"
+  },
+  "cmdColorPicker": {
+    "message": "Activate Color Picker"
+  },
+  "cmdElementPicker": {
+    "message": "Activate Element Picker"
+  },
+  "cmdLinkPicker": {
+    "message": "Activate Link Picker"
+  },
+  "cmdFontPicker": {
+    "message": "Activate Font Picker"
+  },
+  "cmdMediaPicker": {
+    "message": "Activate Media Picker"
+  },
+  "cmdTextPicker": {
+    "message": "Activate Text Picker"
+  },
+  "cmdScreenshotPicker": {
+    "message": "Activate Screenshot Picker"
+  },
+  "cmdStickyNotesPicker": {
+    "message": "Activate Sticky Notes"
+  },
+  "cmdSiteInfoPicker": {
+    "message": "Activate Site Info"
   },
   "openPickachu": {
     "message": "Open Pickachu"
@@ -130,5 +253,11 @@
   },
   "version": {
     "message": "Version 1.1"
+  },
+  "developer": {
+    "message": "Developer"
+  },
+  "support": {
+    "message": "Support"
   }
 }

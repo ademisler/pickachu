@@ -9,7 +9,7 @@ describe('Pickachu Extension', () => {
       'textPicker',
       'linkPicker',
       'fontPicker',
-      'imagePicker',
+      'mediaPicker',
       'siteInfoPicker',
       'stickyNotesPicker'
     ];

@@ -7,11 +7,21 @@ let cleanupFunctions = [];
 // Performance optimized move handler with enhanced error handling
 const throttledOnMove = throttle((e) => {
   try {
-    const el = e.target;
-    if (!el || el === overlay || el === tooltip) return;
-    
-    currentElement = el;
-    const rect = el.getBoundingClientRect();
+    const pointerElement = e.target instanceof Element
+      ? e.target
+      : (typeof document.elementFromPoint === 'function'
+        ? document.elementFromPoint(e.clientX ?? 0, e.clientY ?? 0)
+        : null);
+
+    if (!(pointerElement instanceof Element)) {
+      return;
+    }
+
+    if (pointerElement === overlay || pointerElement === tooltip) return;
+    if (overlay?.contains(pointerElement) || tooltip?.contains?.(pointerElement)) return;
+
+    currentElement = pointerElement;
+    const rect = pointerElement.getBoundingClientRect();
     
     // Update overlay position
     overlay.style.top = rect.top + window.scrollY + 'px';
@@ -20,11 +30,12 @@ const throttledOnMove = throttle((e) => {
     overlay.style.height = rect.height + 'px';
     
     // Update tooltip with enhanced info
-    const tagName = el.tagName.toLowerCase();
-    const id = el.id ? `#${el.id}` : '';
-    const classes = el.className ? `.${el.className.split(/\s+/).join('.')}` : '';
-    const textContent = el.textContent.trim().substring(0, 30);
-    const textSuffix = el.textContent.trim().length > 30 ? '...' : '';
+    const tagName = pointerElement.tagName.toLowerCase();
+    const id = pointerElement.id ? `#${pointerElement.id}` : '';
+    const classes = pointerElement.className ? `.${pointerElement.className.split(/\s+/).join('.')}` : '';
+    const contentText = pointerElement.textContent || '';
+    const textContent = contentText.trim().substring(0, 30);
+    const textSuffix = contentText.trim().length > 30 ? '...' : '';
     
     tooltip.style.top = rect.bottom + window.scrollY + 5 + 'px';
     tooltip.style.left = rect.left + window.scrollX + 'px';
@@ -34,7 +45,7 @@ const throttledOnMove = throttle((e) => {
       <div style="font-size: 10px; opacity: 0.6;">Click to select • Arrow keys to navigate</div>
     `;
   } catch (error) {
-    handleError(error, 'throttledOnMove');
+    console.debug('Element picker move handler error:', error);
   }
 }, 16); // 60fps
 
@@ -43,8 +54,8 @@ function onClick(e) {
   e.preventDefault();
   e.stopPropagation();
   
-  if (!currentElement) return;
-  
+  if (!(currentElement instanceof Element)) return;
+
   try {
     const el = currentElement;
     const computedStyle = getCachedComputedStyle(el);
@@ -123,7 +134,7 @@ function onClick(e) {
     showSuccess(`Element ${el.tagName.toLowerCase()} selected and copied!`);
     
     const title = chrome.i18n ? chrome.i18n.getMessage('elementInfo') : 'Element Information';
-    showModal(title, text, '🧱', 'element');
+    showModal(title, text, 'element', 'element');
     deactivateCb();
     
   } catch (error) {

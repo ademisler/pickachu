@@ -103,6 +103,32 @@ async function saveColorToHistory(color) {
 }
 
 let cleanupFunctions = []; // Array to store cleanup functions for event listeners
+let previousCursor = '';
+let indicatorOverlay = null;
+
+function showCursorOverlay() {
+  if (indicatorOverlay) return;
+
+  indicatorOverlay = document.createElement('div');
+  indicatorOverlay.style.cssText = `
+    position: fixed;
+    pointer-events: none;
+    inset: 16px;
+    border: 2px dashed rgba(255, 255, 255, 0.6);
+    border-radius: 12px;
+    z-index: 2147483646;
+    mix-blend-mode: difference;
+  `;
+
+  document.body.appendChild(indicatorOverlay);
+}
+
+function hideCursorOverlay() {
+  if (indicatorOverlay) {
+    indicatorOverlay.remove();
+    indicatorOverlay = null;
+  }
+}
 
 export function activate(deactivate) {
   try {
@@ -113,6 +139,10 @@ export function activate(deactivate) {
     }
     
     showInfo('Click anywhere to pick a color...', 2000);
+
+    previousCursor = document.body.style.cursor;
+    document.body.style.cursor = 'crosshair';
+    showCursorOverlay();
     
     // Wait for user interaction before opening EyeDropper
     const handleClick = async (e) => {
@@ -157,7 +187,7 @@ export function activate(deactivate) {
           .map(([key, value]) => `${key.toUpperCase()}: ${value}`)
           .join('\n');
         
-        showModal(title, content, '🎨', 'color');
+        showModal(title, content, 'color', 'color');
         deactivate();
         
       } catch (error) {
@@ -170,11 +200,11 @@ export function activate(deactivate) {
         deactivate();
       }
     };
-    
+
     // Add click listener with cleanup tracking
     const cleanup = addEventListenerWithCleanup(document, 'click', handleClick, true);
     cleanupFunctions.push(cleanup);
-    
+
   } catch (error) {
     handleError(error, 'colorPicker activation');
     showError('Failed to activate color picker. Please try again.');
@@ -184,6 +214,10 @@ export function activate(deactivate) {
 
 export function deactivate() {
   try {
+    document.body.style.cursor = previousCursor;
+    previousCursor = '';
+    hideCursorOverlay();
+
     // Cleanup all event listeners
     cleanupFunctions.forEach(cleanup => {
       try {

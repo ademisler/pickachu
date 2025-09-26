@@ -11,7 +11,7 @@ Pickachu – Web Picker Tool is a lightweight toolbox for grabbing colors, eleme
 - **Element picker** with comprehensive element analysis and keyboard navigation
 - **Link picker** with area selection and link type analysis
 - **Font picker** with detailed typography information
-- **Image picker** with metadata extraction and quality analysis
+- **Media picker** (images & videos) with metadata extraction and quick download options
 - **Text picker** with content analysis and formatting detection
 - **Screenshot picker** for full-page and visible area captures
 - **Sticky Notes** for page-specific annotations with persistence

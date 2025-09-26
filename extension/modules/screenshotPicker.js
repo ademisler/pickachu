@@ -1,188 +1,225 @@
-import { showError, showSuccess, showInfo, handleError, sanitizeInput } from './helpers.js';
+import { showError, handleError } from './helpers.js';
 
-// Simple and effective screenshot capture
+const CAPTURE_DELAY_MS = 120;
+const MIN_CAPTURE_INTERVAL_MS = 650;
+const MAX_CAPTURE_RETRIES = 3;
+const MAX_SEGMENTS = 60;
 let isCapturing = false;
 
-// Helper to get filename from URL
-function getFilename(url) {
-  if (!url) return 'screenshot';
-  
-  let name = url.split('?')[0].split('#')[0];
-  if (name) {
-    name = name
-      .replace(/^https?:\/\//, '')
-      .replace(/[^A-Za-z0-9]+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^[-_]+/, '')
-      .replace(/[-_]+$/, '');
-    name = '-' + name;
-  } else {
-    name = '';
-  }
-  return 'screencapture' + name + '-' + Date.now() + '.png';
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function waitForNextFrame() {
+  return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 }
 
-// Download screenshot
+function getFilename(url) {
+  if (!url) {
+    return `pickachu-screenshot-${Date.now()}.png`;
+  }
+
+  try {
+    const { hostname, pathname } = new URL(url);
+    const slug = `${hostname}${pathname}`
+      .replace(/[^a-z0-9]+/gi, '-')
+      .replace(/(^-|-$)/g, '')
+      .toLowerCase();
+    return `pickachu-screencap-${slug || 'page'}-${Date.now()}.png`;
+  } catch (error) {
+    return `pickachu-screenshot-${Date.now()}.png`;
+  }
+}
+
 function downloadScreenshot(dataUrl, filename) {
   try {
-    const a = document.createElement('a');
-    a.href = dataUrl;
-    a.download = filename;
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = filename;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   } catch (error) {
     handleError(error, 'downloadScreenshot');
-    showError('Failed to download screenshot');
+    showError('Screenshot captured but download failed.');
   }
 }
 
-// Capture full page screenshot - EXACT copy of working extension logic
-function captureFullPage() {
-  try {
-    console.log('Starting full page capture...');
-    showInfo('Capturing full page screenshot...', 0);
+function getPageMetrics() {
+  const body = document.body;
+  const doc = document.documentElement;
 
-    const { scrollHeight, clientHeight } = document.documentElement;
-    const devicePixelRatio = window.devicePixelRatio || 1;
+  const totalHeight = Math.max(
+    body?.scrollHeight ?? 0,
+    doc?.scrollHeight ?? 0,
+    body?.offsetHeight ?? 0,
+    doc?.offsetHeight ?? 0,
+    doc?.clientHeight ?? 0
+  );
 
-    let capturedHeight = 0;
-    let capturedImages = [];
+  const totalWidth = Math.max(
+    body?.scrollWidth ?? 0,
+    doc?.scrollWidth ?? 0,
+    body?.offsetWidth ?? 0,
+    doc?.offsetWidth ?? 0,
+    doc?.clientWidth ?? 0
+  );
 
-    const captureAndScroll = () => {
-      const scrollAmount = clientHeight * devicePixelRatio;
+  const viewportHeight = window.innerHeight || doc?.clientHeight || 0;
+  const viewportWidth = window.innerWidth || doc?.clientWidth || 0;
 
-      chrome.runtime.sendMessage({ 
-        action: "captureVisibleTab", 
-        pixelRatio: devicePixelRatio 
-      }, (dataUrl) => {
+  return { totalHeight, totalWidth, viewportHeight, viewportWidth };
+}
+
+function requestCapture() {
+  return new Promise((resolve, reject) => {
+    try {
+      chrome.runtime.sendMessage({ type: 'CAPTURE_VISIBLE_TAB' }, (response) => {
         if (chrome.runtime.lastError) {
-          console.error('Message error:', chrome.runtime.lastError);
-          showError('Failed to capture screenshot: ' + chrome.runtime.lastError.message);
+          reject(new Error(chrome.runtime.lastError.message));
           return;
         }
 
-        if (!dataUrl) {
-          console.error('No data URL received');
-          showError('Failed to capture screenshot - no data received');
+        if (!response?.success || !response?.dataUrl) {
+          reject(new Error(response?.error || 'Failed to capture visible tab.'));
           return;
         }
 
-        capturedHeight += scrollAmount;
-        capturedImages.push(dataUrl);
-        console.log(`Captured chunk ${capturedImages.length}, height: ${capturedHeight}/${scrollHeight * devicePixelRatio}`);
-
-        if (capturedHeight < scrollHeight * devicePixelRatio) {
-          // Scroll to next part
-          window.scrollTo(0, capturedHeight);
-          setTimeout(captureAndScroll, 2000); // Use same delay as working extension
-        } else {
-          // All parts captured, stitch images
-          console.log('All chunks captured, stitching...');
-          stitchImages(capturedImages);
-        }
+        resolve(response.dataUrl);
       });
-    };
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
 
-    // Start capturing
-    captureAndScroll();
+function loadImage(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Failed to load captured image.'));
+    img.src = dataUrl;
+  });
+}
 
+async function requestCaptureWithThrottle(lastCaptureAt, attempt = 0) {
+  const elapsed = Date.now() - lastCaptureAt.value;
+  if (elapsed < MIN_CAPTURE_INTERVAL_MS) {
+    await wait(MIN_CAPTURE_INTERVAL_MS - elapsed);
+  }
+
+  try {
+    const dataUrl = await requestCapture();
+    lastCaptureAt.value = Date.now();
+    return dataUrl;
   } catch (error) {
-    handleError(error, 'captureFullPage');
-    showError('Failed to capture full page screenshot');
+    if (
+      attempt < MAX_CAPTURE_RETRIES &&
+      typeof error.message === 'string' &&
+      error.message.includes('MAX_CAPTURE_VISIBLE_TAB_CALLS_PER_SECOND')
+    ) {
+      await wait(MIN_CAPTURE_INTERVAL_MS + 200);
+      return requestCaptureWithThrottle(lastCaptureAt, attempt + 1);
+    }
+    throw error;
   }
 }
 
-// Stitch multiple images together - EXACT copy of working extension logic
-function stitchImages(images) {
-  try {
-    console.log('Stitching images...');
-    showInfo('Stitching images...', 0);
-
-    if (images.length === 0) {
-      throw new Error('No images to stitch');
-    }
-
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-
-    // Use the width of the first image to set the canvas width
-    const firstImage = new Image();
-    firstImage.onload = () => {
-      canvas.width = firstImage.width;
-      canvas.height = images.length * firstImage.height;
-
-      // Counter to keep track of loaded images
-      let imagesLoaded = 0;
-
-      // Callback function to draw an image onto the canvas
-      const drawImageOnCanvas = (image, index) => {
-        context.drawImage(image, 0, index * firstImage.height);
-        imagesLoaded++;
-
-        // Check if all images are loaded
-        if (imagesLoaded === images.length) {
-          const fullPageDataUrl = canvas.toDataURL('image/png');
-          const filename = getFilename(window.location.href);
-          downloadScreenshot(fullPageDataUrl, filename);
-          showSuccess('Full page screenshot captured and downloaded!');
-        }
-      };
-
-      // Load and draw each image onto the canvas
-      images.forEach((dataUrl, index) => {
-        const image = new Image();
-        image.onload = () => drawImageOnCanvas(image, index);
-        image.onerror = () => {
-          console.error(`Failed to load image ${index}`);
-          showError('Failed to load some images for stitching');
-        };
-        image.src = dataUrl;
-      });
-    };
-
-    firstImage.onerror = () => {
-      console.error('Failed to load first image');
-      showError('Failed to load first image for stitching');
-    };
-
-    firstImage.src = images[0];
-
-  } catch (error) {
-    handleError(error, 'stitchImages');
-    showError('Failed to stitch images');
+async function stitchCaptures(segments, totalHeight, devicePixelRatio) {
+  if (!segments.length) {
+    throw new Error('No capture data to stitch.');
   }
+
+  const images = await Promise.all(segments.map((segment) => loadImage(segment.dataUrl)));
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+
+  const width = images[0].width;
+  const height = Math.round(totalHeight * devicePixelRatio);
+
+  canvas.width = width;
+  canvas.height = height;
+
+  context.fillStyle = '#ffffff';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  images.forEach((image, index) => {
+    const offsetY = Math.round(segments[index].scrollY * devicePixelRatio);
+    context.drawImage(image, 0, offsetY);
+  });
+
+  const stitchedDataUrl = canvas.toDataURL('image/png');
+  downloadScreenshot(stitchedDataUrl, getFilename(window.location.href));
 }
 
-// Main activation function
-export function activate(deactivate) {
+async function captureFullPage() {
+  const { totalHeight, viewportHeight } = getPageMetrics();
+
+  if (totalHeight === 0 || viewportHeight === 0) {
+    throw new Error('Unable to determine page dimensions.');
+  }
+
+  const devicePixelRatio = window.devicePixelRatio || 1;
+  const maxScrollTop = Math.max(totalHeight - viewportHeight, 0);
+  const originalScrollX = window.scrollX;
+  const originalScrollY = window.scrollY;
+
+  const segments = [];
+  let currentScroll = 0;
+  let iterations = 0;
+
+  const lastCaptureAt = { value: Date.now() - MIN_CAPTURE_INTERVAL_MS };
+
   try {
-    console.log('Screenshot tool activated');
-    
-    if (isCapturing) {
-      showError('Screenshot capture already in progress. Please wait...');
-      deactivate();
-      return;
+    while (true) {
+      const targetScroll = Math.min(currentScroll, maxScrollTop);
+      window.scrollTo(0, targetScroll);
+
+      await waitForNextFrame();
+      if (CAPTURE_DELAY_MS > 0) {
+        await wait(CAPTURE_DELAY_MS);
+      }
+
+      const dataUrl = await requestCaptureWithThrottle(lastCaptureAt);
+      segments.push({ dataUrl, scrollY: targetScroll });
+
+      if (targetScroll >= maxScrollTop) {
+        break;
+      }
+
+      currentScroll += viewportHeight;
+      iterations += 1;
+
+      if (iterations > MAX_SEGMENTS) {
+        throw new Error('Page is too tall to capture completely.');
+      }
     }
-    
-    isCapturing = true;
-    
-    // Start full page capture
-    captureFullPage();
-    
+  } finally {
+    window.scrollTo(originalScrollX, originalScrollY);
+  }
+
+  await stitchCaptures(segments, totalHeight, devicePixelRatio);
+}
+
+export async function activate(deactivate) {
+  if (isCapturing) {
+    showError('Screenshot capture already in progress. Please wait…');
     deactivate();
-    
+    return;
+  }
+
+  isCapturing = true;
+
+  try {
+    await captureFullPage();
   } catch (error) {
-    handleError(error, 'screenshotPicker activation');
-    showError('Failed to activate screenshot tool. Please try again.');
-    deactivate();
+    handleError(error, 'screenshotPicker.capture');
+    showError(error.message || 'Failed to capture screenshot.');
   } finally {
     isCapturing = false;
+    deactivate();
   }
 }
 
 export function deactivate() {
-  // Reset state
   isCapturing = false;
 }

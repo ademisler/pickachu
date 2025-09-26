@@ -31,7 +31,7 @@ describe('Pickachu Extension - Comprehensive Tests', () => {
         'textPicker.js',
         'linkPicker.js',
         'fontPicker.js',
-        'imagePicker.js',
+        'mediaPicker.js',
         'siteInfoPicker.js',
         'stickyNotesPicker.js'
       ];
@@ -146,7 +146,7 @@ describe('Pickachu Extension - Comprehensive Tests', () => {
         'textPicker.js',
         'linkPicker.js',
         'fontPicker.js',
-        'imagePicker.js',
+        'mediaPicker.js',
         'siteInfoPicker.js',
         'stickyNotesPicker.js'
       ];
@@ -155,11 +155,11 @@ describe('Pickachu Extension - Comprehensive Tests', () => {
         const modulePath = path.join(process.cwd(), 'extension/modules', module);
         const content = fs.readFileSync(modulePath, 'utf8');
         
-        // Each module should have activate function
-        expect(content).toMatch(/export function activate/);
+        // Each module should expose an activate function (async allowed)
+        expect(content).toMatch(/export\s+(async\s+)?function activate/);
         
-        // Each module should import from helpers
-        expect(content).toMatch(/import.*from '\.\/helpers\.js'/);
+        // Each module should import helper utilities (supporting multiline imports)
+        expect(content).toMatch(/import[\s\S]*from '\.\/helpers\.js'/);
       });
     });
   });
@@ -184,7 +184,7 @@ describe('Pickachu Extension - Comprehensive Tests', () => {
         'textPicker.js',
         'linkPicker.js',
         'fontPicker.js',
-        'imagePicker.js',
+        'mediaPicker.js',
         'siteInfoPicker.js',
         'stickyNotesPicker.js'
       ];
@@ -231,7 +231,7 @@ describe('Pickachu Extension - Comprehensive Tests', () => {
         'textPicker.js',
         'linkPicker.js',
         'fontPicker.js',
-        'imagePicker.js',
+        'mediaPicker.js',
         'siteInfoPicker.js',
         'stickyNotesPicker.js'
       ];

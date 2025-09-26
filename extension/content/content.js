@@ -1,4 +1,31 @@
 // Prevent multiple injections
+if (!window.__pickachuIconLoader) {
+  window.__pickachuIconLoader = {
+    promise: null,
+    async load() {
+      try {
+        if (typeof chrome === 'undefined' || !chrome.runtime?.getURL) {
+          return null;
+        }
+        if (!this.promise) {
+          this.promise = import(chrome.runtime.getURL('modules/icons.js')).catch(error => {
+            console.debug('Failed to load icon module', error);
+            this.promise = null;
+            return null;
+          });
+        }
+        return await this.promise;
+      } catch (error) {
+        console.debug('Icon module loader failed', error);
+        this.promise = null;
+        return null;
+      }
+    }
+  };
+}
+
+const getIconsModule = () => window.__pickachuIconLoader.load();
+
 if (window.pickachuInitialized) {
   console.log('Pickachu already initialized, skipping...');
 } else {
@@ -43,12 +70,24 @@ function signalReady() {
 }
 
 // Show Pickachu overlay when keyboard shortcut is used
-function showPickachuOverlay() {
+async function showPickachuOverlay() {
   // Remove existing overlay if any
   const existingOverlay = document.getElementById('pickachu-overlay');
   if (existingOverlay) {
     existingOverlay.remove();
   }
+  
+  const icons = await getIconsModule();
+  const getSvg = (name, size = 18) => {
+    try {
+      if (icons?.getIconSvg) {
+        return icons.getIconSvg(name, { size });
+      }
+    } catch (error) {
+      console.debug('Failed to render icon', name, error);
+    }
+    return '';
+  };
   
   const overlay = document.createElement('div');
   overlay.id = 'pickachu-overlay';
@@ -80,47 +119,69 @@ function showPickachuOverlay() {
     color: var(--pickachu-text, #333);
     min-width: 300px;
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
   `;
-  
-  popup.innerHTML = `
-    <div style="margin-bottom: 20px;">
-      <h2 style="margin: 0 0 16px 0; color: var(--pickachu-text, #333); display: flex; align-items: center; justify-content: center; gap: 8px;">
-        🎯 Pickachu
-      </h2>
-      <p style="margin: 0; color: var(--pickachu-secondary-text, #666); font-size: 14px;">
-        Use the extension icon in your browser toolbar to access all tools.
-      </p>
-    </div>
-    
-    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
-      <div style="padding: 12px; background: var(--pickachu-code-bg, #f8f9fa); border-radius: 8px; border: 1px solid var(--pickachu-border, #ddd);">
-        <div style="font-size: 18px; margin-bottom: 4px;">🎨</div>
-        <div style="font-size: 12px; font-weight: 600;">Color Picker</div>
-      </div>
-      <div style="padding: 12px; background: var(--pickachu-code-bg, #f8f9fa); border-radius: 8px; border: 1px solid var(--pickachu-border, #ddd);">
-        <div style="font-size: 18px; margin-bottom: 4px;">🧾</div>
-        <div style="font-size: 12px; font-weight: 600;">Text Picker</div>
-      </div>
-      <div style="padding: 12px; background: var(--pickachu-code-bg, #f8f9fa); border-radius: 8px; border: 1px solid var(--pickachu-border, #ddd);">
-        <div style="font-size: 18px; margin-bottom: 4px;">🧱</div>
-        <div style="font-size: 12px; font-weight: 600;">Element Picker</div>
-      </div>
-      <div style="padding: 12px; background: var(--pickachu-code-bg, #f8f9fa); border-radius: 8px; border: 1px solid var(--pickachu-border, #ddd);">
-        <div style="font-size: 18px; margin-bottom: 4px;">📸</div>
-        <div style="font-size: 12px; font-weight: 600;">Screenshot</div>
-      </div>
-    </div>
-    
-    <button id="close-pickachu-overlay" style="
-      padding: 10px 20px;
-      border: 1px solid var(--pickachu-border, #ddd);
-      background: var(--pickachu-button-bg, #f0f0f0);
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
-      color: var(--pickachu-text, #333);
-    ">Close</button>
-  `;
+
+  const header = document.createElement('div');
+  header.style.cssText = 'display: flex; flex-direction: column; gap: 10px; align-items: center;';
+
+  const title = document.createElement('h2');
+  title.style.cssText = 'margin: 0; color: var(--pickachu-text, #333); display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 600;';
+  const logoIcon = getSvg('star', 20);
+  if (logoIcon) {
+    const span = document.createElement('span');
+    span.innerHTML = logoIcon;
+    title.appendChild(span);
+  }
+  title.appendChild(Object.assign(document.createElement('span'), { textContent: 'Pickachu' }));
+
+  const subtitle = document.createElement('p');
+  subtitle.style.cssText = 'margin: 0; color: var(--pickachu-secondary-text, #666); font-size: 14px;';
+  subtitle.textContent = 'Use the extension icon in your toolbar to access every tool instantly.';
+
+  header.appendChild(title);
+  header.appendChild(subtitle);
+  popup.appendChild(header);
+
+  const featureGrid = document.createElement('div');
+  featureGrid.style.cssText = 'display: grid; grid-template-columns: repeat(2, minmax(120px, 160px)); gap: 12px; justify-content: center;';
+  const features = [
+    { icon: 'color', label: 'Color Picker' },
+    { icon: 'text', label: 'Text Picker' },
+    { icon: 'element', label: 'Element Picker' },
+    { icon: 'screenshot', label: 'Screenshot' }
+  ];
+
+  features.forEach(({ icon, label }) => {
+    const card = document.createElement('div');
+    card.style.cssText = 'padding: 14px; background: var(--pickachu-code-bg, #f8f9fa); border-radius: 10px; border: 1px solid var(--pickachu-border, #ddd); display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--pickachu-text, #333);';
+    const iconHolder = document.createElement('div');
+    iconHolder.style.cssText = 'width: 32px; height: 32px; border-radius: 12px; background: rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: center;';
+    const iconSvg = getSvg(icon, 18);
+    if (iconSvg) {
+      iconHolder.innerHTML = iconSvg;
+    }
+    card.appendChild(iconHolder);
+    card.appendChild(Object.assign(document.createElement('div'), { textContent: label }));
+    featureGrid.appendChild(card);
+  });
+
+  popup.appendChild(featureGrid);
+
+  const closeButton = document.createElement('button');
+  closeButton.id = 'close-pickachu-overlay';
+  closeButton.type = 'button';
+  closeButton.style.cssText = 'margin: 0 auto; padding: 10px 20px; border: 1px solid var(--pickachu-border, #ddd); background: var(--pickachu-button-bg, #f0f0f0); border-radius: 999px; cursor: pointer; font-size: 14px; color: var(--pickachu-text, #333); display: inline-flex; align-items: center; gap: 8px; font-weight: 600;';
+  const closeIconSvg = getSvg('close', 16);
+  if (closeIconSvg) {
+    const span = document.createElement('span');
+    span.innerHTML = closeIconSvg;
+    closeButton.appendChild(span);
+  }
+  closeButton.appendChild(Object.assign(document.createElement('span'), { textContent: 'Close' }));
+  popup.appendChild(closeButton);
   
   overlay.appendChild(popup);
   document.body.appendChild(overlay);
@@ -214,20 +275,30 @@ async function autoLoadStickyNotes() {
     const currentUrl = window.location.href;
     if (!currentUrl) return;
     
-    // Load notes for current site
+    // Use URL-based storage key (consistent with stickyNotesPicker.js)
     const siteKey = `stickyNotes_${currentUrl}`;
     const result = await chrome.storage.local.get([siteKey]);
     const notes = result[siteKey] || [];
     
+    console.log(`Auto-loading sticky notes for ${currentUrl}: ${notes.length} notes found`);
+    
     if (notes.length > 0) {
-      // Import sticky notes module and load notes
+      // Import sticky notes module and use its renderStickyNote function
       const stickyNotesModule = await import(chrome.runtime.getURL('modules/stickyNotesPicker.js'));
-      if (stickyNotesModule && stickyNotesModule.loadExistingNotesForCurrentSite) {
-        // Set the notes data first
-        window.stickyNotesData = notes;
-        // Load the notes
-        stickyNotesModule.loadExistingNotesForCurrentSite();
+      if (stickyNotesModule) {
+        // Use the module's renderStickyNote function for proper rendering
+        notes.forEach(note => {
+          const existingNote = document.getElementById(note.id);
+          if (!existingNote) {
+            // Call the module's renderStickyNote function
+            stickyNotesModule.renderStickyNote(note);
+            console.log(`Auto-rendered note: ${note.id}`);
+          }
+        });
+        console.log('Sticky notes auto-loaded successfully');
       }
+    } else {
+      console.log('No notes found for auto-loading');
     }
   } catch (error) {
     console.log('Auto-load sticky notes failed:', error);

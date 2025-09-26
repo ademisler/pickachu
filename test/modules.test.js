@@ -5,7 +5,7 @@ import { activate as activateScreenshotPicker } from '../extension/modules/scree
 import { activate as activateTextPicker } from '../extension/modules/textPicker.js';
 import { activate as activateLinkPicker } from '../extension/modules/linkPicker.js';
 import { activate as activateFontPicker } from '../extension/modules/fontPicker.js';
-import { activate as activateImagePicker } from '../extension/modules/imagePicker.js';
+import { activate as activateMediaPicker } from '../extension/modules/mediaPicker.js';
 import { activate as activateSiteInfoPicker } from '../extension/modules/siteInfoPicker.js';
 import { activate as activateStickyNotesPicker } from '../extension/modules/stickyNotesPicker.js';
 
@@ -71,13 +71,13 @@ describe('Picker Modules', () => {
     });
   });
 
-  describe('Image Picker', () => {
-    test('should activate image picker', () => {
+  describe('Media Picker', () => {
+    test('should activate media picker', () => {
       const mockDeactivate = jest.fn();
-      activateImagePicker(mockDeactivate);
+      activateMediaPicker(mockDeactivate);
       
       // Should not throw errors
-      expect(() => activateImagePicker(mockDeactivate)).not.toThrow();
+      expect(() => activateMediaPicker(mockDeactivate)).not.toThrow();
     });
   });
 

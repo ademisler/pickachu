@@ -13,7 +13,7 @@ describe('Extension Core', () => {
         'textPicker',
         'linkPicker',
         'fontPicker',
-        'imagePicker',
+        'mediaPicker',
         'siteInfoPicker',
         'stickyNotesPicker'
       ];

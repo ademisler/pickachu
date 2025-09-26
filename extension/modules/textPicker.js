@@ -7,17 +7,22 @@ let cleanupFunctions = [];
 // Performance optimized move handler with enhanced error handling
 const throttledOnMove = throttle((e) => {
   try {
-    const el = e.target;
-    if (!el || el === overlay) return;
-    
-    currentElement = el;
-    const rect = el.getBoundingClientRect();
+    const target = e.target instanceof Element
+      ? e.target
+      : (typeof document.elementFromPoint === 'function'
+        ? document.elementFromPoint(e.clientX ?? 0, e.clientY ?? 0)
+        : null);
+
+    if (!(target instanceof Element) || target === overlay) return;
+
+    currentElement = target;
+    const rect = target.getBoundingClientRect();
     overlay.style.top = rect.top + window.scrollY + 'px';
     overlay.style.left = rect.left + window.scrollX + 'px';
     overlay.style.width = rect.width + 'px';
     overlay.style.height = rect.height + 'px';
   } catch (error) {
-    handleError(error, 'throttledOnMove');
+    console.debug('Text picker move handler error:', error);
   }
 }, 16);
 
@@ -26,8 +31,8 @@ function onClick(e) {
   e.preventDefault();
   e.stopPropagation();
   
-  if (!currentElement) return;
-  
+  if (!(currentElement instanceof Element)) return;
+
   try {
     const el = currentElement;
     const text = el.textContent.trim();
@@ -130,7 +135,7 @@ function onClick(e) {
     const title = chrome.i18n ? chrome.i18n.getMessage('textTitle') : 'Text Analysis';
     const content = `Text:\n${text}\n\nStatistics:\n- Words: ${textAnalysis.wordCount}\n- Characters: ${textAnalysis.characterCount}\n- Sentences: ${textAnalysis.statistics.sentences}`;
     
-    showModal(title, content, '🧾', 'text');
+    showModal(title, content, 'text', 'text');
     deactivateCb();
     
   } catch (error) {

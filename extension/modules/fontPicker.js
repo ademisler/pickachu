@@ -7,17 +7,22 @@ let cleanupFunctions = []; // New: Array to store cleanup functions for event li
 // Performance optimized move handler with enhanced error handling
 const throttledOnMove = throttle((e) => {
   try {
-    const el = e.target;
-    if (!el || el === overlay) return;
-    
-    currentElement = el;
-    const rect = el.getBoundingClientRect();
+    const target = e.target instanceof Element
+      ? e.target
+      : (typeof document.elementFromPoint === 'function'
+        ? document.elementFromPoint(e.clientX ?? 0, e.clientY ?? 0)
+        : null);
+
+    if (!(target instanceof Element) || target === overlay) return;
+
+    currentElement = target;
+    const rect = target.getBoundingClientRect();
     overlay.style.top = rect.top + window.scrollY + 'px';
     overlay.style.left = rect.left + window.scrollX + 'px';
     overlay.style.width = rect.width + 'px';
     overlay.style.height = rect.height + 'px';
   } catch (error) {
-    handleError(error, 'throttledOnMove');
+    console.debug('Font picker move handler error:', error);
   }
 }, 16);
 
@@ -26,8 +31,8 @@ function onClick(e) {
   e.preventDefault();
   e.stopPropagation();
   
-  if (!currentElement) return;
-  
+  if (!(currentElement instanceof Element)) return;
+
   try {
     const el = currentElement;
     const cs = safeExecute(() => getCachedComputedStyle(el), 'getCachedComputedStyle');
@@ -37,73 +42,19 @@ function onClick(e) {
     }
     
     // Extract comprehensive font information with enhanced validation
-    const fontInfo = {
-      // Basic font properties
-      fontFamily: sanitizeInput(cs.fontFamily),
-      fontSize: cs.fontSize,
-      fontWeight: cs.fontWeight,
-      fontStyle: cs.fontStyle,
-      fontVariant: cs.fontVariant,
-      lineHeight: cs.lineHeight,
-      letterSpacing: cs.letterSpacing,
-      wordSpacing: cs.wordSpacing,
-      textTransform: cs.textTransform,
-      textDecoration: cs.textDecoration,
-      
-      // Color and background
-      color: cs.color,
-      backgroundColor: cs.backgroundColor,
-      
-      // Text properties
-      textAlign: cs.textAlign,
-      textIndent: cs.textIndent,
-      textShadow: cs.textShadow,
-      textOverflow: cs.textOverflow,
-      whiteSpace: cs.whiteSpace,
-      
-      // Font loading status
-      fontDisplay: cs.fontDisplay,
-      
-      // Computed values with enhanced error handling
-      computed: {
-        fontSize: safeExecute(() => parseFloat(cs.fontSize), 'parseFloat fontSize') || 0,
-        lineHeight: safeExecute(() => parseFloat(cs.lineHeight), 'parseFloat lineHeight') || 0,
-        fontWeight: cs.fontWeight,
-        fontFamily: safeExecute(() => cs.fontFamily.split(',').map(f => f.trim().replace(/['"]/g, '')), 'fontFamily split') || [],
-        isWebFont: safeExecute(() => cs.fontFamily.includes('Google') || cs.fontFamily.includes('Font'), 'isWebFont check') || false,
-        isSystemFont: safeExecute(() => cs.fontFamily.includes('system') || cs.fontFamily.includes('Arial'), 'isSystemFont check') || false
-      },
-      
-      // Element context with sanitization
-      element: {
-        tagName: el.tagName.toLowerCase(),
-        textContent: sanitizeInput(el.textContent.trim().substring(0, 100)),
-        className: sanitizeInput(el.className),
-        id: sanitizeInput(el.id)
-      }
-    };
-    
-    // Generate CSS code with enhanced formatting
-    const cssCode = `/* Font styles for ${el.tagName.toLowerCase()} */
-font-family: ${fontInfo.fontFamily};
-font-size: ${fontInfo.fontSize};
-font-weight: ${fontInfo.fontWeight};
-font-style: ${fontInfo.fontStyle};
-line-height: ${fontInfo.lineHeight};
-letter-spacing: ${fontInfo.letterSpacing};
-color: ${fontInfo.color};
-text-align: ${fontInfo.textAlign};
-text-transform: ${fontInfo.textTransform};
-text-decoration: ${fontInfo.textDecoration};`;
-    
-    // Copy CSS code
-    copyText(cssCode);
-    
-    showSuccess(`Font information copied to clipboard!`);
-    
-    const title = chrome.i18n ? chrome.i18n.getMessage('fontInfo') : 'Font Information';
-    const content = JSON.stringify(fontInfo, null, 2);
-    showModal(title, content, '🔤', 'font');
+    const familyList = cs.fontFamily.split(',').map(f => f.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean);
+    const primaryFamily = familyList[0] || 'Unknown';
+
+    const cssSnippet = `font-family: ${sanitizeInput(primaryFamily)};
+font-size: ${cs.fontSize};`;
+
+    copyText(cssSnippet);
+    showSuccess('Font info copied to clipboard!');
+
+    const title = sanitizeInput(primaryFamily);
+    const bodyContent = `Font: ${primaryFamily}\nSize: ${cs.fontSize}`;
+
+    showModal(title, bodyContent, 'font', 'font-simple');
     deactivateCb();
     
   } catch (error) {

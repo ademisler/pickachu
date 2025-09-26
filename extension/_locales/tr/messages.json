@@ -20,8 +20,8 @@
   "font": {
     "message": "Yazı"
   },
-  "image": {
-    "message": "Resim"
+  "media": {
+    "message": "Medya"
   },
   "text": {
     "message": "Metin"
@@ -59,8 +59,8 @@
   "fontPicker": {
     "message": "Yazı Seçici"
   },
-  "imagePicker": {
-    "message": "Resim Seçici"
+  "mediaPicker": {
+    "message": "Medya Seçici"
   },
   "textPicker": {
     "message": "Metin Seçici"
@@ -104,11 +104,134 @@
   "openShortcut": {
     "message": "Ctrl+Shift+9"
   },
+  "openShortcutMac": {
+    "message": "Cmd+Shift+9"
+  },
+  "toggleShortcut": {
+    "message": "Ctrl+Shift+P"
+  },
+  "toggleShortcutMac": {
+    "message": "Cmd+Shift+P"
+  },
+  "shortcuts": {
+    "message": "Kısayollar"
+  },
+  "shortcutsTitle": {
+    "message": "Klavye kısayolları"
+  },
+  "shortcutsDescription": {
+    "message": "Pickachu'yu bu kısayollarla daha hızlı kullan."
+  },
+  "shortcutsGlobal": {
+    "message": "Genel"
+  },
+  "shortcutsTools": {
+    "message": "Araçlar (genel)"
+  },
+  "shortcutsPopup": {
+    "message": "Popup içinde"
+  },
+  "shortcutOpen": {
+    "message": "Pickachu'yu aç"
+  },
+  "shortcutToggle": {
+    "message": "Popup'u aç/kapat"
+  },
+  "shortcutClose": {
+    "message": "Popup'u kapat"
+  },
+  "shortcutColor": {
+    "message": "Alt+Shift+1"
+  },
+  "shortcutColorMac": {
+    "message": "Option+Shift+1"
+  },
+  "shortcutElement": {
+    "message": "Alt+Shift+2"
+  },
+  "shortcutElementMac": {
+    "message": "Option+Shift+2"
+  },
+  "shortcutLink": {
+    "message": "Alt+Shift+3"
+  },
+  "shortcutLinkMac": {
+    "message": "Option+Shift+3"
+  },
+  "shortcutFont": {
+    "message": "Alt+Shift+4"
+  },
+  "shortcutFontMac": {
+    "message": "Option+Shift+4"
+  },
+  "shortcutMedia": {
+    "message": "Alt+Shift+5"
+  },
+  "shortcutMediaMac": {
+    "message": "Option+Shift+5"
+  },
+  "shortcutText": {
+    "message": "Alt+Shift+6"
+  },
+  "shortcutTextMac": {
+    "message": "Option+Shift+6"
+  },
+  "shortcutScreenshot": {
+    "message": "Alt+Shift+7"
+  },
+  "shortcutScreenshotMac": {
+    "message": "Option+Shift+7"
+  },
+  "shortcutNotes": {
+    "message": "Alt+Shift+8"
+  },
+  "shortcutNotesMac": {
+    "message": "Option+Shift+8"
+  },
+  "shortcutInfo": {
+    "message": "Alt+Shift+9"
+  },
+  "shortcutInfoMac": {
+    "message": "Option+Shift+9"
+  },
   "createdBy": {
-    "message": "Geliştirici: Adem İsler"
+    "message": "Adem İsler"
+  },
+  "creatorRole": {
+    "message": "Pickachu'nun geliştiricisi"
   },
   "buyCoffee": {
     "message": "Bana bir kahve ısmarla"
+  },
+  "cmdTogglePopup": {
+    "message": "Pickachu popup'ını aç/kapat"
+  },
+  "cmdColorPicker": {
+    "message": "Renk seçiciyi başlat"
+  },
+  "cmdElementPicker": {
+    "message": "Öğe seçiciyi başlat"
+  },
+  "cmdLinkPicker": {
+    "message": "Bağlantı seçiciyi başlat"
+  },
+  "cmdFontPicker": {
+    "message": "Yazı tipi seçiciyi başlat"
+  },
+  "cmdMediaPicker": {
+    "message": "Medya seçiciyi başlat"
+  },
+  "cmdTextPicker": {
+    "message": "Metin seçiciyi başlat"
+  },
+  "cmdScreenshotPicker": {
+    "message": "Ekran görüntüsü aracını başlat"
+  },
+  "cmdStickyNotesPicker": {
+    "message": "Not aracını başlat"
+  },
+  "cmdSiteInfoPicker": {
+    "message": "Site analizi aracını başlat"
   },
   "openPickachu": {
     "message": "Pickachu'yu Aç"
@@ -130,5 +253,11 @@
   },
   "version": {
     "message": "Sürüm 1.1"
+  },
+  "developer": {
+    "message": "Geliştirici"
+  },
+  "support": {
+    "message": "Destek"
   }
 }

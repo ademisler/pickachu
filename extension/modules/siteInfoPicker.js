@@ -805,18 +805,18 @@ async function generateSiteReport() {
       reportText = generateReportText(report);
     } catch (error) {
       console.log('Report text generation failed:', error);
-      reportText = `🌐 WEBSITE ANALYSIS REPORT
+      reportText = `WEBSITE ANALYSIS REPORT
 
-📊 BASIC INFORMATION
+BASIC INFORMATION
 URL: ${report.basic?.url || 'Unknown'}
 Domain: ${report.basic?.domain || 'Unknown'}
 Title: ${report.basic?.title || 'Unknown'}
 
-⚠️ Some data could not be processed. Please try again.`;
+Some data could not be processed. Please try again.`;
     }
     
     showSuccess('Site analysis completed!');
-    showModal('🔍 Site Analysis Report', reportText, '🔍', 'site-info');
+    showModal('Site Analysis Report', reportText, 'site', 'site-info');
     
   } catch (error) {
     handleError(error, 'generateSiteReport');
@@ -841,56 +841,56 @@ function generateReportText(report) {
       console.log('Social list generation failed:', error);
     }
     
-    return `🌐 WEBSITE ANALYSIS REPORT
+    return `WEBSITE ANALYSIS REPORT
 
-📊 BASIC INFORMATION
+BASIC INFORMATION
 URL: ${report.basic?.url || 'Unknown'}
 Domain: ${report.basic?.domain || 'Unknown'}
 Title: ${report.basic?.title || 'Unknown'}
 Language: ${report.basic?.language || 'Unknown'}
 Charset: ${report.basic?.charset || 'Unknown'}
 
-🔧 TECHNOLOGIES DETECTED (${report.technologies?.length || 0})
+TECHNOLOGIES DETECTED (${report.technologies?.length || 0})
 ${techList}
 
-⚡ PERFORMANCE METRICS
+PERFORMANCE METRICS
 Load Time: ${report.performance?.loadTime || 'N/A'}ms
 DOM Ready: ${report.performance?.domContentLoaded || 'N/A'}ms
 First Paint: ${report.performance?.firstPaint || 'N/A'}ms
 Transfer Size: ${report.performance?.transferSize || 'N/A'}KB
 Score: ${report.performance?.score || 'Unknown'}
 
-🔒 SECURITY ANALYSIS
-HTTPS: ${report.security?.https ? '✅' : '❌'}
-CSP: ${report.security?.hasCSP ? '✅' : '❌'}
-HSTS: ${report.security?.hasHSTS ? '✅' : '❌'}
+SECURITY ANALYSIS
+HTTPS: ${report.security?.https ? 'Enabled' : 'Disabled'}
+CSP: ${report.security?.hasCSP ? 'Present' : 'Missing'}
+HSTS: ${report.security?.hasHSTS ? 'Present' : 'Missing'}
 Score: ${report.security?.score || 'Unknown'}
 
-🔍 SEO ANALYSIS
+SEO ANALYSIS
 Title: ${report.seo?.title?.length > 50 ? report.seo.title.substring(0, 50) + '...' : report.seo?.title || 'Unknown'}
 Description: ${report.seo?.description?.length > 100 ? report.seo.description.substring(0, 100) + '...' : report.seo?.description || 'Unknown'}
-Canonical: ${report.seo?.canonical !== 'Not set' ? '✅' : '❌'}
-Open Graph: ${report.seo?.ogTitle !== 'Not set' ? '✅' : '❌'}
-Schema: ${report.seo?.hasSchema ? '✅' : '❌'}
+Canonical: ${report.seo?.canonical !== 'Not set' ? 'Configured' : 'Not set'}
+Open Graph: ${report.seo?.ogTitle !== 'Not set' ? 'Configured' : 'Not set'}
+Schema: ${report.seo?.hasSchema ? 'Present' : 'Missing'}
 Score: ${report.seo?.score || 'Unknown'}
 
-♿ ACCESSIBILITY
-Language: ${report.accessibility?.hasLang ? '✅' : '❌'}
-Alt Text: ${report.accessibility?.hasAltText ? '✅' : '❌'}
-Form Labels: ${report.accessibility?.hasFormLabels ? '✅' : '❌'}
-Headings: ${report.accessibility?.hasHeadings ? '✅' : '❌'}
-Landmarks: ${report.accessibility?.hasLandmarks ? '✅' : '❌'}
+ACCESSIBILITY
+Language Attribute: ${report.accessibility?.hasLang ? 'Present' : 'Missing'}
+Alt Text: ${report.accessibility?.hasAltText ? 'Present' : 'Missing'}
+Form Labels: ${report.accessibility?.hasFormLabels ? 'Present' : 'Missing'}
+Headings: ${report.accessibility?.hasHeadings ? 'Structured' : 'Needs attention'}
+Landmarks: ${report.accessibility?.hasLandmarks ? 'Present' : 'Missing'}
 Score: ${report.accessibility?.score || 'Unknown'}
 
-📱 SOCIAL MEDIA
+SOCIAL MEDIA
 Platforms: ${socialList}
 
-🏗️ SITE STRUCTURE
+SITE STRUCTURE
 Type: ${report.structure?.type || 'Unknown'}
-Has Header: ${report.structure?.hasHeader ? '✅' : '❌'}
-Has Footer: ${report.structure?.hasFooter ? '✅' : '❌'}
-Has Navigation: ${report.structure?.hasNavigation ? '✅' : '❌'}
-Has Search: ${report.structure?.hasSearch ? '✅' : '❌'}
+Has Header: ${report.structure?.hasHeader ? 'Yes' : 'No'}
+Has Footer: ${report.structure?.hasFooter ? 'Yes' : 'No'}
+Has Navigation: ${report.structure?.hasNavigation ? 'Yes' : 'No'}
+Has Search: ${report.structure?.hasSearch ? 'Yes' : 'No'}
 Page Depth: ${report.structure?.pageDepth || 0}
 
 `;
