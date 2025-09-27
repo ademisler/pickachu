@@ -1,4 +1,4 @@
-import { showSuccess, showError, handleError, safeExecute, sanitizeInput, addEventListenerWithCleanup, renderIcon, normalizeUrlForStorage } from './helpers.js';
+import { showSuccess, showError, handleError, safeExecute, sanitizeInput, renderIcon, normalizeUrlForStorage } from './helpers.js';
 
 let deactivateCb;
 let notes = [];
@@ -366,7 +366,7 @@ export function hydrateNotesFromStorage(storedNotes = []) {
     const processedCurrentIds = new Set();
     let maxCounter = noteCounter;
 
-    inputNotes.forEach((rawNote, index) => {
+    inputNotes.forEach((rawNote) => {
       if (!rawNote || typeof rawNote !== 'object') {
         return;
       }
@@ -916,6 +916,7 @@ async function loadAllNotes() {
 }
 
 // Export notes as JSON with enhanced error handling
+/*
 function exportNotes() {
   try {
     const dataStr = safeExecute(() => JSON.stringify(notes, null, 2), 'stringify notes');
@@ -948,7 +949,9 @@ function exportNotes() {
     showError('Failed to export notes');
   }
 }
+*/
 
+/*
 async function refreshNotesManagerListIfPresent() {
   const listElement = document.getElementById('all-notes-list');
   if (!listElement) {
@@ -962,8 +965,10 @@ async function refreshNotesManagerListIfPresent() {
     handleError(error, 'refreshNotesManagerListIfPresent');
   }
 }
+*/
 
 // Import notes from JSON with enhanced error handling
+/*
 function importNotes() {
   try {
     const input = document.createElement('input');
@@ -1020,8 +1025,10 @@ function importNotes() {
     showError('Failed to import notes');
   }
 }
+*/
 
 // Delete a note with enhanced error handling
+/*
 function deleteNote(noteId) {
   try {
     if (!noteId || typeof noteId !== 'string') {
@@ -1050,8 +1057,10 @@ function deleteNote(noteId) {
     showError('Failed to delete note');
   }
 }
+*/
 
 // Focus a note with enhanced error handling
+/*
 function focusNoteById(noteId) {
   try {
     if (!noteId || typeof noteId !== 'string') {
@@ -1078,6 +1087,7 @@ function focusNoteById(noteId) {
     showError('Failed to focus note');
   }
 }
+*/
 
 // Render all notes from all sites with enhanced error handling
 function renderAllNotesList(targetElement, allNotes) {
@@ -1258,6 +1268,7 @@ function focusNote(noteElement) {
 }
 
 // Delete all notes for current site with enhanced error handling
+/*
 function deleteAllNotes() {
   try {
     const currentUrl = safeExecute(() => window.location.href, 'get current url') || '';
@@ -1298,6 +1309,7 @@ function deleteAllNotes() {
     showError('Failed to delete all notes. Please try again.');
   }
 }
+*/
 
 // Delete individual note from all notes list (works for any site)
 async function deleteIndividualNote(noteId) {

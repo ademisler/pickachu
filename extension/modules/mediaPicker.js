@@ -70,7 +70,7 @@ function getExtensionFromUrl(url, fallback = '') {
     const ext = cleanUrl.substring(cleanUrl.lastIndexOf('.') + 1).toLowerCase();
     if (!ext || ext === 'blob' || ext.length > 5) return fallback;
     return ext;
-  } catch (error) {
+  } catch {
     return fallback;
   }
 }
@@ -97,7 +97,7 @@ function normalizeHttpUrl(url) {
     if (resolved.protocol === 'http:' || resolved.protocol === 'https:') {
       return resolved.toString();
     }
-  } catch (error) {
+  } catch {
     // Ignore invalid URLs
   }
 
@@ -195,7 +195,7 @@ function discoverAlternateVideoUrls(video) {
     try {
       const data = JSON.parse(script.textContent);
       extractUrlsFromJsonLd(data, addPotentialUrl);
-    } catch (error) {
+    } catch {
       // Ignore invalid JSON
     }
   });
@@ -210,7 +210,7 @@ function discoverAlternateVideoUrls(video) {
       try {
         const data = JSON.parse(trimmed);
         extractUrlsFromJsonLd(data, addPotentialUrl);
-      } catch (error) {
+      } catch {
         // Fall back to regex-based extraction
         extractUrlsFromText(trimmed, addPotentialUrl);
       }

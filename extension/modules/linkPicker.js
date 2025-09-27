@@ -152,7 +152,7 @@ function normalizeUrl(candidate) {
   if (/^(mailto:|tel:|sms:|http:|https:)/i.test(trimmed)) {
     try {
       return new URL(trimmed, window.location.href).href;
-    } catch (error) {
+    } catch {
       return null;
     }
   }
@@ -168,7 +168,7 @@ function normalizeUrl(candidate) {
   if (!trimmed.includes(' ') && /^[a-z0-9]/i.test(trimmed)) {
     try {
       return new URL(trimmed, window.location.href).href;
-    } catch (error) {
+    } catch {
       return null;
     }
   }
@@ -216,7 +216,7 @@ function resolveLinkUrl(link) {
   if (hrefAttr && !/^javascript:/i.test(hrefAttr) && hrefAttr !== '#') {
     try {
       return new URL(hrefAttr, window.location.href).href;
-    } catch (error) {
+    } catch {
       // fall through to candidate extraction
     }
   }
@@ -334,7 +334,7 @@ async function onKeyDown(e) {
       e.preventDefault();
       try {
         document.execCommand('selectAll');
-      } catch (_) {
+      } catch {
         // ignore if execCommand fails
       }
 

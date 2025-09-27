@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pickachu Extension Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            line-height: 1.6;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .color-box {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(45deg, #ff0000, #00ff00, #0000ff);
+            margin: 10px 0;
+        }
+        .test-link {
+            color: #0066cc;
+            text-decoration: underline;
+        }
+        .test-image {
+            width: 200px;
+            height: 150px;
+            background: #f0f0f0;
+            border: 1px solid #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 10px 0;
+        }
+        .test-text {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>Pickachu Extension Test Page</h1>
+    
+    <div class="test-section">
+        <h2>Color Picker Test</h2>
+        <p>Test the color picker on this gradient box:</p>
+        <div class="color-box"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Element Picker Test</h2>
+        <p>Test the element picker on these elements:</p>
+        <button id="test-button">Test Button</button>
+        <input type="text" placeholder="Test Input" value="Sample text">
+        <div class="test-text">This is a test div with some text</div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Link Picker Test</h2>
+        <p>Test the link picker on these links:</p>
+        <a href="https://www.google.com" class="test-link">Google</a><br>
+        <a href="https://www.github.com" class="test-link">GitHub</a><br>
+        <a href="#section1" class="test-link">Internal Link</a>
+    </div>
+    
+    <div class="test-section">
+        <h2>Font Picker Test</h2>
+        <p>Test the font picker on these different font styles:</p>
+        <div style="font-family: Arial, sans-serif; font-size: 16px;">Arial 16px</div>
+        <div style="font-family: 'Times New Roman', serif; font-size: 18px; font-weight: bold;">Times New Roman 18px Bold</div>
+        <div style="font-family: 'Courier New', monospace; font-size: 14px;">Courier New 14px</div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Media Picker Test</h2>
+        <p>Test the media picker on these elements:</p>
+        <div class="test-image">Test Image Placeholder</div>
+        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjBmMGYwIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPlRlc3QgSW1hZ2U8L3RleHQ+PC9zdmc+" alt="Test SVG Image" style="width: 200px; height: 150px;">
+    </div>
+    
+    <div class="test-section">
+        <h2>Text Picker Test</h2>
+        <p>Test the text picker on this paragraph:</p>
+        <p>This is a sample paragraph with <strong>bold text</strong> and <em>italic text</em>. You can select any part of this text to test the text picker functionality.</p>
+    </div>
+    
+    <div class="test-section">
+        <h2>Screenshot Test</h2>
+        <p>Test the screenshot functionality - it should capture this entire page.</p>
+    </div>
+    
+    <div class="test-section">
+        <h2>Sticky Notes Test</h2>
+        <p>Test the sticky notes functionality by creating notes on this page.</p>
+    </div>
+    
+    <div class="test-section">
+        <h2>Site Info Test</h2>
+        <p>Test the site info picker to analyze this page's information.</p>
+    </div>
+    
+    <script>
+        // Test page script
+        console.log('Test page loaded successfully');
+        
+        // Add some dynamic content for testing
+        setTimeout(() => {
+            const dynamicDiv = document.createElement('div');
+            dynamicDiv.innerHTML = '<p>This is dynamically added content for testing</p>';
+            dynamicDiv.style.margin = '10px 0';
+            dynamicDiv.style.padding = '10px';
+            dynamicDiv.style.border = '1px dashed #999';
+            document.body.appendChild(dynamicDiv);
+        }, 2000);
+    </script>
+</body>
+</html>

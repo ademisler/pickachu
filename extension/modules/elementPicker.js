@@ -1,4 +1,4 @@
-import { createOverlay, removeOverlay, createTooltip, removeTooltip, copyText, getCssSelector, getXPath, showModal, showError, showSuccess, showInfo, throttle, getCachedComputedStyle, handleError, safeExecute, addEventListenerWithCleanup, cleanupAllEventListeners } from './helpers.js';
+import { createOverlay, removeOverlay, createTooltip, removeTooltip, copyText, getCssSelector, getXPath, showModal, showError, showSuccess, showInfo, throttle, getCachedComputedStyle, handleError, safeExecute, addEventListenerWithCleanup } from './helpers.js';
 
 let overlay, tooltip, deactivateCb;
 let currentElement = null;
@@ -32,7 +32,7 @@ const throttledOnMove = throttle((e) => {
     // Update tooltip with enhanced info
     const tagName = pointerElement.tagName.toLowerCase();
     const id = pointerElement.id ? `#${pointerElement.id}` : '';
-    const classes = pointerElement.className ? `.${pointerElement.className.split(/\s+/).join('.')}` : '';
+    const classes = pointerElement.classList && pointerElement.classList.length > 0 ? `.${Array.from(pointerElement.classList).join('.')}` : '';
     const contentText = pointerElement.textContent || '';
     const textContent = contentText.trim().substring(0, 30);
     const textSuffix = contentText.trim().length > 30 ? '...' : '';
@@ -110,7 +110,7 @@ function onClick(e) {
         xpath: safeExecute(() => getXPath(el), 'getXPath') || 'Failed to generate',
         tag: el.tagName.toLowerCase(),
         id: el.id ? `#${el.id}` : null,
-        classes: el.className ? `.${el.className.split(/\s+/).join('.')}` : null
+        classes: el.classList && el.classList.length > 0 ? `.${Array.from(el.classList).join('.')}` : null
       },
       
       // Content
@@ -190,7 +190,7 @@ function navigateElement(direction) {
       // Update tooltip
       const tagName = currentElement.tagName.toLowerCase();
       const id = currentElement.id ? `#${currentElement.id}` : '';
-      const classes = currentElement.className ? `.${currentElement.className.split(/\s+/).join('.')}` : '';
+      const classes = currentElement.classList && currentElement.classList.length > 0 ? `.${Array.from(currentElement.classList).join('.')}` : '';
       
       tooltip.style.top = rect.bottom + window.scrollY + 5 + 'px';
       tooltip.style.left = rect.left + window.scrollX + 'px';

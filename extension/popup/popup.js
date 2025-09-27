@@ -64,32 +64,6 @@ if (themeMediaQuery) {
   }
 }
 
-// Performance optimization: debounce function
-function debounce(func, wait) {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
-}
-
-// Performance optimization: throttle function
-function throttle(func, limit) {
-  let inThrottle;
-  return function() {
-    const args = arguments;
-    const context = this;
-    if (!inThrottle) {
-      func.apply(context, args);
-      inThrottle = true;
-      setTimeout(() => inThrottle = false, limit);
-    }
-  };
-}
 
 // Global variables to prevent duplicate listeners
 let isInitialized = false;
@@ -97,17 +71,6 @@ let buttonListenersAdded = false;
 let shortcutsOverlay = null;
 let currentLangMap = null;
 
-const toolShortcutDefaults = {
-  'color-picker': { default: 'Alt+Shift+1', mac: 'Option+Shift+1', messageKey: 'shortcutColor' },
-  'element-picker': { default: 'Alt+Shift+2', mac: 'Option+Shift+2', messageKey: 'shortcutElement' },
-  'link-picker': { default: 'Alt+Shift+3', mac: 'Option+Shift+3', messageKey: 'shortcutLink' },
-  'font-picker': { default: 'Alt+Shift+4', mac: 'Option+Shift+4', messageKey: 'shortcutFont' },
-  'media-picker': { default: 'Alt+Shift+5', mac: 'Option+Shift+5', messageKey: 'shortcutMedia' },
-  'text-picker': { default: 'Alt+Shift+6', mac: 'Option+Shift+6', messageKey: 'shortcutText' },
-  'screenshot-picker': { default: 'Alt+Shift+7', mac: 'Option+Shift+7', messageKey: 'shortcutScreenshot' },
-  'sticky-notes-picker': { default: 'Alt+Shift+8', mac: 'Option+Shift+8', messageKey: 'shortcutNotes' },
-  'site-info-picker': { default: 'Alt+Shift+9', mac: 'Option+Shift+9', messageKey: 'shortcutInfo' }
-};
 
 // Keyboard shortcuts mapping
 const keyboardShortcuts = {
@@ -135,13 +98,17 @@ function updateToolButtonTooltips(map) {
 
 function addButtonListeners(map) {
   if (!buttonListenersAdded) {
-    document.querySelectorAll('.tool-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        chrome.runtime.sendMessage({ type: 'ACTIVATE_TOOL', tool: btn.id });
-        // Delay closing to ensure message is sent
-        setTimeout(() => window.close(), 50);
+    const toolsGrid = document.querySelector('.tools-grid');
+    if (toolsGrid) {
+      toolsGrid.addEventListener('click', (e) => {
+        const button = e.target.closest('.tool-btn');
+        if (button) {
+          chrome.runtime.sendMessage({ type: 'ACTIVATE_TOOL', tool: button.id });
+          // Delay closing to ensure message is sent
+          setTimeout(() => window.close(), 50);
+        }
       });
-    });
+    }
     buttonListenersAdded = true;
   }
 
@@ -171,6 +138,7 @@ function addKeyboardShortcuts() {
   });
 }
 
+/*
 function parseShortcutString(shortcut) {
   if (!shortcut || typeof shortcut !== 'string') return [];
   return shortcut.split('+').map(part => part.trim()).filter(Boolean);
@@ -189,7 +157,9 @@ function createSeparator(symbol) {
   span.textContent = symbol;
   return span;
 }
+*/
 
+/*
 function renderShortcutKeys(container, combos) {
   combos.forEach((combo, comboIndex, combosArray) => {
     const normalizedCombo = Array.isArray(combo) ? combo : parseShortcutString(combo);
@@ -205,7 +175,9 @@ function renderShortcutKeys(container, combos) {
     }
   });
 }
+*/
 
+/*
 function buildShortcutsSection(title, items) {
   if (!items || items.length === 0) return null;
 
@@ -229,7 +201,7 @@ function buildShortcutsSection(title, items) {
 
     const keysEl = document.createElement('div');
     keysEl.className = 'shortcut-keys';
-    renderShortcutKeys(keysEl, combos);
+    // renderShortcutKeys(keysEl, combos);
 
     row.appendChild(labelEl);
     row.appendChild(keysEl);
@@ -238,6 +210,7 @@ function buildShortcutsSection(title, items) {
 
   return section;
 }
+*/
 
 function updateFooterButtons(map) {
   const favoritesBtn = document.getElementById('favorites-btn');
@@ -323,10 +296,6 @@ function showShortcutsModal(map) {
   description.textContent = descriptionText;
   body.appendChild(description);
 
-  const openDefault = parseShortcutString(map?.openShortcut?.message || 'Ctrl+Shift+9');
-  const openMac = parseShortcutString(map?.openShortcutMac?.message || 'Cmd+Shift+9');
-  const toggleDefault = parseShortcutString(map?.toggleShortcut?.message || 'Ctrl+Shift+P');
-  const toggleMac = parseShortcutString(map?.toggleShortcutMac?.message || 'Cmd+Shift+P');
 
   // Simplified shortcuts display
   const shortcutsList = [
@@ -403,7 +372,6 @@ document.addEventListener('DOMContentLoaded', () => {
   
   const langSelect = document.getElementById('lang-select');
   const themeSelect = document.getElementById('theme-select');
-  const versionInfoEl = document.getElementById('version-info');
 
   // Add escape key support
   document.addEventListener('keydown', (e) => {

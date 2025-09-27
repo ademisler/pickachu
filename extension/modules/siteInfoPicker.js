@@ -1,4 +1,4 @@
-import { showError, showSuccess, showInfo, showModal, handleError, safeExecute, sanitizeInput, validateUrl } from './helpers.js';
+import { showError, showSuccess, showInfo, showModal, handleError, safeExecute, validateUrl } from './helpers.js';
 
 // Detect technologies and frameworks with enhanced error handling
 function detectTechnologies() {
@@ -564,7 +564,7 @@ async function getDomainAuthority(domain) {
           if (links[i] && links[i].href && !links[i].href.includes(domain)) {
             count++;
           }
-        } catch (e) {
+        } catch {
           // Skip problematic links
           continue;
         }

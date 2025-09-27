@@ -62,33 +62,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.type === 'CAPTURE_VISIBLE_TAB') {
-    const windowId = typeof sender.tab?.windowId === 'number' ? sender.tab.windowId : undefined;
-
-    const handleResult = (dataUrl) => {
-      if (chrome.runtime.lastError) {
-        console.error('Error capturing visible tab:', chrome.runtime.lastError);
-        sendResponse({ success: false, error: chrome.runtime.lastError.message });
-        return;
+    (async () => {
+      try {
+        const dataUrl = await chrome.tabs.captureVisibleTab({ format: 'png', quality: 100 });
+        if (chrome.runtime.lastError) {
+          throw new Error(chrome.runtime.lastError.message);
+        }
+        if (!dataUrl) {
+          throw new Error('No image data received.');
+        }
+        sendResponse({ success: true, dataUrl });
+      } catch (error) {
+        console.error('Error capturing visible tab:', error);
+        sendResponse({ success: false, error: error.message });
       }
-      if (!dataUrl) {
-        console.error('captureVisibleTab returned empty data');
-        sendResponse({ success: false, error: 'No image data received.' });
-        return;
-      }
-      console.log('Screenshot captured successfully, data URL length:', dataUrl.length);
-      sendResponse({ success: true, dataUrl });
-    };
-
-    try {
-      if (windowId !== undefined) {
-        chrome.tabs.captureVisibleTab(windowId, { format: 'png', quality: 100 }, handleResult);
-      } else {
-        chrome.tabs.captureVisibleTab({ format: 'png', quality: 100 }, handleResult);
-      }
-    } catch (error) {
-      console.error('captureVisibleTab threw synchronously', error);
-      sendResponse({ success: false, error: error.message });
-    }
+    })();
     return true;
   }
 
@@ -130,34 +118,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const results = await chrome.scripting.executeScript({
           target: { tabId: tab.id },
           func: () => {
-            try {
-              return {
-                width: Math.max(
-                  document.documentElement.scrollWidth || 0,
-                  document.body.scrollWidth || 0,
-                  window.innerWidth || 0
-                ),
-                height: Math.max(
-                  document.documentElement.scrollHeight || 0,
-                  document.body.scrollHeight || 0,
-                  window.innerHeight || 0
-                ),
-                scrollWidth: document.documentElement.scrollWidth || document.body.scrollWidth || 0,
-                scrollHeight: document.documentElement.scrollHeight || document.body.scrollHeight || 0,
-                innerWidth: window.innerWidth || 0,
-                innerHeight: window.innerHeight || 0
-              };
-            } catch (error) {
-              console.error('Error getting page dimensions:', error);
-              return {
-                width: window.innerWidth || 1024,
-                height: window.innerHeight || 768,
-                scrollWidth: 1024,
-                scrollHeight: 768,
-                innerWidth: window.innerWidth || 1024,
-                innerHeight: window.innerHeight || 768
-              };
-            }
+            const rect = document.documentElement.getBoundingClientRect();
+            return {
+              width: rect.width,
+              height: rect.height,
+              scrollWidth: document.documentElement.scrollWidth,
+              scrollHeight: document.documentElement.scrollHeight,
+              innerWidth: window.innerWidth,
+              innerHeight: window.innerHeight
+            };
           }
         });
 
@@ -178,13 +147,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 const COMMAND_TOOL_MAP = {
   'activate-color-picker': 'color-picker',
   'activate-element-picker': 'element-picker',
-  'activate-link-picker': 'link-picker',
-  'activate-font-picker': 'font-picker',
-  'activate-media-picker': 'media-picker',
-  'activate-text-picker': 'text-picker',
-  'activate-screenshot-picker': 'screenshot-picker',
-  'activate-sticky-notes-picker': 'sticky-notes-picker',
-  'activate-site-info-picker': 'site-info-picker'
+  'activate-screenshot-picker': 'screenshot-picker'
 };
 
 chrome.commands.onCommand.addListener(async (command) => {

@@ -9,7 +9,6 @@
     "clipboardWrite",
     "storage",
     "tabs",
-    "unlimitedStorage",
     "downloads"
   ],
   "background": {
@@ -59,13 +58,6 @@
   ],
   "default_locale": "en",
   "commands": {
-    "open-popup": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+9",
-        "mac": "Command+Shift+9"
-      },
-      "description": "__MSG_openPickachu__"
-    },
     "toggle-popup": {
       "suggested_key": {
         "default": "Ctrl+Shift+P",
@@ -87,54 +79,12 @@
       },
       "description": "__MSG_cmdElementPicker__"
     },
-    "activate-link-picker": {
+    "activate-screenshot-picker": {
       "suggested_key": {
         "default": "Alt+Shift+3",
         "mac": "Alt+Shift+3"
       },
-      "description": "__MSG_cmdLinkPicker__"
-    },
-    "activate-font-picker": {
-      "suggested_key": {
-        "default": "Alt+Shift+4",
-        "mac": "Alt+Shift+4"
-      },
-      "description": "__MSG_cmdFontPicker__"
-    },
-    "activate-media-picker": {
-      "suggested_key": {
-        "default": "Alt+Shift+5",
-        "mac": "Alt+Shift+5"
-      },
-      "description": "__MSG_cmdMediaPicker__"
-    },
-    "activate-text-picker": {
-      "suggested_key": {
-        "default": "Alt+Shift+6",
-        "mac": "Alt+Shift+6"
-      },
-      "description": "__MSG_cmdTextPicker__"
-    },
-    "activate-screenshot-picker": {
-      "suggested_key": {
-        "default": "Alt+Shift+7",
-        "mac": "Alt+Shift+7"
-      },
       "description": "__MSG_cmdScreenshotPicker__"
-    },
-    "activate-sticky-notes-picker": {
-      "suggested_key": {
-        "default": "Alt+Shift+8",
-        "mac": "Alt+Shift+8"
-      },
-      "description": "__MSG_cmdStickyNotesPicker__"
-    },
-    "activate-site-info-picker": {
-      "suggested_key": {
-        "default": "Alt+Shift+9",
-        "mac": "Alt+Shift+9"
-      },
-      "description": "__MSG_cmdSiteInfoPicker__"
     }
   }
 }

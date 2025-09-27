@@ -24,7 +24,7 @@ function getFilename(url) {
       .replace(/(^-|-$)/g, '')
       .toLowerCase();
     return `pickachu-screencap-${slug || 'page'}-${Date.now()}.png`;
-  } catch (error) {
+  } catch {
     return `pickachu-screenshot-${Date.now()}.png`;
   }
 }

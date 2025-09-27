@@ -36,7 +36,10 @@ module.exports = [
         EyeDropper: 'readonly',
         prompt: 'readonly',
         confirm: 'readonly',
-        location: 'readonly'
+        location: 'readonly',
+        crypto: 'readonly',
+        XMLSerializer: 'readonly',
+        requestAnimationFrame: 'readonly'
       }
     },
     rules: {

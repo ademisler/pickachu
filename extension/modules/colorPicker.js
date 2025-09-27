@@ -5,11 +5,14 @@ function hexToRgb(hex) {
   try {
     if (!hex || typeof hex !== 'string') return null;
     
-    const cleanHex = hex.replace('#', '');
-    if (!/^[0-9a-fA-F]{3}$|^[0-9a-fA-F]{6}$/.test(cleanHex)) return null;
+    let cleanHex = hex.replace('#', '');
+    if (cleanHex.length === 3) {
+      cleanHex = cleanHex.split('').map(c => c + c).join('');
+    }
+
+    if (!/^[0-9a-fA-F]{6}$/.test(cleanHex)) return null;
     
-    const result = /^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(cleanHex.length === 3 ? 
-      cleanHex.split('').map(c => c + c).join('') : cleanHex);
+    const result = /^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(cleanHex);
     
     return result ? {
       r: parseInt(result[1], 16),

@@ -94,7 +94,7 @@ export function debounce(func, wait, immediate = false) {
   };
 }
 
-export function throttle(func, limit, options = {}) {
+export function throttle(func, limit) {
   let inThrottle;
   let lastFunc;
   let lastRan;
@@ -155,7 +155,6 @@ export function cachedQuerySelectorAll(selector, context = document) {
 // Cache for computed styles and DOM queries
 const styleCache = new Map();
 const MAX_CACHE_SIZE = 100;
-const CACHE_CLEANUP_THRESHOLD = 80;
 
 export function getCachedComputedStyle(element) {
   const key = `${element.tagName}-${element.id}-${element.className}`;
@@ -326,7 +325,7 @@ function t(id) {
     try {
       const msg = chrome.i18n.getMessage(id);
       if (msg) return msg;
-    } catch (error) {
+    } catch {
       // Message not found - using fallback
     }
   }
@@ -379,18 +378,30 @@ export async function copyText(text) {
     // Text copied successfully
   } catch (err) {
     handleError(err, 'copyText primary method');
-    // Modern fallback approach
+    // Fallback for browsers that don't support navigator.clipboard.writeText
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed'; // Prevent scrolling to bottom of page in MS Edge.
+    textArea.style.top = '0';
+    textArea.style.left = '0';
+    textArea.style.width = '2em';
+    textArea.style.height = '2em';
+    textArea.style.padding = '0';
+    textArea.style.border = 'none';
+    textArea.style.outline = 'none';
+    textArea.style.boxShadow = 'none';
+    textArea.style.background = 'transparent';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
     try {
-      const data = new ClipboardItem({
-        'text/plain': new Blob([text], { type: 'text/plain' })
-      });
-      await navigator.clipboard.write([data]);
-      // Text copied using modern fallback method
-    } catch (fallbackErr) {
-      handleError(fallbackErr, 'copyText fallback method');
+      document.execCommand('copy');
+    } catch (err) {
+      handleError(err, 'copyText fallback method');
       showToast('Copy failed. Please try manually.', 3000);
       throw new Error('Copy operation failed');
     }
+    document.body.removeChild(textArea);
   }
 }
 
@@ -485,7 +496,7 @@ export function normalizeUrlForStorage(rawUrl) {
           continue;
         }
         return parsed.toString();
-      } catch (error) {
+      } catch {
         // Ignore and try next candidate/base combination
       }
     }
@@ -570,7 +581,7 @@ export function showInfo(message, duration = 2000) {
   showToast(message, duration, 'info');
 }
 
-export function showToast(message, duration = 1500, type = 'info') {
+export function showToast(message, duration = 1500, type = 'info', position = 'bottom') {
   // Remove existing toasts
   document.querySelectorAll('#pickachu-toast').forEach(toast => toast.remove());
   
@@ -584,12 +595,15 @@ export function showToast(message, duration = 1500, type = 'info') {
     warning: 'background: var(--pickachu-warning-color, #ffc107); color: var(--pickachu-text, #333);',
     info: 'background: var(--pickachu-button-bg, rgba(0,0,0,0.9));'
   };
+
+  const positionStyles = {
+    bottom: 'bottom: 20px; left: 50%; transform: translateX(-50%);',
+    top: 'top: 20px; left: 50%; transform: translateX(-50%);'
+  }
   
   toast.style.cssText = `
     position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
+    ${positionStyles[position] || positionStyles.bottom}
     ${typeStyles[type] || typeStyles.info}
     color: var(--pickachu-text, #fff);
     padding: 12px 20px;
@@ -897,15 +911,14 @@ export async function showFavorites() {
       list.innerHTML = '';
       
       if (favorites.length === 0) {
-        list.innerHTML = `
-          <div style="
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--pickachu-secondary-text, #666);
-          ">
-            No favorites yet. Click the star button in any tool to add favorites!
-          </div>
+        const emptyState = document.createElement('div');
+        emptyState.style.cssText = `
+          text-align: center;
+          padding: 40px 20px;
+          color: var(--pickachu-secondary-text, #666);
         `;
+        emptyState.textContent = 'No favorites yet. Click the star button in any tool to add favorites!';
+        list.appendChild(emptyState);
         return;
       }
 
@@ -1268,15 +1281,24 @@ export async function showModal(title, content, icon = '', type = '') {
     const colorMatch = content.match(/#[0-9a-fA-F]{6}/);
     if (colorMatch) {
       const color = escapeHtml(colorMatch[0]);
-      body.innerHTML = `
-        <div style="display: flex; gap: 16px; margin-bottom: 16px;">
-          <div style="width: 60px; height: 60px; background-color: ${color}; border-radius: 8px; border: 2px solid var(--pickachu-border, #ddd);"></div>
-          <div style="flex: 1;">
-            <div style="font-weight: 600; margin-bottom: 8px;">Color Preview</div>
-            <div class="code-preview">${color}</div>
-          </div>
-        </div>
-      `;
+      const colorPreview = document.createElement('div');
+      colorPreview.style.cssText = 'display: flex; gap: 16px; margin-bottom: 16px;';
+      const colorBox = document.createElement('div');
+      colorBox.style.cssText = `width: 60px; height: 60px; background-color: ${color}; border-radius: 8px; border: 2px solid var(--pickachu-border, #ddd);`;
+      const colorInfo = document.createElement('div');
+      colorInfo.style.flex = '1';
+      const colorPreviewTitle = document.createElement('div');
+      colorPreviewTitle.style.fontWeight = '600';
+      colorPreviewTitle.style.marginBottom = '8px';
+      colorPreviewTitle.textContent = 'Color Preview';
+      const codePreview = document.createElement('div');
+      codePreview.className = 'code-preview';
+      codePreview.textContent = color;
+      colorInfo.appendChild(colorPreviewTitle);
+      colorInfo.appendChild(codePreview);
+      colorPreview.appendChild(colorBox);
+      colorPreview.appendChild(colorInfo);
+      body.appendChild(colorPreview);
       body.appendChild(createSafeTextarea(content));
     } else {
       body.appendChild(createSafeTextarea(content));
@@ -1285,26 +1307,45 @@ export async function showModal(title, content, icon = '', type = '') {
     const urlMatch = content.match(/https?:\/\/[^\s]+/);
     if (urlMatch) {
       const imageUrl = escapeHtml(urlMatch[0]);
-      body.innerHTML = `
-        <div style="margin-bottom: 16px;">
-          <div style="font-weight: 600; margin-bottom: 8px;">Image Preview</div>
-          <img src="${imageUrl}" style="max-width: 200px; max-height: 150px; border-radius: 6px; border: 1px solid var(--pickachu-border, #ddd);" onerror="this.style.display='none'">
-        </div>
-      `;
+      const imagePreview = document.createElement('div');
+      imagePreview.style.marginBottom = '16px';
+      const imagePreviewTitle = document.createElement('div');
+      imagePreviewTitle.style.fontWeight = '600';
+      imagePreviewTitle.style.marginBottom = '8px';
+      imagePreviewTitle.textContent = 'Image Preview';
+      const img = document.createElement('img');
+      img.src = imageUrl;
+      img.style.cssText = 'max-width: 200px; max-height: 150px; border-radius: 6px; border: 1px solid var(--pickachu-border, #ddd);';
+      img.onerror = () => img.style.display = 'none';
+      imagePreview.appendChild(imagePreviewTitle);
+      imagePreview.appendChild(img);
+      body.appendChild(imagePreview);
       body.appendChild(createSafeTextarea(content));
     } else {
       body.appendChild(createSafeTextarea(content));
     }
   } else if (type === 'font') {
-    body.innerHTML = `
-      <div style="margin-bottom: 16px;">
-        <div style="font-weight: 600; margin-bottom: 8px;">Font Preview</div>
-        <div class="code-preview">
-          <div style="font-size: 18px; margin-bottom: 8px;">The quick brown fox jumps over the lazy dog</div>
-          <div style="font-size: 14px;" class="secondary-text">ABCDEFGHIJKLMNOPQRSTUVWXYZ</div>
-        </div>
-      </div>
-    `;
+    const fontPreview = document.createElement('div');
+    fontPreview.style.marginBottom = '16px';
+    const fontPreviewTitle = document.createElement('div');
+    fontPreviewTitle.style.fontWeight = '600';
+    fontPreviewTitle.style.marginBottom = '8px';
+    fontPreviewTitle.textContent = 'Font Preview';
+    const codePreview = document.createElement('div');
+    codePreview.className = 'code-preview';
+    const fontPreviewText1 = document.createElement('div');
+    fontPreviewText1.style.fontSize = '18px';
+    fontPreviewText1.style.marginBottom = '8px';
+    fontPreviewText1.textContent = 'The quick brown fox jumps over the lazy dog';
+    const fontPreviewText2 = document.createElement('div');
+    fontPreviewText2.style.fontSize = '14px';
+    fontPreviewText2.className = 'secondary-text';
+    fontPreviewText2.textContent = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    codePreview.appendChild(fontPreviewText1);
+    codePreview.appendChild(fontPreviewText2);
+    fontPreview.appendChild(fontPreviewTitle);
+    fontPreview.appendChild(codePreview);
+    body.appendChild(fontPreview);
     body.appendChild(createSafeTextarea(content));
   } else if (type === 'font-simple') {
     body.style.whiteSpace = 'pre-line';
