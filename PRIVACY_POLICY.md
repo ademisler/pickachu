@@ -62,4 +62,4 @@ If you have any questions about this privacy policy, please contact the develope
 
 **Extension Name**: Pickachu  
 **Version**: 1.1.0  
-**Developer**: [Your Name/Company]  
+**Developer**: Adem Isler
