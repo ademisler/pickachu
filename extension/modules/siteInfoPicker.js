@@ -900,16 +900,21 @@ Page Depth: ${report.structure?.pageDepth || 0}
   }
 }
 
-export function activate(deactivate) {
+export async function activate(deactivate) {
   try {
     // Generate and show site report
-    generateSiteReport();
-    deactivate();
-    
+    await generateSiteReport();
   } catch (error) {
     handleError(error, 'siteInfoPicker activation');
     showError('Failed to activate site info tool. Please try again.');
-    deactivate();
+  } finally {
+    try {
+      if (typeof deactivate === 'function') {
+        deactivate();
+      }
+    } catch (cleanupError) {
+      handleError(cleanupError, 'siteInfoPicker deactivate callback');
+    }
   }
 }
 

@@ -36,6 +36,21 @@ Pickachu defines a single shortcut using the Chrome `commands` API to open the p
 | Action | Shortcut |
 | ------ | -------- |
 | Open popup | `Ctrl+Shift+9` / `Cmd+Shift+9` (macOS) |
+| Toggle popup | `Ctrl+Shift+P` / `Cmd+Shift+P` (macOS) |
+
+Pickachu also exposes global shortcuts for each tool:
+
+| Tool | Shortcut |
+| ---- | -------- |
+| Color Picker | `Alt+Shift+1` / `Option+Shift+1` (macOS) |
+| Element Picker | `Alt+Shift+2` / `Option+Shift+2` (macOS) |
+| Link Picker | `Alt+Shift+3` / `Option+Shift+3` (macOS) |
+| Font Picker | `Alt+Shift+4` / `Option+Shift+4` (macOS) |
+| Media Picker | `Alt+Shift+5` / `Option+Shift+5` (macOS) |
+| Text Picker | `Alt+Shift+6` / `Option+Shift+6` (macOS) |
+| Screenshot Picker | `Alt+Shift+7` / `Option+Shift+7` (macOS) |
+| Sticky Notes Picker | `Alt+Shift+8` / `Option+Shift+8` (macOS) |
+| Site Info Picker | `Alt+Shift+9` / `Option+Shift+9` (macOS) |
 
 ## Repository Structure
 ```
