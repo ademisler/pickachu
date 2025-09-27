@@ -447,10 +447,57 @@ export async function safeExecuteAsync(fn, context = '', fallback = null) {
   }
 }
 
+export function normalizeUrlForStorage(rawUrl) {
+  if (rawUrl === null || rawUrl === undefined) return '';
+
+  const trimmed = String(rawUrl).trim();
+  if (!trimmed) return '';
+
+  const withoutControlChars = trimmed.replace(/[\u0000-\u001F]/g, '');
+  const withoutJavascript = withoutControlChars.replace(/^javascript:/i, '');
+  const sanitizedFallback = withoutJavascript.replace(/["'<>`]/g, '');
+
+  const bases = [];
+  if (typeof window !== 'undefined' && window.location) {
+    if (window.location.href) {
+      bases.push(window.location.href);
+    }
+    if (window.location.origin) {
+      bases.push(window.location.origin);
+    }
+  }
+  bases.push(undefined);
+
+  for (const candidate of [withoutJavascript, sanitizedFallback]) {
+    if (!candidate) {
+      continue;
+    }
+
+    const isLikelyUrl = candidate.includes('://') || candidate.startsWith('//') || candidate.startsWith('/');
+    if (!isLikelyUrl) {
+      continue;
+    }
+
+    for (const base of bases) {
+      try {
+        const parsed = base ? new URL(candidate, base) : new URL(candidate);
+        if (!['http:', 'https:'].includes(parsed.protocol)) {
+          continue;
+        }
+        return parsed.toString();
+      } catch (error) {
+        // Ignore and try next candidate/base combination
+      }
+    }
+  }
+
+  return sanitizedFallback;
+}
+
 // Security utilities
 export function sanitizeInput(input) {
   if (typeof input !== 'string') return '';
-  
+
   return input
     .replace(/[<>]/g, '') // Remove potential HTML tags
     .replace(/javascript:/gi, '') // Remove javascript: protocol

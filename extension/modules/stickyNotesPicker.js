@@ -1,4 +1,4 @@
-import { showSuccess, showError, handleError, safeExecute, sanitizeInput, addEventListenerWithCleanup, renderIcon } from './helpers.js';
+import { showSuccess, showError, handleError, safeExecute, sanitizeInput, addEventListenerWithCleanup, renderIcon, normalizeUrlForStorage } from './helpers.js';
 
 let deactivateCb;
 let notes = [];
@@ -17,12 +17,18 @@ const NOTE_COLORS = [
 ];
 
 function getSiteStorageKey(url) {
-  // Use full URL instead of origin for more specific note isolation
-  return `stickyNotes_${sanitizeInput(url)}`;
+  const normalizedUrl = normalizeUrlForStorage(url);
+  const keySuffix = normalizedUrl || 'global';
+  return `stickyNotes_${keySuffix}`;
 }
 
 function getLegacyStorageKey(url) {
   return `stickyNotes_${sanitizeInput(url)}`;
+}
+
+function getNormalizedCurrentUrl() {
+  const currentUrl = safeExecute(() => window.location.href, 'get location href') || '';
+  return normalizeUrlForStorage(currentUrl);
 }
 
 export function activate(deactivate) {
@@ -31,8 +37,9 @@ export function activate(deactivate) {
     
     // Get current site URL (not just origin)
     const currentUrl = safeExecute(() => window.location.href, 'get location href') || '';
-    
-    console.log('Sticky notes activated for URL:', currentUrl);
+    const normalizedCurrentUrl = normalizeUrlForStorage(currentUrl);
+
+    console.log('Sticky notes activated for URL:', normalizedCurrentUrl || currentUrl);
     
     // Load existing notes for current site only
     loadNotes().then(async () => {
@@ -41,9 +48,9 @@ export function activate(deactivate) {
       
       // Only show manager if there are notes for this site
       const currentSiteNotes = notes.filter(note => {
-        return note.siteUrl === currentUrl;
+        return normalizeUrlForStorage(note.siteUrl) === normalizedCurrentUrl;
       });
-      
+
       console.log(`Found ${currentSiteNotes.length} notes for current URL`);
       
       if (currentSiteNotes.length > 0) {
@@ -107,6 +114,7 @@ export function deactivate() {
 function createStickyNote(x, y, color = NOTE_COLORS[0].value) {
   try {
     const noteId = `note-${++noteCounter}`;
+    const currentUrl = safeExecute(() => window.location.href, 'get current url') || '';
     const note = {
       id: sanitizeInput(noteId),
       x: safeExecute(() => Math.max(0, Math.min(window.innerWidth - 250, x)), 'constrain x') || 0,
@@ -115,7 +123,7 @@ function createStickyNote(x, y, color = NOTE_COLORS[0].value) {
       content: '',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      siteUrl: sanitizeInput(safeExecute(() => window.location.href, 'get current url') || ''),
+      siteUrl: normalizeUrlForStorage(currentUrl),
       siteTitle: sanitizeInput(safeExecute(() => document.title, 'get title') || '')
     };
     
@@ -168,7 +176,21 @@ export function renderStickyNote(note) {
   
   const title = document.createElement('span');
   // Show site name or domain instead of "Sticky Note"
-  const siteName = note.siteTitle || new URL(note.siteUrl).hostname || 'Sticky Note';
+  let siteName = note.siteTitle;
+  if (!siteName) {
+    const safeUrl = normalizeUrlForStorage(note.siteUrl || '');
+    if (safeUrl) {
+      try {
+        siteName = new URL(safeUrl).hostname;
+      } catch (error) {
+        handleError(error, 'renderStickyNote parse url');
+        siteName = safeUrl;
+      }
+    }
+  }
+  if (!siteName) {
+    siteName = 'Sticky Note';
+  }
   title.textContent = siteName.length > 20 ? siteName.substring(0, 20) + '...' : siteName;
   title.style.cssText = `
     font-weight: 600;
@@ -325,6 +347,132 @@ export function renderStickyNote(note) {
   
   // Focus the textarea
   setTimeout(() => content.focus(), 100);
+}
+
+export function hydrateNotesFromStorage(storedNotes = []) {
+  try {
+    const normalizedCurrentUrl = getNormalizedCurrentUrl();
+    const rawCurrentUrl = safeExecute(() => window.location.href, 'get location href') || '';
+    const fallbackUrl = normalizedCurrentUrl || normalizeUrlForStorage(rawCurrentUrl);
+    const inputNotes = Array.isArray(storedNotes) ? storedNotes : [];
+    const existingNotesById = new Map();
+    notes.forEach(note => {
+      if (note && typeof note === 'object' && note.id) {
+        existingNotesById.set(note.id, note);
+      }
+    });
+
+    const hydratedForCurrentSite = [];
+    const processedCurrentIds = new Set();
+    let maxCounter = noteCounter;
+
+    inputNotes.forEach((rawNote, index) => {
+      if (!rawNote || typeof rawNote !== 'object') {
+        return;
+      }
+
+      const targetSiteUrl = normalizeUrlForStorage(rawNote.siteUrl || normalizedCurrentUrl || fallbackUrl);
+      if (!targetSiteUrl) {
+        return;
+      }
+
+      let id = typeof rawNote.id === 'string' ? rawNote.id.trim() : '';
+
+      const idMatch = id.match(/note-(\d+)/);
+      if (idMatch) {
+        const parsed = parseInt(idMatch[1], 10);
+        if (Number.isFinite(parsed)) {
+          maxCounter = Math.max(maxCounter, parsed);
+        }
+      }
+
+      if (!id) {
+        maxCounter += 1;
+        id = `note-${maxCounter}`;
+      }
+
+      let noteRef = existingNotesById.get(id);
+      if (!noteRef) {
+        while (existingNotesById.has(id)) {
+          maxCounter += 1;
+          id = `note-${maxCounter}`;
+        }
+
+        noteRef = {
+          id,
+          x: Number.isFinite(rawNote.x) ? rawNote.x : 0,
+          y: Number.isFinite(rawNote.y) ? rawNote.y : 0,
+          color: typeof rawNote.color === 'string' && rawNote.color.trim() ? rawNote.color : NOTE_COLORS[0].value,
+          content: typeof rawNote.content === 'string' ? rawNote.content : '',
+          createdAt: rawNote.createdAt || new Date().toISOString(),
+          updatedAt: rawNote.updatedAt || rawNote.createdAt || new Date().toISOString(),
+          siteUrl: targetSiteUrl,
+          siteTitle: typeof rawNote.siteTitle === 'string' ? rawNote.siteTitle : ''
+        };
+        notes.push(noteRef);
+        existingNotesById.set(id, noteRef);
+      } else {
+        noteRef.x = Number.isFinite(rawNote.x) ? rawNote.x : (Number.isFinite(noteRef.x) ? noteRef.x : 0);
+        noteRef.y = Number.isFinite(rawNote.y) ? rawNote.y : (Number.isFinite(noteRef.y) ? noteRef.y : 0);
+        noteRef.color = typeof rawNote.color === 'string' && rawNote.color.trim() ? rawNote.color : noteRef.color || NOTE_COLORS[0].value;
+        noteRef.content = typeof rawNote.content === 'string' ? rawNote.content : noteRef.content || '';
+        noteRef.createdAt = rawNote.createdAt || noteRef.createdAt || new Date().toISOString();
+        noteRef.updatedAt = rawNote.updatedAt || rawNote.createdAt || noteRef.updatedAt || new Date().toISOString();
+        noteRef.siteUrl = targetSiteUrl;
+        noteRef.siteTitle = typeof rawNote.siteTitle === 'string' ? rawNote.siteTitle : noteRef.siteTitle || '';
+      }
+
+      if (noteRef.siteUrl === normalizedCurrentUrl) {
+        if (!processedCurrentIds.has(noteRef.id)) {
+          hydratedForCurrentSite.push(noteRef);
+          processedCurrentIds.add(noteRef.id);
+        }
+      }
+    });
+
+    const validCurrentIds = new Set(processedCurrentIds);
+    const seenIds = new Set();
+    notes = notes.filter(note => {
+      if (!note || typeof note !== 'object' || !note.id) {
+        return false;
+      }
+
+      note.siteUrl = normalizeUrlForStorage(note.siteUrl || normalizedCurrentUrl || fallbackUrl);
+
+      if (note.siteUrl === normalizedCurrentUrl) {
+        if (validCurrentIds.size === 0) {
+          return false;
+        }
+        if (!validCurrentIds.has(note.id)) {
+          return false;
+        }
+      }
+
+      if (!note.siteUrl) {
+        return false;
+      }
+
+      if (seenIds.has(note.id)) {
+        return false;
+      }
+      seenIds.add(note.id);
+      return true;
+    });
+
+    noteCounter = notes.reduce((max, note) => {
+      const match = typeof note.id === 'string' && note.id.match(/note-(\d+)/);
+      if (!match) {
+        return max;
+      }
+      const parsed = parseInt(match[1], 10);
+      return Number.isFinite(parsed) ? Math.max(max, parsed) : max;
+    }, Math.max(noteCounter, maxCounter));
+
+    return hydratedForCurrentSite;
+  } catch (error) {
+    handleError(error, 'hydrateNotesFromStorage');
+    return [];
+  }
 }
 
 // Show color picker for note
@@ -632,19 +780,19 @@ function showNotesManager() {
 export async function loadExistingNotesForCurrentSite() {
   try {
     // Get current site URL if not already set
-    const currentUrl = safeExecute(() => window.location.href, 'get location href') || '';
-    
-    if (!currentUrl || currentUrl.trim() === '') {
+    const normalizedCurrentUrl = getNormalizedCurrentUrl();
+
+    if (!normalizedCurrentUrl) {
       console.log('No current URL available for loading notes');
       return;
     }
-    
+
     // Filter notes to only include current site
     const currentSiteNotes = notes.filter(note => {
-      return note.siteUrl === currentUrl;
+      return normalizeUrlForStorage(note.siteUrl) === normalizedCurrentUrl;
     });
 
-    console.log(`Loading ${currentSiteNotes.length} notes for URL: ${currentUrl}`);
+    console.log(`Loading ${currentSiteNotes.length} notes for URL: ${normalizedCurrentUrl}`);
 
     currentSiteNotes.forEach(note => {
       // Check if note is already rendered on the page
@@ -662,18 +810,24 @@ export async function loadExistingNotesForCurrentSite() {
 // Save notes to storage (site-specific) with enhanced error handling
 async function saveNotes() {
   try {
-    const currentUrl = safeExecute(() => window.location.href, 'get current url') || '';
-    if (!currentUrl || currentUrl.trim() === '') {
+    const rawCurrentUrl = safeExecute(() => window.location.href, 'get current url') || '';
+    const normalizedCurrentUrl = normalizeUrlForStorage(rawCurrentUrl);
+    if (!normalizedCurrentUrl) {
       throw new Error('No current URL available');
     }
 
-    const siteKey = getSiteStorageKey(currentUrl);
+    const siteKey = getSiteStorageKey(rawCurrentUrl);
     const notesToPersist = notes.filter(note => {
-      return note.siteUrl === currentUrl;
+      return normalizeUrlForStorage(note.siteUrl) === normalizedCurrentUrl;
     });
 
+    const normalizedNotes = notesToPersist.map(note => ({
+      ...note,
+      siteUrl: normalizedCurrentUrl
+    }));
+
     await safeExecute(async () =>
-      await chrome.storage.local.set({ [siteKey]: notesToPersist }), 'save notes to storage');
+      await chrome.storage.local.set({ [siteKey]: normalizedNotes }), 'save notes to storage');
 
     showSuccess('Notes saved successfully!');
   } catch (error) {
@@ -685,12 +839,13 @@ async function saveNotes() {
 // Load notes from storage (site-specific) with enhanced error handling
 async function loadNotes() {
   try {
-    const currentUrl = safeExecute(() => window.location.href, 'get current url') || '';
-    if (!currentUrl || currentUrl.trim() === '') {
+    const rawCurrentUrl = safeExecute(() => window.location.href, 'get current url') || '';
+    const normalizedCurrentUrl = normalizeUrlForStorage(rawCurrentUrl);
+    if (!normalizedCurrentUrl) {
       throw new Error('No current URL available');
     }
 
-    const siteKey = getSiteStorageKey(currentUrl);
+    const siteKey = getSiteStorageKey(rawCurrentUrl);
 
     const siteData = await safeExecute(async () =>
       await chrome.storage.local.get([siteKey]), 'load notes from storage') || {};
@@ -699,30 +854,30 @@ async function loadNotes() {
 
     // Migration: Check for old URL-based keys and migrate them
     if (loadedNotes.length === 0) {
-      const currentUrl = safeExecute(() => window.location.href, 'get current url') || '';
-      const legacyKey = getLegacyStorageKey(currentUrl);
+      const legacyKey = getLegacyStorageKey(rawCurrentUrl);
       const legacyData = await safeExecute(async () =>
         await chrome.storage.local.get([legacyKey]), 'load legacy notes') || {};
-      
+
       if (legacyData[legacyKey] && legacyData[legacyKey].length > 0) {
         loadedNotes = legacyData[legacyKey];
+        const migratedNotes = loadedNotes.map(note => ({
+          ...note,
+          siteUrl: normalizeUrlForStorage(note.siteUrl || normalizedCurrentUrl) || normalizedCurrentUrl
+        }));
         // Migrate to new format
-        await chrome.storage.local.set({ [siteKey]: loadedNotes });
+        await chrome.storage.local.set({ [siteKey]: migratedNotes });
         // Remove old key
         await chrome.storage.local.remove([legacyKey]);
+        loadedNotes = migratedNotes;
       }
     }
 
-    // Update note counter based on loaded notes
-    noteCounter = loadedNotes.reduce((max, note) => {
-      const numericId = parseInt((note.id || '').split('-')[1], 10);
-      return Number.isFinite(numericId) ? Math.max(max, numericId) : max;
-    }, 0);
+    const normalizedNotes = loadedNotes.map(note => ({
+      ...note,
+      siteUrl: normalizeUrlForStorage(note.siteUrl || normalizedCurrentUrl) || normalizedCurrentUrl
+    }));
 
-    // Only keep notes for current site
-    notes = loadedNotes.filter(note => {
-      return note.siteUrl === currentUrl;
-    });
+    hydrateNotesFromStorage(normalizedNotes);
 
   } catch (error) {
     handleError(error, 'loadNotes');
@@ -744,7 +899,7 @@ async function loadAllNotes() {
           value.forEach(note => {
             allNotes.push({
               ...note,
-              siteUrl: sanitizeInput(note.siteUrl || '')
+              siteUrl: normalizeUrlForStorage(note.siteUrl || '')
             });
           });
         }
@@ -794,31 +949,51 @@ function exportNotes() {
   }
 }
 
+async function refreshNotesManagerListIfPresent() {
+  const listElement = document.getElementById('all-notes-list');
+  if (!listElement) {
+    return;
+  }
+
+  try {
+    const allNotes = await loadAllNotes();
+    renderAllNotesList(listElement, allNotes);
+  } catch (error) {
+    handleError(error, 'refreshNotesManagerListIfPresent');
+  }
+}
+
 // Import notes from JSON with enhanced error handling
 function importNotes() {
   try {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.json';
-    
+
     const cleanup = addEventListenerWithCleanup(input, 'change', (e) => {
       try {
         const file = e.target.files[0];
         if (file) {
           const reader = new FileReader();
-          
-          const readerCleanup = addEventListenerWithCleanup(reader, 'load', (e) => {
+
+          const readerCleanup = addEventListenerWithCleanup(reader, 'load', async (e) => {
             try {
               const importedNotes = safeExecute(() => JSON.parse(e.target.result), 'parse imported notes');
               if (!importedNotes) {
                 throw new Error('Failed to parse notes file');
               }
-              
+
               if (Array.isArray(importedNotes)) {
-                notes = importedNotes;
-                saveNotes();
-                loadExistingNotes();
-                updateNotesList();
+                const normalizedCurrentUrl = getNormalizedCurrentUrl();
+                const normalizedImports = importedNotes.map(note => ({
+                  ...note,
+                  siteUrl: normalizeUrlForStorage(note?.siteUrl || normalizedCurrentUrl) || normalizedCurrentUrl
+                }));
+
+                hydrateNotesFromStorage(normalizedImports);
+                await saveNotes();
+                await loadExistingNotesForCurrentSite();
+                await refreshNotesManagerListIfPresent();
                 showSuccess('Notes imported successfully!');
               } else {
                 showError('Invalid notes file format');
@@ -1086,13 +1261,14 @@ function focusNote(noteElement) {
 function deleteAllNotes() {
   try {
     const currentUrl = safeExecute(() => window.location.href, 'get current url') || '';
-    if (!currentUrl || currentUrl.trim() === '') {
+    const normalizedCurrentUrl = normalizeUrlForStorage(currentUrl);
+    if (!normalizedCurrentUrl) {
       throw new Error('No current URL available');
     }
 
     // Filter notes to only include current site
     const currentSiteNotes = notes.filter(note => {
-      return note.siteUrl === currentUrl;
+      return normalizeUrlForStorage(note.siteUrl) === normalizedCurrentUrl;
     });
 
     if (currentSiteNotes.length === 0) {
@@ -1102,7 +1278,7 @@ function deleteAllNotes() {
 
     // Remove all notes for current site from array
     notes = notes.filter(note => {
-      return note.siteUrl !== currentUrl;
+      return normalizeUrlForStorage(note.siteUrl) !== normalizedCurrentUrl;
     });
 
     // Remove all note elements from DOM
@@ -1167,7 +1343,8 @@ async function deleteIndividualNote(noteId) {
 
     // If the deleted note is from current site, update local notes array
     const currentUrl = safeExecute(() => window.location.href, 'get current url') || '';
-    if (noteToDelete.siteUrl === currentUrl) {
+    const normalizedCurrentUrl = normalizeUrlForStorage(currentUrl);
+    if (normalizeUrlForStorage(noteToDelete.siteUrl) === normalizedCurrentUrl) {
       const localNoteIndex = notes.findIndex(note => note.id === noteIdSanitized);
       if (localNoteIndex !== -1) {
         notes.splice(localNoteIndex, 1);

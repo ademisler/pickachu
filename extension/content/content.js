@@ -274,24 +274,34 @@ async function autoLoadStickyNotes() {
   try {
     const currentUrl = window.location.href;
     if (!currentUrl) return;
-    
-    // Use URL-based storage key (consistent with stickyNotesPicker.js)
-    const siteKey = `stickyNotes_${currentUrl}`;
-    const result = await chrome.storage.local.get([siteKey]);
-    const notes = result[siteKey] || [];
-    
+
+    const helpersModule = await import(chrome.runtime.getURL('modules/helpers.js'));
+    const normalizeUrlForStorage = helpersModule?.normalizeUrlForStorage || ((url) => url || '');
+    const sanitizedLegacy = helpersModule?.sanitizeInput || ((value) => value || '');
+
+    const normalizedCurrentUrl = normalizeUrlForStorage(currentUrl);
+    const siteKey = `stickyNotes_${normalizedCurrentUrl || 'global'}`;
+    const legacyKey = `stickyNotes_${sanitizedLegacy(currentUrl)}`;
+    const keysToFetch = siteKey === legacyKey ? [siteKey] : [siteKey, legacyKey];
+
+    const result = await chrome.storage.local.get(keysToFetch);
+    const notes = result[siteKey] || result[legacyKey] || [];
+
     console.log(`Auto-loading sticky notes for ${currentUrl}: ${notes.length} notes found`);
-    
+
     if (notes.length > 0) {
       // Import sticky notes module and use its renderStickyNote function
       const stickyNotesModule = await import(chrome.runtime.getURL('modules/stickyNotesPicker.js'));
       if (stickyNotesModule) {
-        // Use the module's renderStickyNote function for proper rendering
-        notes.forEach(note => {
+        const hydrateNotes = stickyNotesModule.hydrateNotesFromStorage || ((data) => data);
+        const renderStickyNote = stickyNotesModule.renderStickyNote;
+        const hydratedNotes = Array.isArray(notes) ? hydrateNotes(notes) : [];
+
+        hydratedNotes.forEach(note => {
           const existingNote = document.getElementById(note.id);
-          if (!existingNote) {
+          if (!existingNote && typeof renderStickyNote === 'function') {
             // Call the module's renderStickyNote function
-            stickyNotesModule.renderStickyNote(note);
+            renderStickyNote(note);
             console.log(`Auto-rendered note: ${note.id}`);
           }
         });

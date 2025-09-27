@@ -5,11 +5,12 @@ import {
   showError, 
   showSuccess, 
   showInfo, 
-  createOverlay, 
+  createOverlay,
   removeOverlay,
   copyText,
   getCssSelector,
-  getXPath
+  getXPath,
+  normalizeUrlForStorage
 } from '../extension/modules/helpers.js';
 
 describe('Helpers Module', () => {
@@ -129,6 +130,29 @@ describe('Helpers Module', () => {
 
       const xpath = getXPath(mockElement);
       expect(xpath).toBe('//*[@id="test-id"]');
+    });
+  });
+
+  describe('normalizeUrlForStorage', () => {
+    const originalHref = window.location.href;
+
+    afterAll(() => {
+      window.location.href = originalHref;
+    });
+
+    test('preserves query parameters and hashes', () => {
+      const input = 'https://example.com/path?one=1&two=2#section';
+      expect(normalizeUrlForStorage(input)).toBe(input);
+    });
+
+    test('removes javascript protocol while keeping path', () => {
+      const normalized = normalizeUrlForStorage('javascript:https://example.com/path');
+      expect(normalized).toBe('https://example.com/path');
+    });
+
+    test('strips unsafe javascript URLs without fabricating domains', () => {
+      const normalized = normalizeUrlForStorage('javascript:alert(1)');
+      expect(normalized).toBe('alert(1)');
     });
   });
 
