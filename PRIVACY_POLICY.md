@@ -1,34 +1,65 @@
-# Privacy Policy for Pickachu – Web Picker Tool
+# Privacy Policy for Pickachu Extension
 
-Pickachu – Web Picker Tool ("the extension") is a Chrome extension that lets you easily grab colors, elements, links, fonts, images and text from any webpage. This document explains what data the extension collects and how it is used.
+**Last updated: September 27, 2025**
 
-## Data Collection and Storage
+## Overview
 
-The extension stores the following information **locally** in your browser using Chrome's `storage` API:
+Pickachu is a web development tool extension that helps users extract and analyze content from web pages. This privacy policy explains how we handle your data.
 
-- Your selected language and theme preferences.
-- A history list of the items you have copied using the extension (limited to the most recent 20 entries).
+## Data Collection
 
-This information never leaves your device. The extension does not transmit any collected data to remote servers or third parties.
+**We do NOT collect, store, or transmit any personal data.**
 
-## Permissions and Their Use
+## What We Don't Do
 
-- `activeTab` – required to activate the extension on the current tab when you click a tool button.
-- `scripting` – used to execute the content script that extracts data from the page.
-- `clipboardWrite` – allows the extension to copy the selected content to your clipboard.
-- `storage` – saves your language, theme and history data locally.
-- `host_permissions` (`<all_urls>`) – lets the extension run on any webpage so that you can capture content anywhere.
+- ❌ We don't collect personal information
+- ❌ We don't track your browsing history
+- ❌ We don't store data on external servers
+- ❌ We don't share data with third parties
+- ❌ We don't use analytics or tracking cookies
 
-The extension does not include or execute remote code. All scripts are bundled with the extension package.
+## What We Do
 
-## Data Usage
+- ✅ All processing happens locally on your device
+- ✅ Data is only stored locally in your browser
+- ✅ No external network requests for data collection
+- ✅ Open source code for transparency
 
-The information listed above is used solely to provide the extension's functionality—displaying your history, remembering your preferences and copying content you choose. We do not collect any personally identifiable information, financial information, health information or authentication details. Nothing is sold or shared with third parties.
+## Local Storage
 
-## Disclosures
+The extension may store the following data locally in your browser:
 
-- We do **not** sell or transfer user data to third parties.
-- We do **not** use data for purposes unrelated to the extension's single function.
-- We do **not** use data to determine creditworthiness or for lending purposes.
+- **Sticky Notes**: Notes you create are stored locally in Chrome's storage
+- **Settings**: Your language and theme preferences
+- **History**: Recently used tools (stored locally only)
 
-If you have any questions about this policy, please contact the project maintainer.
+This data never leaves your device and is not transmitted to any external servers.
+
+## Permissions
+
+The extension requires the following permissions:
+
+- **activeTab**: To access the current tab for content analysis
+- **scripting**: To inject content scripts for tool functionality
+- **clipboardWrite**: To copy extracted content to your clipboard
+- **storage**: To save your preferences and notes locally
+- **tabs**: To get tab information for screenshots
+- **downloads**: To download extracted media files
+
+## Third-Party Services
+
+This extension does not use any third-party services or APIs for data collection.
+
+## Updates
+
+This privacy policy may be updated from time to time. Any changes will be posted on this page.
+
+## Contact
+
+If you have any questions about this privacy policy, please contact the developer.
+
+---
+
+**Extension Name**: Pickachu  
+**Version**: 1.1.0  
+**Developer**: [Your Name/Company]  

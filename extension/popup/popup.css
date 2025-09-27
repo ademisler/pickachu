@@ -218,7 +218,7 @@ body {
   box-shadow: var(--pickachu-shadow);
   color: var(--pickachu-text);
   position: relative;
-  min-height: 80px;
+  min-height: 90px;
   font-family: inherit;
   text-decoration: none;
   aspect-ratio: 1;
@@ -247,10 +247,10 @@ body {
 }
 
 .tool-icon {
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   filter: brightness(0);
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   transition: var(--pickachu-transition);
 }
 
@@ -527,12 +527,12 @@ body {
   
   .tool-btn {
     padding: 12px 6px;
-    min-height: 70px;
+    min-height: 80px;
   }
   
   .tool-icon {
-    width: 22px;
-    height: 22px;
+    width: 28px;
+    height: 28px;
   }
   
   .tool-label {
@@ -558,12 +558,12 @@ body {
   
   .tool-btn {
     padding: 12px 8px;
-    min-height: 75px;
+    min-height: 85px;
   }
   
   .tool-icon {
-    width: 24px;
-    height: 24px;
+    width: 30px;
+    height: 30px;
   }
   
   .tool-label {
