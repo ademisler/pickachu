@@ -1,26 +1,30 @@
-# Pickachu – Web Picker Tool
+# Pickachu – Web Development Toolkit
 
-Pickachu – Web Picker Tool is a lightweight toolbox for grabbing colors, elements, links, fonts, images, text, screenshots, sticky notes, and site information from any webpage.
+Pickachu is a powerful, free and open-source Chrome extension that provides 9 essential web development tools in one unified toolbox. Extract, analyze, and capture content from any webpage with professional-grade precision.
 
-**Version 1.1**
+**Version 1.1.0**
 
-## Features
-- **9 Powerful Tools**: Color, Element, Link, Font, Image, Text, Screenshot, Sticky Notes, and Site Info pickers
-- **Editable modal** with favorites and export options
-- **Color picker** using the EyeDropper API with multiple format support
-- **Element picker** with comprehensive element analysis and keyboard navigation
-- **Link picker** with area selection and link type analysis
-- **Font picker** with detailed typography information
-- **Media picker** (images & videos) with metadata extraction and quick download options
-- **Text picker** with content analysis and formatting detection
-- **Screenshot picker** for full-page and visible area captures
-- **Sticky Notes** for page-specific annotations with persistence
-- **Site Info** for technology detection and performance analysis
-- **History panel** grouped by type with favorites
-- **Multi-language support** (English, Turkish, French)
-- **Theme options** (Auto, Light, Dark)
-- **Keyboard shortcuts** for all tools
-- **Icons adapt** to light and dark mode
+## 🚀 Core Tools
+
+- **🎨 Color Picker** - Extract colors using the EyeDropper API with RGB/HSL conversion
+- **🅰️ Font Inspector** - Analyze typography: family, size, weight, color, and CSS properties  
+- **🖼️ Media Extractor** - Preview, download, and analyze images and videos
+- **🔗 Link Analyzer** - Extract and categorize all page links with URL validation
+- **📝 Text Selector** - Copy text content from any element (including protected pages)
+- **🧱 Element Inspector** - Deep HTML analysis with CSS selectors and XPath generation
+- **📸 Screenshot Tool** - Capture full-page screenshots with automatic stitching
+- **📌 Sticky Notes** - Add persistent notes to any webpage (site-specific storage)
+- **🔍 Site Analyzer** - Comprehensive website analysis: tech stack, performance, SEO, accessibility
+
+## ✨ Key Features
+
+- **Professional Interface** - Clean, intuitive design with dark/light mode support
+- **Keyboard Shortcuts** - Quick access with customizable hotkeys (Ctrl+Shift+1-9)
+- **Multi-Language UI** - English, Français, Türkçe localization
+- **Smart Notifications** - Real-time feedback with clipboard integration
+- **Privacy First** - Zero data collection, local processing only
+- **Developer Friendly** - Open source with comprehensive documentation
+- **No Limits** - All features free, no premium restrictions or ads
 
 ## Installation
 1. Clone this repository.
@@ -30,61 +34,133 @@ Pickachu – Web Picker Tool is a lightweight toolbox for grabbing colors, eleme
 The popup provides buttons to activate each tool. Data from the page is copied to your
 clipboard and displayed in a short notification.
 
-## Keyboard Shortcuts
-Pickachu defines a single shortcut using the Chrome `commands` API to open the popup:
+## ⌨️ Keyboard Shortcuts
+
+Pickachu provides keyboard shortcuts for quick access to tools:
 
 | Action | Shortcut |
 | ------ | -------- |
-| Open popup | `Ctrl+Shift+9` / `Cmd+Shift+9` (macOS) |
 | Toggle popup | `Ctrl+Shift+P` / `Cmd+Shift+P` (macOS) |
-
-Pickachu also exposes global shortcuts for each tool:
-
-| Tool | Shortcut |
-| ---- | -------- |
 | Color Picker | `Alt+Shift+1` / `Option+Shift+1` (macOS) |
 | Element Picker | `Alt+Shift+2` / `Option+Shift+2` (macOS) |
-| Link Picker | `Alt+Shift+3` / `Option+Shift+3` (macOS) |
-| Font Picker | `Alt+Shift+4` / `Option+Shift+4` (macOS) |
-| Media Picker | `Alt+Shift+5` / `Option+Shift+5` (macOS) |
-| Text Picker | `Alt+Shift+6` / `Option+Shift+6` (macOS) |
-| Screenshot Picker | `Alt+Shift+7` / `Option+Shift+7` (macOS) |
-| Sticky Notes Picker | `Alt+Shift+8` / `Option+Shift+8` (macOS) |
-| Site Info Picker | `Alt+Shift+9` / `Option+Shift+9` (macOS) |
+| Screenshot Tool | `Alt+Shift+3` / `Option+Shift+3` (macOS) |
 
-## Repository Structure
+*Note: Additional tool shortcuts can be added through Chrome's extension keyboard shortcuts settings.*
+
+## 📁 Repository Structure
 ```
 extension/
-  background.js       - service worker
-  content/            - content script and styling
-  icons/              - extension icons
-  modules/            - picker modules
-  popup/              - popup HTML, CSS and JS
-  manifest.json       - Chrome extension manifest
+├── background.js           # Service worker
+├── manifest.json           # Chrome extension manifest
+├── content/                # Content script and styling
+│   ├── content.js
+│   └── content.css
+├── popup/                  # Popup interface
+│   ├── popup.html
+│   ├── popup.css
+│   └── popup.js
+├── modules/                # Tool modules
+│   ├── colorPicker.js
+│   ├── elementPicker.js
+│   ├── fontPicker.js
+│   ├── linkPicker.js
+│   ├── mediaPicker.js
+│   ├── screenshotPicker.js
+│   ├── stickyNotesPicker.js
+│   ├── siteInfoPicker.js
+│   ├── textPicker.js
+│   ├── helpers.js
+│   └── icons.js
+├── icons/                  # Extension icons
+│   ├── icon16.png
+│   ├── icon48.png
+│   ├── icon128.png
+│   └── tools/              # Tool icons
+└── _locales/               # Internationalization
+    ├── en/messages.json
+    ├── fr/messages.json
+    └── tr/messages.json
 ```
 
-## Packaging
-Run the following to create a zip archive ready for distribution:
+## 📦 Packaging
+
+### For Chrome Web Store
+Create a zip archive ready for Chrome Web Store submission:
 ```bash
 cd extension
-zip -r ../pickachu.zip .
+zip -r ../pickachu-v1.1-chrome-store.zip .
 ```
 
-## Development
-After installing dependencies with `npm install`, run the unit tests with:
+### For Development
+Install dependencies and run tests:
 ```bash
+npm install
 npm test
+npm run lint
 ```
 
-## Credits
-Created by [Adem İsler](https://ademisler.com/). If you find this project useful,
-consider [buying me a coffee](https://buymeacoffee.com/ademisler).
+## 🛠️ Development
 
+### Prerequisites
+- Node.js 16+ 
+- Chrome browser for testing
 
-## License
+### Setup
+```bash
+# Clone the repository
+git clone https://github.com/ademisler/pickachu.git
+cd pickachu
 
-This project is licensed under the [MIT License](LICENSE). You are free to use and modify the code as long as you retain the original copyright notice.
+# Install dependencies
+npm install
 
-## Privacy Policy
+# Run tests
+npm test
 
-This extension stores your language and theme preferences and a short history of copied items in Chrome's local storage. None of this information is transmitted or shared. For details see the [privacy policy](PRIVACY_POLICY.md).
+# Run linting
+npm run lint
+
+# Fix linting issues
+npm run lint:fix
+```
+
+### Testing
+The project includes comprehensive unit tests for all modules:
+- Color picker functionality
+- Element inspection
+- Font analysis
+- Link extraction
+- Media handling
+- Screenshot capture
+- Sticky notes persistence
+- Site information analysis
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE) - see the LICENSE file for details.
+
+## 🔐 Privacy & Security
+
+- **No data collection** - Pickachu does not collect, store, or transmit any user data
+- **Local processing only** - All operations happen within your browser
+- **No external servers** - No data is sent to external services
+- **Open source** - Full transparency with publicly available source code
+
+For detailed information, see our [Privacy Policy](PRIVACY_POLICY.md).
+
+## 👨‍💻 Credits
+
+Created by [Adem İsler](https://ademisler.com/). 
+
+If you find this project useful, consider [buying me a coffee](https://buymeacoffee.com/ademisler) ☕
+
+## 🌟 Support
+
+- ⭐ Star this repository if you like it
+- 🐛 Report bugs via [GitHub Issues](https://github.com/ademisler/pickachu/issues)
+- 💡 Suggest new features via [GitHub Discussions](https://github.com/ademisler/pickachu/discussions)
+- 📧 Contact: [ademisler.com](https://ademisler.com/)
